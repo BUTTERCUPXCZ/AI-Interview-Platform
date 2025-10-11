@@ -14,7 +14,6 @@ import {
     AlertCircle,
     Loader2,
     Code,
-    TestTube,
     FileText,
     Lightbulb,
     ArrowRight,
@@ -185,6 +184,8 @@ const CodingSandbox = () => {
         }
     }
 
+
+
     const handleSubmitSolution = async () => {
         if (!question || !code.trim()) return
 
@@ -349,7 +350,7 @@ const CodingSandbox = () => {
                                         Description
                                     </TabsTrigger>
                                     <TabsTrigger value="testcases">
-                                        <TestTube className="w-4 h-4 mr-2" />
+                                        <Code className="w-4 h-4 mr-2" />
                                         Test Cases
                                     </TabsTrigger>
                                     <TabsTrigger value="hints">
@@ -543,57 +544,32 @@ const CodingSandbox = () => {
 
                                 {executionResult.testResults && (
                                     <div>
-                                        <div className="flex items-center justify-between mb-2">
+                                        <div className="flex items-center justify-between mb-3">
                                             <span className="text-sm font-medium">Test Results:</span>
                                             <span className="text-xs text-muted-foreground">
                                                 {executionResult.testResults.filter(r => r.passed).length} / {executionResult.testResults.length} passed
                                             </span>
                                         </div>
+
+                                        {/* Simple Test Case Results */}
                                         <div className="space-y-2">
                                             {executionResult.testResults.map((result, index) => (
-                                                <div key={index} className={`p-2 rounded border ${result.passed
-                                                    ? 'bg-green-50 border-green-200'
-                                                    : 'bg-red-50 border-red-200'
+                                                <div key={index} className={`p-2 rounded-md flex items-center gap-2 text-sm ${result.passed
+                                                    ? 'bg-green-50 text-green-800 border border-green-200'
+                                                    : 'bg-red-50 text-red-800 border border-red-200'
                                                     }`}>
-                                                    <div className="flex items-center gap-2 mb-1">
-                                                        {result.passed ? (
-                                                            <CheckCircle2 className="w-4 h-4 text-green-600" />
-                                                        ) : (
-                                                            <AlertCircle className="w-4 h-4 text-red-600" />
-                                                        )}
-                                                        <span className={`text-sm font-medium ${result.passed ? 'text-green-800' : 'text-red-800'
-                                                            }`}>
-                                                            Test Case {index + 1}: {result.passed ? 'PASSED' : 'FAILED'}
-                                                            {executionResult.isSimulated && ' (estimated)'}
-                                                        </span>
-                                                    </div>
-
-                                                    <div className="text-xs space-y-1">
-                                                        {result.description && (
-                                                            <div className="text-gray-600">
-                                                                <span className="font-medium">Description:</span> {result.description}
-                                                            </div>
-                                                        )}
-                                                        <div className="text-gray-600">
-                                                            <span className="font-medium">Input:</span> {result.input}
-                                                        </div>
-                                                        <div className="text-gray-600">
-                                                            <span className="font-medium">Expected:</span> {result.expectedOutput}
-                                                        </div>
-                                                        {result.actualOutput && (
-                                                            <div className={result.passed ? 'text-green-700' : 'text-red-700'}>
-                                                                <span className="font-medium">Actual:</span> {result.actualOutput}
-                                                            </div>
-                                                        )}
-                                                        {result.error && (
-                                                            <div className="text-red-700">
-                                                                <span className="font-medium">Error:</span> {result.error}
-                                                            </div>
-                                                        )}
-                                                    </div>
+                                                    {result.passed ? (
+                                                        <CheckCircle2 className="w-4 h-4 text-green-600" />
+                                                    ) : (
+                                                        <AlertCircle className="w-4 h-4 text-red-600" />
+                                                    )}
+                                                    <span className="font-medium">
+                                                        Test case {index + 1}: {result.passed ? 'Passed' : 'Failed'}
+                                                    </span>
                                                 </div>
                                             ))}
                                         </div>
+
                                         {executionResult.isSimulated && (
                                             <p className="text-xs text-gray-600 mt-2 p-2 bg-blue-50 border border-blue-200 rounded">
                                                 ℹ️ Test results are estimated based on code analysis since the runtime is not available

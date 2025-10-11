@@ -4,8 +4,11 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
-import authRoutes from '../routes/authRoutes.js';
-import codingRoutes from '../routes/codingRoutes.js';
+import authRoutes from '../routes/authRoutes';
+import codingRoutes from '../routes/codingRoutes';
+import interview from '../routes/interview';
+import textInterviewRoutes from '../routes/textInterviewRoutes';
+import { connectPrisma } from '../lib/prisma';
 dotenv.config();
 const PORT = process.env.PORT || 3000;
 const app = express();
@@ -26,6 +29,25 @@ app.use(cookieParser());
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/coding", codingRoutes);
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
+app.use("/api/interview", interview);
+app.use("/api/interview", textInterviewRoutes);
+// Initialize Prisma connection and start server
+const startServer = async () => {
+    try {
+        // Skip the explicit connection test in development to avoid prepared statement conflicts
+        if (process.env.NODE_ENV !== 'development') {
+            await connectPrisma();
+        }
+        else {
+            console.log('✅ Prisma client initialized (development mode)');
+        }
+        app.listen(PORT, () => {
+            console.log(`🚀 Server is running on port ${PORT}`);
+        });
+    }
+    catch (error) {
+        console.error('Failed to start server:', error);
+        process.exit(1);
+    }
+};
+startServer();

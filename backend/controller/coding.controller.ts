@@ -287,10 +287,151 @@ async function executeCodeInSandbox(
         const output = await executeCommand(runtime.command!, runtime.args!, tempDir, 10000) // 10 second timeout
         const executionTime = Date.now() - startTime
 
+        // If test cases are provided, run them and compare outputs
+        let testResults: Array<{
+            passed: boolean;
+            input: string;
+            expectedOutput: string;
+            actualOutput?: string;
+            error?: string;
+        }> | undefined;
+
+        if (testCases && testCases.length > 0) {
+            testResults = [];
+
+            for (const testCase of testCases) {
+                try {
+                    let actualOutput: string;
+
+                    if (language.toLowerCase() === 'javascript') {
+                        // For JavaScript, we need to execute the function with test inputs
+                        try {
+                            // Extract function name from the code
+                            const functionMatch = code.match(/function\s+(\w+)\s*\(/);
+                            const functionName = functionMatch ? functionMatch[1] : null;
+
+                            if (!functionName) {
+                                actualOutput = 'Error: Could not find function definition in code';
+                            } else {
+                                let functionCallScript: string;
+
+                                // Try to parse test input as JSON
+                                try {
+                                    const testInput = JSON.parse(testCase.input);
+
+                                    // For this case, the test input is the actual parameter to pass to the function
+                                    // The testInput itself should be passed as a single parameter
+                                    functionCallScript = `
+${code}
+
+// Call function with test input as parameter
+const result = ${functionName}(${JSON.stringify(testInput)});
+console.log(JSON.stringify(result));
+`;
+                                } catch {
+                                    // If JSON parsing fails, try direct evaluation
+                                    functionCallScript = `
+${code}
+
+// Direct function call with raw input
+const result = ${functionName}(${testCase.input});
+console.log(JSON.stringify(result));
+`;
+                                }
+
+                                // Write test script to a file
+                                const testFileName = `test_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.js`;
+                                const testFilePath = path.join(tempDir, testFileName);
+                                await fs.writeFile(testFilePath, functionCallScript);
+
+                                // Execute the test script
+                                const testOutput = await executeCommand('node', [testFileName], tempDir, 10000);
+                                actualOutput = testOutput.trim();
+                            }
+                        } catch (testError) {
+                            actualOutput = `Error: ${testError instanceof Error ? testError.message : 'Test execution failed'}`;
+                        }
+                    } else {
+                        // For other languages, use the original simple comparison
+                        actualOutput = output.trim();
+                    }
+
+                    // Handle expectedOutput - it might be a string or number
+                    const expectedOutput = typeof testCase.expectedOutput === 'string'
+                        ? testCase.expectedOutput.trim()
+                        : String(testCase.expectedOutput);
+
+                    // Compare the results
+                    let passed = false;
+                    try {
+                        // First, try to parse both as JSON for deep comparison
+                        const actualParsed = JSON.parse(actualOutput);
+                        let expectedParsed;
+
+                        // Handle expected output - might be already a number/object
+                        if (typeof testCase.expectedOutput === 'string') {
+                            expectedParsed = JSON.parse(expectedOutput);
+                        } else {
+                            expectedParsed = testCase.expectedOutput;
+                        }
+
+                        // For arrays, we need to handle order-independent comparison
+                        if (Array.isArray(actualParsed) && Array.isArray(expectedParsed)) {
+                            if (actualParsed.length === expectedParsed.length) {
+                                // For this specific problem, the order of endpoints with same count doesn't matter
+                                // So we'll sort both arrays before comparison
+                                const sortedActual = [...actualParsed].sort();
+                                const sortedExpected = [...expectedParsed].sort();
+                                passed = JSON.stringify(sortedActual) === JSON.stringify(sortedExpected);
+
+                                // Also check exact match without sorting
+                                if (!passed) {
+                                    passed = JSON.stringify(actualParsed) === JSON.stringify(expectedParsed);
+                                }
+                            }
+                        } else {
+                            // For numbers and other primitives, do direct comparison
+                            passed = actualParsed === expectedParsed;
+                        }
+                    } catch (parseError) {
+                        // If JSON parsing fails, try string/numeric comparison
+                        const actualTrimmed = actualOutput.trim();
+                        const expectedTrimmed = expectedOutput.trim();
+
+                        // Try numeric comparison first
+                        const actualNum = Number(actualTrimmed);
+                        const expectedNum = Number(expectedTrimmed);
+
+                        if (!isNaN(actualNum) && !isNaN(expectedNum)) {
+                            passed = actualNum === expectedNum;
+                        } else {
+                            // Fall back to string comparison
+                            passed = actualTrimmed.toLowerCase() === expectedTrimmed.toLowerCase();
+                        }
+                    }
+
+                    testResults.push({
+                        passed,
+                        input: testCase.input,
+                        expectedOutput: testCase.expectedOutput,
+                        actualOutput,
+                    });
+                } catch (error) {
+                    testResults.push({
+                        passed: false,
+                        input: testCase.input,
+                        expectedOutput: testCase.expectedOutput,
+                        error: error instanceof Error ? error.message : 'Test execution failed'
+                    });
+                }
+            }
+        }
+
         return {
             success: true,
             output: output.trim(),
-            executionTime
+            executionTime,
+            testResults
         }
     } catch (error) {
         const executionTime = Date.now() - startTime
@@ -642,8 +783,8 @@ export const getCodingQuestion = async (req: Request, res: Response) => {
                         prisma.testCase.create({
                             data: {
                                 questionId: savedQuestion.id,
-                                input: testCase.input,
-                                expectedOutput: testCase.expectedOutput,
+                                input: String(testCase.input),
+                                expectedOutput: String(testCase.expectedOutput),
                                 description: testCase.description || '',
                             }
                         })
@@ -700,25 +841,18 @@ export const runCodeWithEvaluation = async (req: Request, res: Response) => {
             await fs.rm(tempDir, { recursive: true, force: true })
         }
 
-        // If execution was successful, get AI evaluation
+        // If execution was successful, get enhanced AI evaluation
         let aiEvaluation = null
-        if (executionResult.success) {
+        if (executionResult.success && questionText) {
             try {
-                // Prepare execution results for AI evaluation
-                const evaluationData = {
-                    passedTests: testCases ? testCases.filter((tc: any, index: number) =>
-                        executionResult.testResults?.[index]?.passed).length : 0,
-                    totalTests: testCases ? testCases.length : 0,
-                    results: executionResult.testResults || [],
-                    executionTime: executionResult.executionTime
-                }
-
-                aiEvaluation = await evaluateCodeSolution(
-                    questionText || 'Coding challenge',
+                // Use the enhanced evaluation service
+                const { evaluateCodingAnswerService } = await import('../services/codingEvaluationService')
+                aiEvaluation = await evaluateCodingAnswerService({
                     code,
                     language,
-                    evaluationData
-                )
+                    question: questionText,
+                    testCases: testCases || []
+                })
 
                 // If questionId is provided, save the submission to database
                 if (questionId) {
@@ -727,30 +861,48 @@ export const runCodeWithEvaluation = async (req: Request, res: Response) => {
                             questionId: parseInt(questionId),
                             code,
                             language: language.toUpperCase() as any,
-                            isCorrect: aiEvaluation.passedAllTests,
-                            passedTests: evaluationData.passedTests,
-                            totalTests: evaluationData.totalTests,
+                            isCorrect: aiEvaluation.passRate === 100,
+                            passedTests: aiEvaluation.passedTests,
+                            totalTests: aiEvaluation.totalTests,
                         }
                     })
 
-                    // Update the question with the answer and evaluation
+                    // Update the question with the answer and enhanced evaluation
                     await prisma.interviewQuestion.update({
                         where: { id: parseInt(questionId) },
                         data: {
                             userAnswer: code,
-                            aiEvaluation: aiEvaluation.feedback,
-                            score: aiEvaluation.overallScore,
+                            aiEvaluation: aiEvaluation.overallFeedback || 'Code evaluation completed',
+                            score: aiEvaluation.finalScore || 0,
                         }
                     })
                 }
             } catch (evalError) {
-                console.error('AI evaluation failed:', evalError)
-                // Continue without AI evaluation
+                console.error('Enhanced AI evaluation failed:', evalError)
+                // Fallback to basic evaluation
+                aiEvaluation = {
+                    technicalScore: 7,
+                    codeQuality: 7,
+                    overallFeedback: "Code executed successfully. Enhanced evaluation temporarily unavailable.",
+                    finalScore: 7,
+                    passRate: executionResult.testResults ?
+                        (executionResult.testResults.filter((r: any) => r.passed).length / executionResult.testResults.length) * 100 : 0,
+                    passedTests: executionResult.testResults ?
+                        executionResult.testResults.filter((r: any) => r.passed).length : 0,
+                    totalTests: testCases?.length || 0
+                }
             }
         }
 
         res.json({
-            execution: executionResult,
+            success: executionResult.success,
+            output: executionResult.output,
+            error: executionResult.error,
+            executionTime: executionResult.executionTime,
+            testResults: executionResult.testResults,
+            isSimulated: executionResult.isSimulated,
+            runtimeMissing: executionResult.runtimeMissing,
+            installationGuide: executionResult.installationGuide,
             evaluation: aiEvaluation
         })
     } catch (error) {

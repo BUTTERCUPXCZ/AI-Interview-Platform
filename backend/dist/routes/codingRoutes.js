@@ -1,5 +1,5 @@
 import express from 'express';
-import { executeCode, evaluateCode, submitAnswer, getCodingQuestion } from '../controller/coding.controller';
+import { executeCode, evaluateCode, submitAnswer, getCodingQuestion, runCodeWithEvaluation } from '../controller/coding.controller';
 const router = express.Router();
 // Execute code in sandbox
 router.post('/execute', executeCode);
@@ -7,6 +7,8 @@ router.post('/execute', executeCode);
 router.post('/evaluate', evaluateCode);
 // Submit interview answer
 router.post('/submit-answer', submitAnswer);
-// Get coding question
+// Get coding question (Gemini-powered)
 router.get('/question', getCodingQuestion);
+// Execute code and get AI evaluation (enhanced endpoint)
+router.post('/run-with-evaluation', runCodeWithEvaluation);
 export default router;

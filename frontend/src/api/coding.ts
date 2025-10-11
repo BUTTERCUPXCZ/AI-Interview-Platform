@@ -26,6 +26,17 @@ export interface CodeExecutionResult {
     output?: string;
     error?: string;
     executionTime?: number;
+    testResults?: Array<{
+        passed: boolean;
+        input: string;
+        expectedOutput: string;
+        actualOutput?: string;
+        error?: string;
+        description?: string;
+    }>;
+    isSimulated?: boolean;
+    runtimeMissing?: boolean;
+    installationGuide?: string;
     aiEvaluation?: AIEvaluationResult;
 }
 

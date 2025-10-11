@@ -1,7 +1,6 @@
 import bcrypt from "bcryptjs";
-import { PrismaClient } from "@prisma/client";
+import { prisma, safeQuery } from "../lib/prisma";
 import { generateToken, setTokenCookie, clearTokenCookie, getTokenFromCookies, verifyToken } from "../utils/jwt.utils.js";
-const prisma = new PrismaClient();
 // REGISTER
 export const registerUser = async (req, res, next) => {
     const { Firstname, Lastname, email, password } = req.body;
@@ -50,10 +49,12 @@ export const loginUser = async (req, res, next) => {
         if (!email || !password) {
             return res.status(400).json({ message: "Email and password are required" });
         }
-        // Find user by email
-        const user = await prisma.user.findUnique({
-            where: { email },
-            select: { id: true, Firstname: true, Lastname: true, email: true, password: true, role: true }
+        // Find user by email with retry logic for prepared statement conflicts
+        const user = await safeQuery(async () => {
+            return await prisma.user.findUnique({
+                where: { email },
+                select: { id: true, Firstname: true, Lastname: true, email: true, password: true, role: true }
+            });
         });
         if (!user) {
             return res.status(401).json({ message: "Invalid email or password" });

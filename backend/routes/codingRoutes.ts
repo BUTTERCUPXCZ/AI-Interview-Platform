@@ -15,7 +15,7 @@ router.post('/submit-answer', submitAnswer)
 // Get coding question (Gemini-powered)
 router.get('/question', getCodingQuestion)
 
-// Execute code and get AI evaluation (new endpoint)
-router.post('/run-and-evaluate', runCodeWithEvaluation)
+// Execute code and get AI evaluation (enhanced endpoint)
+router.post('/run-with-evaluation', runCodeWithEvaluation)
 
 export default router

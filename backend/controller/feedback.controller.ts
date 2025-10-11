@@ -2,6 +2,9 @@ import { Request, Response } from 'express'
 import { prisma } from "../lib/prisma"
 import { analyzeSession } from '../services/geminiService'
 import { generateComprehensiveFeedback, DetailedFeedback, QuestionAnalysis } from '../services/feedbackService'
+import { GoogleGenerativeAI } from "@google/generative-ai"
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "")
 
 // Unified function to get feedback/summary for any interview type
 export const getUnifiedSessionFeedback = async (req: Request, res: Response) => {
@@ -346,4 +349,134 @@ function determineCategoryFromQuestion(questionText: string, domain: string, int
     }
 
     return 'general';
+}
+
+// Analyze interviewer behavior and communication
+export const analyzeInterviewerBehavior = async (req: Request, res: Response) => {
+    try {
+        const { sessionId } = req.params;
+
+        // Get session data with questions
+        const session = await prisma.interviewSession.findUnique({
+            where: { id: Number(sessionId) },
+            include: {
+                questions: {
+                    orderBy: { id: 'asc' }
+                }
+            }
+        });
+
+        if (!session) {
+            return res.status(404).json({ error: "Session not found" });
+        }
+
+        // Generate AI-powered interviewer analysis using Gemini
+        const interviewerAnalysis = await generateGeminiInterviewerAnalysis(session);
+
+        res.json({ interviewerAnalysis });
+    } catch (error: any) {
+        console.error("Error analyzing interviewer behavior:", error);
+        res.status(500).json({ error: "Failed to analyze interviewer behavior" });
+    }
+};
+
+// Helper function to generate AI-powered interviewer analysis using Gemini
+async function generateGeminiInterviewerAnalysis(session: any) {
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+    const totalQuestions = session.questions.length;
+    const answerableQuestions = session.questions.filter((q: any) => q.userAnswer !== null);
+    const completionRate = (answerableQuestions.length / totalQuestions) * 100;
+
+    // Prepare context for Gemini
+    const sessionContext = {
+        domain: session.domain,
+        interviewType: session.interviewType,
+        difficulty: session.difficulty,
+        duration: session.duration,
+        totalQuestions,
+        answeredQuestions: answerableQuestions.length,
+        completionRate: Math.round(completionRate),
+        questions: session.questions.map((q: any, index: number) => ({
+            number: index + 1,
+            question: q.questionText,
+            answered: q.userAnswer !== null,
+            score: q.score || 0,
+            isCoding: q.isCodingQuestion || false
+        }))
+    };
+
+    const prompt = `
+    You are an expert interviewer performance analyst. Analyze the following interview session data and provide comprehensive feedback about the interviewer's performance in BULLET POINT format.
+
+    Interview Session Data:
+    - Domain: ${sessionContext.domain}
+    - Interview Type: ${sessionContext.interviewType}
+    - Difficulty: ${sessionContext.difficulty}
+    - Duration: ${sessionContext.duration} minutes
+    - Total Questions: ${sessionContext.totalQuestions}
+    - Completion Rate: ${sessionContext.completionRate}%
+    
+    Questions and Responses:
+    ${sessionContext.questions.map((q: any) => `
+    Question ${q.number}: ${q.question}
+    - Answered: ${q.answered ? 'Yes' : 'No'}
+    - Score: ${q.score}/10
+    - Type: ${q.isCoding ? 'Coding' : 'Technical/Behavioral'}
+    `).join('')}
+
+    Please analyze the interviewer's performance and return ONLY a valid JSON object with this exact structure:
+    
+    {
+        "interview_id": "INT-${session.id}",
+        "interviewer_name": "AI Interviewer",
+        "performance_summary": [
+            "• Bullet point about communication clarity and tone",
+            "• Bullet point about question relevance and structure", 
+            "• Bullet point about candidate engagement and pacing",
+            "• Bullet point about professionalism and conduct",
+            "• Bullet point about evaluation consistency and fairness"
+        ],
+        "overall_impression": "Brief overall assessment of interview quality and style",
+        "categories": {
+            "clarity_and_tone": "Assessment of communication clarity and professional tone",
+            "question_relevance": "Evaluation of question appropriateness for role and level",
+            "candidate_engagement": "Analysis of pacing and interaction quality",
+            "professionalism": "Assessment of professional conduct and courtesy",
+            "fairness": "Evaluation of bias-free and consistent assessment"
+        },
+        "flags": {
+            "bias_detected": ${completionRate < 50 ? 'true' : 'false'},
+            "unprofessional_language": false,
+            "pacing_issues": ${completionRate < 70 ? 'true' : 'false'}
+        }
+    }
+
+    Focus on:
+    1. Use BULLET POINTS (•) in performance_summary
+    2. Provide constructive, professional feedback
+    3. Consider completion rate as indicator of pacing
+    4. Assess question difficulty alignment with stated level
+    5. Evaluate question variety and domain relevance
+    6. NO numeric scores - only descriptive feedback
+    7. Keep responses concise but insightful
+
+    Return ONLY the JSON object, no markdown formatting or additional text.
+    `;
+
+    try {
+        const result = await model.generateContent(prompt);
+        const text = result.response.text();
+
+        // Clean and parse the response
+        const cleanedText = text
+            .replace(/```json\s*/g, '')
+            .replace(/```\s*/g, '')
+            .trim();
+
+        return JSON.parse(cleanedText);
+    } catch (error) {
+        console.error('Gemini analysis failed:', error);
+        throw new Error('Failed to generate AI analysis. Please ensure Gemini API is properly configured and try again.');
+    }
 }

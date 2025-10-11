@@ -4,40 +4,28 @@ import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { v4 as uuidv4 } from 'uuid';
-
 // ES module equivalent of __dirname
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-
 // Utility: Check if a command exists on the system
-async function commandExists(command: string): Promise<boolean> {
+async function commandExists(command) {
     try {
         if (process.platform === 'win32') {
             await executeCommand('where', [command], process.cwd(), 2000);
-        } else {
+        }
+        else {
             await executeCommand('which', [command], process.cwd(), 2000);
         }
         return true;
-    } catch {
+    }
+    catch {
         return false;
     }
 }
-
 // Utility: Get language runtime information
-async function getLanguageRuntime(language: string): Promise<{
-    available: boolean;
-    command?: string;
-    args?: string[];
-    compileCommand?: string;
-    compileArgs?: string[];
-    extension: string;
-    className?: string;
-    errorMessage?: string;
-}> {
+async function getLanguageRuntime(language) {
     const lang = language.toLowerCase();
-
     switch (lang) {
         case 'javascript':
             return {
@@ -47,7 +35,6 @@ async function getLanguageRuntime(language: string): Promise<{
                 extension: '.js',
                 errorMessage: 'Node.js is not installed. Please install Node.js to run JavaScript code.'
             };
-
         case 'python':
             const pythonAvailable = await commandExists('python') || await commandExists('python3');
             return {
@@ -57,7 +44,6 @@ async function getLanguageRuntime(language: string): Promise<{
                 extension: '.py',
                 errorMessage: 'Python is not installed. Please install Python to run Python code.'
             };
-
         case 'java':
             const javacAvailable = await commandExists('javac');
             const javaAvailable = await commandExists('java');
@@ -71,7 +57,6 @@ async function getLanguageRuntime(language: string): Promise<{
                 className: 'Solution',
                 errorMessage: 'Java JDK is not installed. Please install Java JDK to compile and run Java code.'
             };
-
         case 'cpp':
         case 'c++':
             return {
@@ -83,7 +68,6 @@ async function getLanguageRuntime(language: string): Promise<{
                 extension: '.cpp',
                 errorMessage: 'G++ compiler is not installed. Please install a C++ compiler to run C++ code.'
             };
-
         case 'csharp':
         case 'c#':
             return {
@@ -93,7 +77,6 @@ async function getLanguageRuntime(language: string): Promise<{
                 extension: '.cs',
                 errorMessage: '.NET is not installed. Please install .NET SDK to run C# code.'
             };
-
         default:
             return {
                 available: false,
@@ -102,24 +85,21 @@ async function getLanguageRuntime(language: string): Promise<{
             };
     }
 }
-
 // Utility: Execute code with timeout
-function executeCommand(command: string, args: string[], cwd: string, timeout = 5000): Promise<string> {
+function executeCommand(command, args, cwd, timeout = 5000) {
     return new Promise((resolve, reject) => {
         const child = spawn(command, args, { cwd });
         let stdout = '';
         let stderr = '';
-
         child.stdout?.on('data', (data) => { stdout += data.toString(); });
         child.stderr?.on('data', (data) => { stderr += data.toString(); });
-
         child.on('close', (code) => {
-            if (code === 0) resolve(stdout);
-            else reject(new Error(stderr || `Process exited with code ${code}`));
+            if (code === 0)
+                resolve(stdout);
+            else
+                reject(new Error(stderr || `Process exited with code ${code}`));
         });
-
         child.on('error', (error) => reject(error));
-
         // Timeout safeguard
         setTimeout(() => {
             child.kill();
@@ -127,25 +107,9 @@ function executeCommand(command: string, args: string[], cwd: string, timeout = 
         }, timeout);
     });
 }
-
 // Enhanced Gemini-powered coding question generator
-export async function generateCodingQuestionWithGemini(
-    domain: string,
-    difficulty: string,
-    language: string
-): Promise<{
-    title: string;
-    description: string;
-    difficulty: string;
-    language: string;
-    starterCode: string;
-    testCases: Array<{ input: string; expectedOutput: string; description?: string }>;
-    hints?: string[];
-    timeComplexityExpected?: string;
-    spaceComplexityExpected?: string;
-}> {
+export async function generateCodingQuestionWithGemini(domain, difficulty, language) {
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
     const prompt = `
     Generate a single ${difficulty} level coding interview question for ${domain} domain using ${language} programming language.
 
@@ -210,35 +174,29 @@ export async function generateCodingQuestionWithGemini(
         "spaceComplexityExpected": "O(1)"
     }
     `;
-
     try {
         const result = await model.generateContent(prompt);
         const responseText = result.response.text().trim();
-
         // Clean the response to ensure it's valid JSON
         const cleanedResponse = responseText
             .replace(/```json\n?/g, '')
             .replace(/```\n?/g, '')
             .replace(/^\s*[\r\n]/gm, ''); // Remove empty lines
-
         const questionData = JSON.parse(cleanedResponse);
-
         // Validate the response structure
         if (!questionData.title || !questionData.description || !questionData.starterCode || !questionData.testCases) {
             throw new Error('Invalid question structure returned from Gemini');
         }
-
         return questionData;
-    } catch (error) {
+    }
+    catch (error) {
         console.error('Error generating coding question with Gemini:', error);
-
         // Fallback to a basic question if Gemini fails
         return getFallbackQuestion(domain, difficulty, language);
     }
 }
-
 // Fallback question generator in case Gemini fails
-function getFallbackQuestion(domain: string, difficulty: string, language: string) {
+function getFallbackQuestion(domain, difficulty, language) {
     const fallbackQuestions = {
         beginner: {
             title: "Two Sum",
@@ -272,10 +230,8 @@ function getFallbackQuestion(domain: string, difficulty: string, language: strin
             ]
         }
     };
-
-    const questionKey = difficulty.toLowerCase() as keyof typeof fallbackQuestions;
+    const questionKey = difficulty.toLowerCase();
     const baseQuestion = fallbackQuestions[questionKey] || fallbackQuestions.beginner;
-
     return {
         ...baseQuestion,
         difficulty,
@@ -285,10 +241,9 @@ function getFallbackQuestion(domain: string, difficulty: string, language: strin
         spaceComplexityExpected: "O(1)"
     };
 }
-
 // Helper function to generate starter code for different languages
-function getStarterCodeForLanguage(language: string, problemType: string): string {
-    const templates: Record<string, Record<string, string>> = {
+function getStarterCodeForLanguage(language, problemType) {
+    const templates = {
         javascript: {
             twoSum: `function twoSum(nums, target) {
     // Your solution here
@@ -329,32 +284,18 @@ function getStarterCodeForLanguage(language: string, problemType: string): strin
 }`
         }
     };
-
     const lang = language.toLowerCase();
     return templates[lang]?.[problemType] || `// Write your ${language} solution here\n`;
 }
-
 // Run code against test cases
-async function executeCodeService(
-    code: string,
-    language: string,
-    testCases: Array<{ input: string; expectedOutput: string; description?: string }>
-): Promise<{
-    success: boolean;
-    output?: string;
-    error?: string;
-    executionTime: number;
-    results: Array<{ passed: boolean; input: string; expectedOutput: string; actualOutput?: string; error?: string }>;
-}> {
+async function executeCodeService(code, language, testCases) {
     const startTime = Date.now();
     const tempDir = path.join(__dirname, '../../temp', uuidv4());
     await fs.mkdir(tempDir, { recursive: true });
-
     try {
-        let fileName: string;
-        let command: string;
-        let args: string[];
-
+        let fileName;
+        let command;
+        let args;
         switch (language.toLowerCase()) {
             case 'javascript':
                 fileName = 'solution.js';
@@ -374,30 +315,27 @@ async function executeCodeService(
             default:
                 throw new Error(`Unsupported language: ${language}`);
         }
-
         const filePath = path.join(tempDir, fileName);
         await fs.writeFile(filePath, code);
-
         if (language.toLowerCase() === 'java') {
             await executeCommand('javac', [fileName], tempDir);
             command = 'java';
             args = ['Solution'];
         }
-
         const results = [];
         for (const testCase of testCases) {
             try {
                 const output = await executeCommand(command, args, tempDir, 5000);
                 const actualOutput = output.trim();
                 const expectedOutput = testCase.expectedOutput.trim();
-
                 results.push({
                     passed: actualOutput === expectedOutput,
                     input: testCase.input,
                     expectedOutput: testCase.expectedOutput,
                     actualOutput,
                 });
-            } catch (error) {
+            }
+            catch (error) {
                 results.push({
                     passed: false,
                     input: testCase.input,
@@ -406,11 +344,10 @@ async function executeCodeService(
                 });
             }
         }
-
         const executionTime = Date.now() - startTime;
         return { success: true, executionTime, results };
-
-    } catch (error) {
+    }
+    catch (error) {
         const executionTime = Date.now() - startTime;
         return {
             success: false,
@@ -423,27 +360,16 @@ async function executeCodeService(
                 error: error instanceof Error ? error.message : 'Execution failed',
             })),
         };
-    } finally {
+    }
+    finally {
         await fs.rm(tempDir, { recursive: true, force: true }).catch(() => { });
     }
 }
-
-export async function evaluateCodingAnswerService({
-    code,
-    language,
-    question,
-    testCases,
-}: {
-    code: string;
-    language: string;
-    question: string;
-    testCases: any[];
-}) {
+export async function evaluateCodingAnswerService({ code, language, question, testCases, }) {
     const executionResults = await executeCodeService(code, language, testCases);
-    const passedTests = executionResults.results.filter((t: any) => t.passed).length;
+    const passedTests = executionResults.results.filter((t) => t.passed).length;
     const totalTests = testCases.length;
     const passRate = (passedTests / totalTests) * 100;
-
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     const prompt = `
   As a senior software engineer and technical interviewer, evaluate this coding interview solution comprehensively.
@@ -458,9 +384,7 @@ export async function evaluateCodingAnswerService({
   TEST RESULTS: ${passedTests}/${totalTests} passed (${passRate.toFixed(1)}%)
   
   DETAILED TEST OUTCOMES:
-  ${executionResults.results.map((result: any, index: number) =>
-        `Test ${index + 1}: ${result.passed ? 'PASSED' : 'FAILED'} - Input: ${result.input}, Expected: ${result.expectedOutput}, Actual: ${result.actualOutput || 'N/A'}`
-    ).join('\n  ')}
+  ${executionResults.results.map((result, index) => `Test ${index + 1}: ${result.passed ? 'PASSED' : 'FAILED'} - Input: ${result.input}, Expected: ${result.expectedOutput}, Actual: ${result.actualOutput || 'N/A'}`).join('\n  ')}
 
   Provide a comprehensive evaluation as a JSON object with the following structure:
 
@@ -518,10 +442,8 @@ export async function evaluateCodingAnswerService({
   
   Be honest but constructive. Focus on actionable feedback that helps the candidate improve for tech industry interviews.
   `;
-
     const result = await model.generateContent(prompt);
     const aiFeedback = JSON.parse(result.response.text());
-
     return {
         passRate,
         passedTests,
@@ -530,30 +452,28 @@ export async function evaluateCodingAnswerService({
         ...aiFeedback,
     };
 }
-
 // =====================
 // Other services below
 // =====================
-
-export async function generateQuestions(domain: string, difficulty: string, interviewType: string) {
+export async function generateQuestions(domain, difficulty, interviewType) {
     // Use the enhanced Gemini question generation for coding questions
     if (interviewType === 'technical') {
         try {
             const codingQuestion = await generateCodingQuestionWithGemini(domain, difficulty, 'javascript');
             return [{
-                question: codingQuestion.description,
-                isCodingQuestion: true,
-                title: codingQuestion.title,
-                starterCode: codingQuestion.starterCode,
-                testCases: codingQuestion.testCases,
-                hints: codingQuestion.hints
-            }];
-        } catch (error) {
+                    question: codingQuestion.description,
+                    isCodingQuestion: true,
+                    title: codingQuestion.title,
+                    starterCode: codingQuestion.starterCode,
+                    testCases: codingQuestion.testCases,
+                    hints: codingQuestion.hints
+                }];
+        }
+        catch (error) {
             console.error('Error generating enhanced coding question:', error);
             // Fallback to simple text questions
         }
     }
-
     // For non-technical or fallback cases, use the original implementation
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     const prompt = `
@@ -564,17 +484,14 @@ export async function generateQuestions(domain: string, difficulty: string, inte
   `;
     const result = await model.generateContent(prompt);
     const responseText = result.response.text().trim();
-
     // Clean the response to ensure it's valid JSON
     const cleanedResponse = responseText
         .replace(/```json\n?/g, '')
         .replace(/```\n?/g, '')
         .replace(/^\s*[\r\n]/gm, '');
-
     return JSON.parse(cleanedResponse);
 }
-
-export async function evaluateAnswer(question: string, answer: string) {
+export async function evaluateAnswer(question, answer) {
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     const prompt = `
     Evaluate this answer to an interview question.
