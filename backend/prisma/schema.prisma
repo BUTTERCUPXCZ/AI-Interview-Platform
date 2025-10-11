@@ -1,0 +1,251 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================
+// ENUMS FOR BETTER TYPE SAFETY
+// ============================================
+enum Domain {
+  FRONTEND
+  BACKEND
+  FULLSTACK
+  DATA_SCIENCE
+  MOBILE
+  DEVOPS
+}
+
+enum InterviewType {
+  TECHNICAL
+  BEHAVIORAL
+  SYSTEM_DESIGN
+}
+
+enum Difficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum InterviewFormat {
+  TEXT
+  VOICE
+}
+
+enum SessionStatus {
+  IN_PROGRESS
+  COMPLETED
+  CANCELED
+}
+
+enum ExecutionStatus {
+  SUCCESS
+  ERROR
+  TIMEOUT
+}
+
+enum ProgrammingLanguage {
+  JAVASCRIPT
+  TYPESCRIPT
+  PYTHON
+  JAVA
+  CSHARP
+  CPP
+  GO
+  RUST
+}
+
+// ============================================
+// USER MODEL
+// ============================================
+model User {
+  id        Int    @id @default(autoincrement())
+  Firstname String
+  Lastname  String
+  email     String @unique
+  password  String
+  role      String @default("student")
+
+  // Relationships
+  sessions     InterviewSession[]
+  userSkills   UserSkill[]
+  subscription Subscription?
+}
+
+// ============================================
+// SKILL MODEL (e.g., Python, JavaScript, DevOps)
+// ============================================
+model SkillTag {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+
+  userSkills UserSkill[]
+  questions  InterviewQuestion[]
+}
+
+// ============================================
+// LINK TABLE BETWEEN USER & SKILL
+// ============================================
+model UserSkill {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  skillId   Int
+  createdAt DateTime @default(now())
+
+  user  User     @relation(fields: [userId], references: [id])
+  skill SkillTag @relation(fields: [skillId], references: [id])
+
+  @@unique([userId, skillId])
+}
+
+// ============================================
+// INTERVIEW SESSION
+// ============================================
+model InterviewSession {
+  id                  Int             @id @default(autoincrement())
+  userId              Int
+  // Enhanced configuration fields from InterviewSetup
+  domain              Domain // frontend, backend, fullstack, data-science, mobile, devops
+  interviewType       InterviewType // technical, behavioral, system-design
+  difficulty          Difficulty      @default(BEGINNER) // Beginner, Intermediate, Advanced
+  duration            Int             @default(20) // Duration in minutes
+  format              InterviewFormat @default(TEXT) // Text, Voice
+  enableCodingSandbox Boolean         @default(false) // Whether coding sandbox is enabled
+
+  // Legacy fields (keeping for backward compatibility)
+  role  String // e.g., "Software Developer"
+  topic String? // e.g., "React", "Python"
+
+  // Session tracking
+  startedAt  DateTime      @default(now())
+  endedAt    DateTime?
+  status     SessionStatus @default(IN_PROGRESS) // completed, canceled
+  totalScore Float? // Calculated after session ends
+
+  // Relationships
+  user           User                @relation(fields: [userId], references: [id])
+  questions      InterviewQuestion[]
+  aiFeedback     AIAnalysis?
+  codeExecutions CodeExecution[]
+}
+
+// ============================================
+// INTERVIEW QUESTIONS & ANSWERS
+// ============================================
+model InterviewQuestion {
+  id           Int     @id @default(autoincrement())
+  sessionId    Int
+  skillTagId   Int?
+  questionText String
+  userAnswer   String?
+  aiEvaluation String? // AI comments for this question
+  score        Float? // Score for this question (0–10)
+
+  // Coding question specific fields
+  isCodingQuestion Boolean              @default(false)
+  codingLanguage   ProgrammingLanguage? // javascript, python, java, etc.
+  starterCode      String? // Initial code template
+  expectedOutput   String? // Expected solution output
+
+  createdAt DateTime @default(now())
+
+  // Relationships
+  session         InterviewSession @relation(fields: [sessionId], references: [id])
+  skillTag        SkillTag?        @relation(fields: [skillTagId], references: [id])
+  testCases       TestCase[] // Test cases for coding questions
+  codeSubmissions CodeSubmission[] // User's code submissions
+}
+
+// ============================================
+// TEST CASES FOR CODING QUESTIONS
+// ============================================
+model TestCase {
+  id             Int      @id @default(autoincrement())
+  questionId     Int
+  input          String // Test input
+  expectedOutput String // Expected output for this test case
+  description    String? // Description of what this test case checks
+  isHidden       Boolean  @default(false) // Whether this test case is hidden from user
+  createdAt      DateTime @default(now())
+
+  // Relationships
+  question InterviewQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// CODE EXECUTION TRACKING
+// ============================================
+model CodeExecution {
+  id            Int                 @id @default(autoincrement())
+  sessionId     Int
+  questionId    Int? // Optional: link to specific question
+  code          String // The code that was executed
+  language      ProgrammingLanguage // Programming language
+  output        String? // Execution output
+  error         String? // Error message if execution failed
+  status        ExecutionStatus // success, error, timeout
+  executionTime Int? // Execution time in milliseconds
+  createdAt     DateTime            @default(now())
+
+  // Relationships
+  session InterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// CODE SUBMISSIONS FOR QUESTIONS
+// ============================================
+model CodeSubmission {
+  id          Int                 @id @default(autoincrement())
+  questionId  Int
+  code        String // User's submitted code
+  language    ProgrammingLanguage // Programming language
+  isCorrect   Boolean? // Whether the solution is correct
+  passedTests Int                 @default(0) // Number of test cases passed
+  totalTests  Int                 @default(0) // Total number of test cases
+  submittedAt DateTime            @default(now())
+
+  // Relationships
+  question InterviewQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// AI ANALYSIS (POST-SESSION FEEDBACK)
+// ============================================
+model AIAnalysis {
+  id              Int      @id @default(autoincrement())
+  sessionId       Int      @unique
+  overallScore    Float?
+  strengths       String? // e.g., "Good understanding of OOP"
+  weaknesses      String? // e.g., "Needs improvement in system design"
+  improvementTips String? // AI personalized advice
+  createdAt       DateTime @default(now())
+
+  session InterviewSession @relation(fields: [sessionId], references: [id])
+}
+
+// ============================================
+// SUBSCRIPTION MODEL (For SaaS Monetization)
+// ============================================
+model Subscription {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @unique
+  planType  String    @default("FREE") // e.g., FREE, PRO
+  startDate DateTime  @default(now())
+  endDate   DateTime?
+  isActive  Boolean   @default(true)
+
+  user User @relation(fields: [userId], references: [id])
+}
