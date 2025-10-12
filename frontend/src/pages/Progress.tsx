@@ -1,10 +1,12 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, BarChart, Bar } from 'recharts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import Sidebar from '@/components/Sidebar'
+import Navbar from '@/components/Navbar'
+import { useAuth } from '@/contexts/AuthContext'
+import { useProgressData } from '@/hooks/useProgress'
 import {
     TrendingUp,
     Target,
@@ -12,101 +14,94 @@ import {
     Calendar,
     Filter,
     Download,
-    ChevronUp,
-    ChevronDown,
     BarChart3,
-    PieChart,
     ArrowUp,
     ArrowDown,
-    Minus
+    Minus,
+    Loader2,
+    AlertCircle
 } from 'lucide-react'
 
 // Mock data - in a real app, this would come from your API
-const mockSkillTrendsData = [
-    { date: '2024-01', Frontend: 65, Backend: 58, 'System Design': 45, 'Data Structures': 70, Algorithms: 62, Communication: 75 },
-    { date: '2024-02', Frontend: 68, Backend: 61, 'System Design': 50, 'Data Structures': 74, Algorithms: 65, Communication: 78 },
-    { date: '2024-03', Frontend: 72, Backend: 65, 'System Design': 55, 'Data Structures': 78, Algorithms: 68, Communication: 80 },
-    { date: '2024-04', Frontend: 75, Backend: 68, 'System Design': 60, 'Data Structures': 82, Algorithms: 72, Communication: 82 },
-    { date: '2024-05', Frontend: 78, Backend: 72, 'System Design': 65, 'Data Structures': 85, Algorithms: 75, Communication: 84 },
-    { date: '2024-06', Frontend: 82, Backend: 75, 'System Design': 70, 'Data Structures': 88, Algorithms: 78, Communication: 86 },
-    { date: '2024-07', Frontend: 85, Backend: 78, 'System Design': 75, 'Data Structures': 92, Algorithms: 82, Communication: 88 },
-    { date: '2024-08', Frontend: 87, Backend: 80, 'System Design': 78, 'Data Structures': 94, Algorithms: 85, Communication: 90 },
-    { date: '2024-09', Frontend: 90, Backend: 82, 'System Design': 82, 'Data Structures': 96, Algorithms: 88, Communication: 92 },
-    { date: '2024-10', Frontend: 92, Backend: 85, 'System Design': 85, 'Data Structures': 98, Algorithms: 90, Communication: 94 }
-]
-
-const mockRadarData = [
-    { skill: 'Frontend', current: 92, previous: 87, fullMark: 100 },
-    { skill: 'Backend', current: 85, previous: 80, fullMark: 100 },
-    { skill: 'System Design', current: 85, previous: 78, fullMark: 100 },
-    { skill: 'Data Structures', current: 98, previous: 94, fullMark: 100 },
-    { skill: 'Algorithms', current: 90, previous: 85, fullMark: 100 },
-    { skill: 'Communication', current: 94, previous: 90, fullMark: 100 }
-]
-
-const mockSessionHistory = [
-    { id: 1, date: '2024-10-08', domain: 'Frontend Development', type: 'Technical', score: 92, duration: '45 min', questions: 12, improvement: 5 },
-    { id: 2, date: '2024-10-05', domain: 'System Design', type: 'System Design', score: 85, duration: '60 min', questions: 8, improvement: 7 },
-    { id: 3, date: '2024-10-02', domain: 'Data Structures', type: 'Technical', score: 98, duration: '40 min', questions: 15, improvement: 2 },
-    { id: 4, date: '2024-09-28', domain: 'Backend Development', type: 'Technical', score: 85, duration: '50 min', questions: 10, improvement: 2 },
-    { id: 5, date: '2024-09-25', domain: 'Algorithms', type: 'Technical', score: 90, duration: '55 min', questions: 14, improvement: 3 },
-    { id: 6, date: '2024-09-22', domain: 'Communication', type: 'Behavioral', score: 94, duration: '35 min', questions: 8, improvement: 2 },
-    { id: 7, date: '2024-09-18', domain: 'Frontend Development', type: 'Technical', score: 87, duration: '42 min', questions: 11, improvement: -2 },
-    { id: 8, date: '2024-09-15', domain: 'System Design', type: 'System Design', score: 78, duration: '65 min', questions: 6, improvement: 3 }
-]
-
-const mockRecommendations = [
-    {
-        title: "Advanced React Patterns",
-        description: "Focus on hooks, context, and performance optimization",
-        difficulty: "Advanced",
-        estimatedTime: "2-3 hours",
-        priority: "High",
-        category: "Frontend"
-    },
-    {
-        title: "Microservices Architecture",
-        description: "Understanding distributed systems and service communication",
-        difficulty: "Advanced",
-        estimatedTime: "4-5 hours",
-        priority: "Medium",
-        category: "System Design"
-    },
-    {
-        title: "Database Optimization",
-        description: "Learn indexing strategies and query optimization techniques",
-        difficulty: "Intermediate",
-        estimatedTime: "1.5 hours",
-        priority: "Medium",
-        category: "Backend"
-    },
-    {
-        title: "Algorithm Complexity Analysis",
-        description: "Practice Big O notation and optimization techniques",
-        difficulty: "Intermediate",
-        estimatedTime: "1-2 hours",
-        priority: "Low",
-        category: "Algorithms"
-    }
-]
-
-const mockComparisonData = [
-    { domain: 'Frontend', current: 92, previous: 87, sessions: 15 },
-    { domain: 'Backend', current: 85, previous: 80, sessions: 12 },
-    { domain: 'System Design', current: 85, previous: 78, sessions: 8 },
-    { domain: 'Data Structures', current: 98, previous: 94, sessions: 18 },
-    { domain: 'Algorithms', current: 90, previous: 85, sessions: 14 },
-    { domain: 'Communication', current: 94, previous: 90, sessions: 10 }
-]
+// This will be replaced with real data from useProgressData hook
 
 const Progress = () => {
+    const { user } = useAuth();
+    const { data: progressData, isLoading, error, refetch } = useProgressData(user?.id);
+
     const [selectedDomains, setSelectedDomains] = useState<string[]>(['Frontend', 'Backend', 'System Design'])
     const [chartType, setChartType] = useState<'line' | 'bar'>('line')
     const [timeRange, setTimeRange] = useState<'3m' | '6m' | '1y'>('6m')
 
+    // Show loading state
+    if (isLoading) {
+        return (
+            <div className="flex h-screen bg-background">
+                <Sidebar />
+                <div className="flex-1 flex flex-col overflow-hidden">
+                    <header className="bg-card border-b border-border px-6 py-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h1 className="text-2xl font-semibold text-foreground">Progress & Analytics</h1>
+                            </div>
+                        </div>
+                    </header>
+                    <main className="flex-1 flex items-center justify-center">
+                        <div className="text-center">
+                            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+                            <p className="text-muted-foreground">Loading your progress analytics...</p>
+                        </div>
+                    </main>
+                </div>
+            </div>
+        );
+    }
+
+    // Show error state
+    if (error) {
+        return (
+            <div className="flex h-screen bg-background">
+                <Sidebar />
+                <div className="flex-1 flex flex-col overflow-hidden">
+
+                    <main className="flex-1 flex items-center justify-center">
+                        <div className="text-center max-w-md">
+                            <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-4" />
+                            <h2 className="text-lg font-semibold mb-2">Failed to load progress data</h2>
+                            <p className="text-muted-foreground mb-4">
+                                {error instanceof Error ? error.message : 'Something went wrong'}
+                            </p>
+                            <Button onClick={() => refetch()}>
+                                Try Again
+                            </Button>
+                        </div>
+                    </main>
+                </div>
+            </div>
+        );
+    }
+
+    // Use progress data or fallback to default values
+    const {
+        stats = {
+            overallScore: 0,
+            overallImprovement: 0,
+            totalSessions: 0,
+            sessionGrowth: 0,
+            strongestSkill: 'No data yet',
+            strongestSkillScore: 0,
+            improvementArea: 'Complete your first interview'
+        },
+        skillTrends = [],
+        radarData = [],
+        sessionHistory = [],
+        domainComparison = [],
+        recommendations = []
+    } = progressData || {};
+
     const getFilteredData = () => {
         const months = timeRange === '3m' ? 3 : timeRange === '6m' ? 6 : 12
-        return mockSkillTrendsData.slice(-months)
+        return skillTrends.slice(-months)
     }
 
     const getTrendIcon = (improvement: number) => {
@@ -148,25 +143,9 @@ const Progress = () => {
 
             {/* Main Content */}
             <div className="flex-1 flex flex-col overflow-hidden">
+                <Navbar />
                 {/* Header */}
-                <header className="bg-card border-b border-border px-6 py-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className="text-2xl font-semibold text-foreground">Progress & Analytics</h1>
 
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <Button variant="outline" size="sm">
-                                <Download className="h-4 w-4 mr-2" />
-                                Export Report
-                            </Button>
-                            <Button variant="outline" size="sm">
-                                <Filter className="h-4 w-4 mr-2" />
-                                Filter
-                            </Button>
-                        </div>
-                    </div>
-                </header>
 
                 {/* Main Content Area */}
                 <main className="flex-1 overflow-y-auto p-6">
@@ -179,10 +158,12 @@ const Progress = () => {
                                     <TrendingUp className="h-4 w-4 text-muted-foreground" />
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="text-2xl font-bold">89.2</div>
-                                    <div className="flex items-center text-xs text-green-600">
-                                        <ArrowUp className="h-3 w-3 mr-1" />
-                                        +5.2% from last month
+                                    <div className="text-2xl font-bold">{stats.overallScore}</div>
+                                    <div className={`flex items-center text-xs ${stats.overallImprovement > 0 ? 'text-green-600' : stats.overallImprovement < 0 ? 'text-red-600' : 'text-gray-600'}`}>
+                                        {stats.overallImprovement > 0 ? <ArrowUp className="h-3 w-3 mr-1" /> :
+                                            stats.overallImprovement < 0 ? <ArrowDown className="h-3 w-3 mr-1" /> :
+                                                <Minus className="h-3 w-3 mr-1" />}
+                                        {stats.overallImprovement > 0 ? '+' : ''}{stats.overallImprovement}% from last month
                                     </div>
                                 </CardContent>
                             </Card>
@@ -193,10 +174,10 @@ const Progress = () => {
                                     <Target className="h-4 w-4 text-muted-foreground" />
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="text-2xl font-bold">77</div>
-                                    <div className="flex items-center text-xs text-blue-600">
-                                        <ArrowUp className="h-3 w-3 mr-1" />
-                                        +8 this month
+                                    <div className="text-2xl font-bold">{stats.totalSessions}</div>
+                                    <div className={`flex items-center text-xs ${stats.sessionGrowth > 0 ? 'text-blue-600' : 'text-gray-600'}`}>
+                                        {stats.sessionGrowth > 0 ? <ArrowUp className="h-3 w-3 mr-1" /> : <Minus className="h-3 w-3 mr-1" />}
+                                        {stats.sessionGrowth > 0 ? '+' : ''}{stats.sessionGrowth} this month
                                     </div>
                                 </CardContent>
                             </Card>
@@ -207,8 +188,8 @@ const Progress = () => {
                                     <Award className="h-4 w-4 text-muted-foreground" />
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="text-2xl font-bold">Data Structures</div>
-                                    <div className="text-xs text-muted-foreground">98% average score</div>
+                                    <div className="text-2xl font-bold">{stats.strongestSkill}</div>
+                                    <div className="text-xs text-muted-foreground">{stats.strongestSkillScore}% average score</div>
                                 </CardContent>
                             </Card>
 
@@ -218,7 +199,7 @@ const Progress = () => {
                                     <TrendingUp className="h-4 w-4 text-muted-foreground" />
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="text-2xl font-bold">System Design</div>
+                                    <div className="text-2xl font-bold">{stats.improvementArea}</div>
                                     <div className="text-xs text-muted-foreground">Focus recommended</div>
                                 </CardContent>
                             </Card>
@@ -252,6 +233,33 @@ const Progress = () => {
                                         </div>
                                     </div>
                                     <div className="flex flex-wrap gap-2 mt-2">
+                                        <div className="flex items-center gap-2 mr-4">
+                                            <span className="text-xs text-muted-foreground">Time Range:</span>
+                                            <Button
+                                                variant={timeRange === '3m' ? 'default' : 'outline'}
+                                                size="sm"
+                                                onClick={() => setTimeRange('3m')}
+                                                className="text-xs"
+                                            >
+                                                3M
+                                            </Button>
+                                            <Button
+                                                variant={timeRange === '6m' ? 'default' : 'outline'}
+                                                size="sm"
+                                                onClick={() => setTimeRange('6m')}
+                                                className="text-xs"
+                                            >
+                                                6M
+                                            </Button>
+                                            <Button
+                                                variant={timeRange === '1y' ? 'default' : 'outline'}
+                                                size="sm"
+                                                onClick={() => setTimeRange('1y')}
+                                                className="text-xs"
+                                            >
+                                                1Y
+                                            </Button>
+                                        </div>
                                         {['Frontend', 'Backend', 'System Design', 'Data Structures', 'Algorithms', 'Communication'].map((domain, index) => (
                                             <Button
                                                 key={domain}
@@ -317,7 +325,7 @@ const Progress = () => {
                                 </CardHeader>
                                 <CardContent>
                                     <ResponsiveContainer width="100%" height={300}>
-                                        <RadarChart data={mockRadarData}>
+                                        <RadarChart data={radarData}>
                                             <PolarGrid />
                                             <PolarAngleAxis dataKey="skill" tick={{ fontSize: 12 }} />
                                             <PolarRadiusAxis domain={[0, 100]} tick={false} />
@@ -353,7 +361,7 @@ const Progress = () => {
                             </CardHeader>
                             <CardContent>
                                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                                    {mockComparisonData.map((domain) => (
+                                    {domainComparison.map((domain) => (
                                         <div key={domain.domain} className="p-4 border rounded-lg">
                                             <div className="flex items-center justify-between mb-2">
                                                 <h4 className="font-medium">{domain.domain}</h4>
@@ -404,7 +412,7 @@ const Progress = () => {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {mockSessionHistory.map((session) => (
+                                            {sessionHistory.map((session) => (
                                                 <tr key={session.id} className="border-b hover:bg-muted/50">
                                                     <td className="p-2">
                                                         <div className="flex items-center gap-2">
@@ -447,7 +455,7 @@ const Progress = () => {
                             </CardHeader>
                             <CardContent>
                                 <div className="grid gap-4 md:grid-cols-2">
-                                    {mockRecommendations.map((rec, index) => (
+                                    {recommendations.map((rec, index) => (
                                         <div key={index} className="p-4 border rounded-lg space-y-3">
                                             <div className="flex items-start justify-between">
                                                 <h4 className="font-medium">{rec.title}</h4>

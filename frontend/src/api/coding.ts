@@ -44,7 +44,7 @@ export interface CodeExecutionResult {
 export const executeCode = async (request: CodeExecutionRequest): Promise<CodeExecutionResult> => {
     try {
         const response = await axios.post(
-            `${import.meta.env.VITE_API_URL}/coding/execute`,
+            `${import.meta.env.VITE_API_BASE_URL}/coding/execute`,
             request,
             {
                 withCredentials: true,
@@ -73,7 +73,7 @@ export const getAICodeEvaluation = async (
 ): Promise<AIEvaluationResult> => {
     try {
         const response = await axios.post(
-            `${import.meta.env.VITE_API_URL}/coding/evaluate`,
+            `${import.meta.env.VITE_API_BASE_URL}/coding/evaluate`,
             {
                 code,
                 language,
@@ -108,7 +108,7 @@ export const submitInterviewAnswer = async (
 ) => {
     try {
         const response = await axios.post(
-            `${import.meta.env.VITE_API_URL}/interview/submit-answer`,
+            `${import.meta.env.VITE_API_BASE_URL}/interview/submit-answer`,
             {
                 questionId,
                 answer,
@@ -133,19 +133,35 @@ export const getCodingQuestion = async (
     questionNumber?: number
 ) => {
     try {
+        console.log('🔄 Calling coding question API with params:', { domain, difficulty, questionNumber });
+
         const response = await axios.get(
-            `${import.meta.env.VITE_API_URL}/coding/question`,
+            `${import.meta.env.VITE_API_BASE_URL}/coding/question`,
             {
                 params: { domain, difficulty, questionNumber },
-                withCredentials: true
+                withCredentials: true,
+                timeout: 30000 // 30 second timeout
             }
         );
+
+        console.log('✅ Coding question API response:', response.data);
         return response.data;
     } catch (error) {
-        console.error('Get coding question error:', error);
+        console.error('❌ Get coding question error:', error);
 
-        // Fallback to mock questions for development
+        // Log more detailed error information
+        if (axios.isAxiosError(error)) {
+            console.error('Axios error details:', {
+                status: error.response?.status,
+                statusText: error.response?.statusText,
+                data: error.response?.data,
+                message: error.message
+            });
+        }
+
+        // Fallback to mock questions for development - but log it clearly
         if (import.meta.env.DEV) {
+            console.warn('🔄 Falling back to mock data due to API error');
             return mockGetCodingQuestion(domain, difficulty, questionNumber);
         }
 

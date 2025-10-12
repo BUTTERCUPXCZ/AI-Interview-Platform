@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from '@/components/Sidebar'
+import Navbar from '@/components/Navbar'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useCreateInterviewSession, useStartTextInterview, useGenerateCodingQuestion } from '../hooks/useInterview'
@@ -8,7 +9,6 @@ import { useAuth } from '../contexts/AuthContext'
 import type { InterviewConfig, Difficulty, InterviewFormat } from '../domain/entities'
 import {
     PlayCircle,
-    Clock,
     BookOpen,
     Code,
     Layers,
@@ -32,7 +32,6 @@ const InterviewSetup = () => {
     const { user } = useAuth()
     const createSession = useCreateInterviewSession()
     const startTextInterview = useStartTextInterview()
-    const generateCodingQuestion = useGenerateCodingQuestion()
 
     const [config, setConfig] = useState<InterviewConfig>({
         domain: '',
@@ -92,115 +91,72 @@ const InterviewSetup = () => {
             console.log('Creating interview session with config:', config)
             setIsGeneratingQuestion(true)
 
-            // Check if it's a technical interview with coding sandbox enabled
             if (config.interviewType === 'technical' && config.enableCodingSandbox) {
-                // Create a session first to get sessionId
-                const session = await new Promise((resolve, reject) => {
-                    createSession.mutate(
-                        { config, userId: user.id },
-                        {
-                            onSuccess: (data) => {
-                                console.log('Session created successfully:', data)
-                                resolve(data)
-                            },
-                            onError: (error) => {
-                                console.error('Failed to create session:', error)
-                                reject(error)
+                // Create session first for coding sandbox
+                createSession.mutate({
+                    config: config,
+                    userId: user.id
+                }, {
+                    onSuccess: (sessionData) => {
+                        // Navigate with session data
+                        navigate('/coding-sandbox', {
+                            state: {
+                                sessionId: sessionData.id,
+                                domain: config.domain,
+                                difficulty: config.difficulty,
+                                language: selectedLanguage,
+                                duration: config.duration,
+                                userId: user.id,
+                                config: config,
+                                isLoading: false
                             }
-                        }
-                    )
-                })
-
-                // Generate a coding question for the session
-                const question = await new Promise((resolve, reject) => {
-                    generateCodingQuestion.mutate(
-                        {
-                            domain: config.domain,
-                            difficulty: config.difficulty,
-                            language: selectedLanguage,
-                            sessionId: (session as any).session?.id || (session as any).id
-                        },
-                        {
-                            onSuccess: (data) => {
-                                console.log('Coding question generated successfully:', data)
-                                resolve(data)
-                            },
-                            onError: (error) => {
-                                console.error('Failed to generate coding question:', error)
-                                reject(error)
-                            }
-                        }
-                    )
-                })
-
-                // Navigate to coding sandbox with session data and generated question
-                navigate('/coding-sandbox', {
-                    state: {
-                        sessionId: (session as any).session?.id || (session as any).id,
-                        domain: config.domain,
-                        difficulty: config.difficulty,
-                        language: selectedLanguage,
-                        duration: config.duration,
-                        question: question
+                        })
+                        setIsGeneratingQuestion(false)
+                    },
+                    onError: (error) => {
+                        console.error('Error creating session for coding sandbox:', error)
+                        setIsGeneratingQuestion(false)
+                        // TODO: Show error toast/notification
                     }
                 })
             } else if (config.format === 'Text' || !config.enableCodingSandbox) {
-                // For text-based interviews or technical interviews without coding sandbox
-                const result = await new Promise((resolve, reject) => {
-                    startTextInterview.mutate(
-                        { config, userId: user.id },
-                        {
-                            onSuccess: (data) => {
-                                console.log('Text interview started successfully:', data)
-                                resolve(data)
-                            },
-                            onError: (error) => {
-                                console.error('Failed to start text interview:', error)
-                                reject(error)
-                            }
-                        }
-                    )
-                })
-
-                // Navigate to text interview session with the session data
+                // Navigate immediately with loading state for text interviews
                 navigate('/text-interview-session', {
                     state: {
                         ...config,
-                        sessionId: (result as any).session.id,
-                        currentQuestion: (result as any).currentQuestion
+                        userId: user.id,
+                        isLoading: true
                     }
                 })
+                setIsGeneratingQuestion(false)
             } else {
-                // For other interview types (behavioral, system-design), create session first
-                const session = await new Promise((resolve, reject) => {
-                    createSession.mutate(
-                        { config, userId: user.id },
-                        {
-                            onSuccess: (data) => {
-                                console.log('Session created successfully:', data)
-                                resolve(data)
-                            },
-                            onError: (error) => {
-                                console.error('Failed to create session:', error)
-                                reject(error)
+                // For other interview types, create session first
+                createSession.mutate({
+                    config: config,
+                    userId: user.id
+                }, {
+                    onSuccess: (sessionData) => {
+                        navigate('/interview-session', {
+                            state: {
+                                sessionId: sessionData.id,
+                                ...config,
+                                userId: user.id,
+                                isLoading: false
                             }
-                        }
-                    )
-                })
-
-                // Navigate to interview session with the session data
-                navigate('/interview-session', {
-                    state: {
-                        ...config,
-                        sessionId: (session as any).id
+                        })
+                        setIsGeneratingQuestion(false)
+                    },
+                    onError: (error) => {
+                        console.error('Error creating session:', error)
+                        setIsGeneratingQuestion(false)
+                        // TODO: Show error toast/notification
                     }
                 })
             }
         } catch (error) {
             console.error('Error starting interview:', error)
-            // TODO: Show error toast/notification
-        } finally {
             setIsGeneratingQuestion(false)
+            // TODO: Show error toast/notification
         }
     }
 
@@ -213,20 +169,8 @@ const InterviewSetup = () => {
 
             {/* Main Content */}
             <div className="flex-1 flex flex-col overflow-hidden">
-                {/* Header */}
-                <header className="bg-card border-b border-border p-3">
-                    <div className="max-w-6xl ">
-                        <div className="flex items-center gap-4 mb-2">
+                <Navbar />
 
-                            <div>
-                                <h1 className="text-2xl font-bold text-foreground">
-                                    Interview Setup
-                                </h1>
-
-                            </div>
-                        </div>
-                    </div>
-                </header>
 
                 {/* Main Content Area */}
                 <main className="flex-1 overflow-y-auto p-6 bg-gradient-to-br from-background via-background to-muted/20">
@@ -276,7 +220,7 @@ const InterviewSetup = () => {
                         </Card>
 
                         {/* Interview Type Selection */}
-                        <Card className="p-8 shadow-lg border-b border-border bg-gradient-to-br from-card to-card/80 backdrop-blur-sm">
+                        <Card className="p-8 border-b border-border bg-gradient-to-br from-card to-card/80 backdrop-blur-sm">
                             <div className="flex items-center gap-4 mb-8">
 
                                 <div>
@@ -504,11 +448,9 @@ const InterviewSetup = () => {
                                 {/* Duration */}
                                 <Card className="p-8 border-b border-border bg-gradient-to-br from-card to-card/80 backdrop-blur-sm">
                                     <div className="flex items-center gap-4 mb-6">
-                                        <div className="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl">
-                                            <Clock className="h-6 w-6 text-white" />
-                                        </div>
+
                                         <div>
-                                            <h3 className="text-xl font-bold">Duration</h3>
+                                            <h3 className="text-2xl font-bold">Duration</h3>
                                             <p className="text-muted-foreground">How long should it take?</p>
                                         </div>
                                     </div>
@@ -539,9 +481,7 @@ const InterviewSetup = () => {
                                 {/* Format */}
                                 <Card className="p-8 border-b border-border bg-gradient-to-br from-card to-card/80 backdrop-blur-sm">
                                     <div className="flex items-center gap-4 mb-6">
-                                        <div className="p-3 bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl">
-                                            <MessageSquare className="h-6 w-6 text-white" />
-                                        </div>
+
                                         <div>
                                             <h3 className="text-xl font-bold">Format</h3>
                                             <p className="text-muted-foreground">Choose your preference</p>
@@ -626,7 +566,7 @@ const InterviewSetup = () => {
                                 </div>
                                 <div className="p-4 rounded-xl bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 border border-orange-200 dark:border-orange-800">
                                     <div className="flex items-center gap-3">
-                                        <Clock className="h-5 w-5 text-orange-500" />
+
                                         <div>
                                             <p className="text-sm text-orange-600 dark:text-orange-400">Duration</p>
                                             <p className="font-semibold text-orange-900 dark:text-orange-100">{config.duration} min • {config.format}</p>
@@ -651,11 +591,11 @@ const InterviewSetup = () => {
                             </div>                            {/* Start Button */}
                             <div className="flex items-center justify-between pt-6 border-t border-border">
                                 <div className="flex items-center gap-2 text-sm">
-                                    {(createSession.isError || startTextInterview.isError || generateCodingQuestion.isError) ? (
+                                    {(createSession.isError || startTextInterview.isError) ? (
                                         <>
                                             <AlertCircle className="h-5 w-5 text-red-500" />
                                             <span className="text-red-600 dark:text-red-400">
-                                                Error: {createSession.error?.message || startTextInterview.error?.message || generateCodingQuestion.error?.message || 'Failed to start interview'}
+                                                Error: {createSession.error?.message || startTextInterview.error?.message || 'Failed to start interview'}
                                             </span>
                                         </>
                                     ) : isConfigComplete ? (
@@ -674,13 +614,13 @@ const InterviewSetup = () => {
                                     onClick={handleStartInterview}
                                     size="lg"
                                     className="gap-3 bg-black dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-black px-8 py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
-                                    disabled={!isConfigComplete || createSession.isPending || startTextInterview.isPending || generateCodingQuestion.isPending || isGeneratingQuestion}
+                                    disabled={!isConfigComplete || createSession.isPending || startTextInterview.isPending || isGeneratingQuestion}
                                 >
-                                    {(createSession.isPending || startTextInterview.isPending || generateCodingQuestion.isPending || isGeneratingQuestion) ? (
+                                    {(createSession.isPending || startTextInterview.isPending || isGeneratingQuestion) ? (
                                         <>
                                             <div className="animate-spin h-6 w-6 border-2 border-white border-t-transparent rounded-full" />
                                             {config.format === 'Text' ? 'Starting Text Interview...' :
-                                                config.enableCodingSandbox ? 'Generating Coding Question...' : 'Creating Session...'}
+                                                config.enableCodingSandbox ? 'Creating Session...' : 'Creating Session...'}
                                         </>
                                     ) : (
                                         <>

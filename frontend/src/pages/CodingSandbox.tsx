@@ -6,8 +6,9 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import CodeEditor from '@/components/CodeEditor'
 import Sidebar from '@/components/Sidebar'
+import Navbar from '@/components/Navbar'
 import { useAuth } from '../contexts/AuthContext'
-import { useGenerateCodingQuestion, useExecuteCode, useSubmitAnswer } from '../hooks/useInterview'
+import { useExecuteCode, useSubmitAnswer } from '../hooks/useInterview'
 import {
     Play,
     CheckCircle2,
@@ -44,12 +45,15 @@ interface CodingQuestion {
 }
 
 interface CodingSandboxState {
-    sessionId: number
+    sessionId?: number
     domain: string
     difficulty: string
     language: string
     duration: number
     question?: CodingQuestion
+    isLoading?: boolean
+    userId?: number
+    config?: any
 }
 
 interface ExecutionResult {
@@ -70,7 +74,6 @@ const CodingSandbox = () => {
     const state = location.state as CodingSandboxState
 
     // Hooks
-    const generateCodingQuestion = useGenerateCodingQuestion()
     const executeCode = useExecuteCode()
     const submitAnswer = useSubmitAnswer()
 
@@ -80,7 +83,6 @@ const CodingSandbox = () => {
     const [executionResult, setExecutionResult] = useState<ExecutionResult | null>(null)
     const [isExecuting, setIsExecuting] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
-    const [isLoadingQuestion, setIsLoadingQuestion] = useState(!state?.question)
     const [timeRemaining, setTimeRemaining] = useState(state?.duration * 60 || 1800) // Convert minutes to seconds
 
     // Redirect if no session state
@@ -91,39 +93,47 @@ const CodingSandbox = () => {
         }
     }, [state, user, navigate])
 
-    // Load coding question if not provided
+    // Initialize with provided question or use default
     useEffect(() => {
-        const loadQuestion = async () => {
-            if (!state?.question && state?.sessionId) {
-                try {
-                    setIsLoadingQuestion(true)
-                    generateCodingQuestion.mutate({
-                        domain: state.domain,
-                        difficulty: state.difficulty,
-                        language: state.language,
-                        sessionId: state.sessionId
-                    }, {
-                        onSuccess: (questionData) => {
-                            setQuestion(questionData)
-                            setCode(questionData.starterCode || `// Write your ${state.language} solution here\n`)
-                            setIsLoadingQuestion(false)
-                        },
-                        onError: (error) => {
-                            console.error('Error loading question:', error)
-                            setIsLoadingQuestion(false)
-                        }
-                    })
-                } catch (error) {
-                    console.error('Error loading question:', error)
-                    setIsLoadingQuestion(false)
-                }
-            } else if (state?.question) {
-                setCode(state.question.starterCode || `// Write your ${state.language} solution here\n`)
-            }
-        }
+        if (state?.question) {
+            // Use provided question
+            setQuestion(state.question)
+            setCode(state.question.starterCode || `// Write your ${state.language} solution here\n`)
+        } else if (state?.sessionId && state?.domain && state?.difficulty && state?.language) {
+            // Create a default question instead of generating with Gemini
+            console.log('🔄 Creating default coding question for:', {
+                domain: state.domain,
+                difficulty: state.difficulty,
+                language: state.language
+            })
 
-        loadQuestion()
-    }, [state, generateCodingQuestion])
+            const defaultQuestion: CodingQuestion = {
+                title: `${state.domain} Coding Challenge`,
+                description: `Solve this ${state.difficulty} level ${state.domain} problem using ${state.language}.\n\nWrite your solution in the code editor below. You can run your code to test it and submit when ready.`,
+                difficulty: state.difficulty,
+                language: state.language,
+                starterCode: `// Write your ${state.language} solution here\n// Use the editor below to implement your solution\n\nfunction solution() {\n    // Your code here\n    return null;\n}\n`,
+                testCases: [
+                    {
+                        input: "test input",
+                        expectedOutput: "expected output",
+                        description: "Test case 1"
+                    }
+                ],
+                hints: [
+                    "Break down the problem into smaller steps",
+                    "Consider edge cases and boundary conditions",
+                    "Think about time and space complexity"
+                ]
+            }
+            setQuestion(defaultQuestion)
+            setCode(defaultQuestion.starterCode)
+        } else {
+            // No session ID provided - redirect back to setup
+            console.error('No session ID provided for coding sandbox')
+            navigate('/interview-setup')
+        }
+    }, [state, navigate])
 
     // Timer countdown
     useEffect(() => {
@@ -239,23 +249,6 @@ const CodingSandbox = () => {
         return null // Will redirect in useEffect
     }
 
-    if (isLoadingQuestion) {
-        return (
-            <div className="flex h-screen bg-background">
-                <Sidebar />
-                <div className="flex-1 flex items-center justify-center">
-                    <div className="text-center">
-                        <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-                        <p className="text-lg font-medium">Generating your coding challenge...</p>
-                        <p className="text-sm text-muted-foreground mt-2">
-                            AI is creating a {state.difficulty} {state.domain} question
-                        </p>
-                    </div>
-                </div>
-            </div>
-        )
-    }
-
     if (!question) {
         return (
             <div className="flex h-screen bg-background">
@@ -277,6 +270,7 @@ const CodingSandbox = () => {
         <div className="flex h-screen bg-background">
             <Sidebar />
             <div className="flex-1 flex flex-col overflow-hidden">
+                <Navbar />
                 {/* Header */}
                 <div className="border-b p-4 bg-white">
                     <div className="flex items-center justify-between">

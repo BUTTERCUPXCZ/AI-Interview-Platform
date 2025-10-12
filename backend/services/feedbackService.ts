@@ -659,3 +659,230 @@ function generateFallbackFeedback(
         nextSteps: ["Continue practicing", "Focus on weak areas"]
     }
 }
+
+/**
+ * Generate AI-powered career recommendations
+ */
+export async function generateCareerRecommendations(
+    sessionData: {
+        domain: string,
+        interviewType: string,
+        difficulty: string,
+        duration: number
+    },
+    questions: QuestionAnalysis[],
+    overallScore: number
+): Promise<{
+    priorityAreas: {
+        technical: {
+            title: string,
+            description: string,
+            actions: string[]
+        },
+        communication: {
+            title: string,
+            description: string,
+            actions: string[]
+        }
+    },
+    learningRoadmap: {
+        weeks1to2: {
+            title: string,
+            focus: string,
+            tasks: string[]
+        },
+        weeks3to4: {
+            title: string,
+            focus: string,
+            tasks: string[]
+        },
+        ongoing: {
+            title: string,
+            focus: string,
+            tasks: string[]
+        }
+    },
+    resources: {
+        courses: string[],
+        practice: string[],
+        books: string[],
+        communities: string[]
+    }
+}> {
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" })
+
+    // Calculate performance metrics
+    const totalQuestions = questions.length
+    const answeredQuestions = questions.filter(q => q.userAnswer !== null).length
+    const completionRate = (answeredQuestions / totalQuestions) * 100
+    const scores = questions.filter(q => q.score !== null).map(q => q.score!)
+    const averageScore = scores.length > 0 ? scores.reduce((sum, score) => sum + score, 0) / scores.length : 0
+
+    // Categorize questions for better analysis
+    const categorizedQuestions = categorizeQuestions(questions, sessionData.domain, sessionData.interviewType)
+
+    const prompt = `
+As an expert career coach specializing in ${sessionData.domain} development, analyze this interview performance and provide personalized career growth recommendations.
+
+Interview Performance Analysis:
+- Domain: ${sessionData.domain}
+- Interview Type: ${sessionData.interviewType}
+- Difficulty Level: ${sessionData.difficulty}
+- Overall Score: ${overallScore}/10
+- Completion Rate: ${completionRate}%
+- Average Score: ${averageScore.toFixed(1)}/10
+
+Question Categories Performance:
+${Object.entries(categorizedQuestions).map(([category, questions]) => `
+${category}: ${questions.length} questions, Average Score: ${questions.filter(q => q.score !== null).length > 0
+            ? (questions.filter(q => q.score !== null).reduce((sum, q) => sum + q.score!, 0) / questions.filter(q => q.score !== null).length).toFixed(1)
+            : 'N/A'
+        }/10`).join('\n')}
+
+Detailed Question Analysis:
+${questions.slice(0, 5).map((q, i) => `
+Q${i + 1}: ${q.questionText.substring(0, 100)}...
+Answer Quality: ${q.score || 'Not scored'}/10
+Evaluation: ${q.aiEvaluation?.substring(0, 200) || 'Not evaluated'}...
+`).join('\n')}
+
+Based on this performance, provide personalized career recommendations in JSON format:
+
+{
+  "priorityAreas": {
+    "technical": {
+      "title": "Technical Depth/Skills/Foundation",
+      "description": "Specific technical area to focus on based on weak performance",
+      "actions": ["3 specific, actionable steps tailored to this candidate's ${sessionData.domain} level"]
+    },
+    "communication": {
+      "title": "Communication/Problem-Solving/Soft Skills",
+      "description": "Communication or soft skill area needing improvement",
+      "actions": ["3 specific, actionable steps for improving interview communication"]
+    }
+  },
+  "learningRoadmap": {
+    "weeks1to2": {
+      "title": "Week 1-2",
+      "focus": "Foundation Building/Review Basics/etc",
+      "tasks": ["4 specific tasks for weeks 1-2 based on current level and weaknesses"]
+    },
+    "weeks3to4": {
+      "title": "Week 3-4", 
+      "focus": "Advanced Concepts/Practice/etc",
+      "tasks": ["4 specific tasks for weeks 3-4 building on previous weeks"]
+    },
+    "ongoing": {
+      "title": "Ongoing",
+      "focus": "Maintenance & Growth/Continuous Learning/etc", 
+      "tasks": ["4 specific ongoing tasks for continuous improvement"]
+    }
+  },
+  "resources": {
+    "courses": ["3 specific online courses relevant to ${sessionData.domain} and current skill level"],
+    "practice": ["3 specific practice platforms/tools relevant to identified weak areas"],
+    "books": ["3 specific books that address this candidate's learning needs"],
+    "communities": ["3 specific communities/forums for ${sessionData.domain} developers"]
+  }
+}
+
+Requirements:
+1. Make recommendations SPECIFIC to ${sessionData.domain} development
+2. Tailor advice to the candidate's current skill level (score: ${overallScore}/10)
+3. Address the specific weak areas identified in the interview
+4. Provide actionable, time-bound tasks
+5. Include relevant, current resources (courses, books, tools)
+6. Consider the ${sessionData.difficulty} difficulty level attempted
+7. Make all advice practical and immediately implementable
+`
+
+    try {
+        const result = await model.generateContent(prompt)
+        const responseText = result.response.text()
+
+        // Clean the response to ensure it's valid JSON
+        const cleanedResponse = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+
+        return JSON.parse(cleanedResponse)
+    } catch (error) {
+        console.error('Error generating career recommendations:', error)
+
+        // Fallback recommendations if AI fails
+        return {
+            priorityAreas: {
+                technical: {
+                    title: "Technical Foundation",
+                    description: `Strengthen your core ${sessionData.domain} technical skills to improve problem-solving ability`,
+                    actions: [
+                        "Practice data structures and algorithms daily (30 minutes)",
+                        "Build 2-3 projects showcasing your skills",
+                        "Study system design fundamentals"
+                    ]
+                },
+                communication: {
+                    title: "Communication Skills",
+                    description: "Enhance your ability to explain complex concepts clearly and concisely",
+                    actions: [
+                        "Practice explaining code solutions out loud",
+                        "Record yourself solving problems to review communication",
+                        "Join technical discussion groups to practice articulation"
+                    ]
+                }
+            },
+            learningRoadmap: {
+                weeks1to2: {
+                    title: "Week 1-2",
+                    focus: "Foundation Building",
+                    tasks: [
+                        "Review core algorithms (sorting, searching)",
+                        "Practice 5 easy coding problems daily",
+                        "Study time/space complexity analysis",
+                        "Read programming fundamentals"
+                    ]
+                },
+                weeks3to4: {
+                    title: "Week 3-4",
+                    focus: "Advanced Concepts",
+                    tasks: [
+                        "Master advanced programming patterns",
+                        "Practice 3 medium-level problems daily",
+                        "Learn system design basics",
+                        "Conduct mock interviews with peers"
+                    ]
+                },
+                ongoing: {
+                    title: "Ongoing",
+                    focus: "Maintenance & Growth",
+                    tasks: [
+                        "Daily coding practice (1 hour)",
+                        "Weekly system design study",
+                        "Monthly mock interviews",
+                        "Contribute to open source projects"
+                    ]
+                }
+            },
+            resources: {
+                courses: [
+                    "AlgoExpert (Interview Preparation)",
+                    "Educative.io (System Design)",
+                    "Coursera (Algorithms Specialization)"
+                ],
+                practice: [
+                    "LeetCode (Daily Practice)",
+                    "HackerRank (Skills Assessment)",
+                    "CodeSignal (Mock Interviews)"
+                ],
+                books: [
+                    "Cracking the Coding Interview",
+                    "Clean Code by Robert Martin",
+                    "Designing Data-Intensive Applications"
+                ],
+                communities: [
+                    "r/cscareerquestions (Reddit)",
+                    "Blind (Anonymous professional forum)",
+                    "Discord coding communities"
+                ]
+            }
+        }
+    }
+}

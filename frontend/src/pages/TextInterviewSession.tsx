@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card'
 import { useStartTextInterview, useGetNextTextQuestion, useSubmitTextAnswer, useGetInterviewProgress, useCompleteTextInterview } from '../hooks/useInterview'
 import { useAuth } from '../contexts/AuthContext'
 import type { InterviewConfig } from '../domain/entities'
+import InterviewLoading from '@/components/InterviewLoading'
 import {
     Clock,
     ArrowRight,
@@ -15,6 +16,8 @@ import {
 interface TextInterviewSessionConfig extends InterviewConfig {
     sessionId?: number
     currentQuestion?: any
+    isLoading?: boolean
+    userId?: number
 }
 
 const TextInterviewSession = () => {
@@ -46,22 +49,29 @@ const TextInterviewSession = () => {
     // Start interview if not already started
     useEffect(() => {
         if (!sessionId && config && user) {
-            startTextInterview.mutate(
-                { config, userId: user.id },
-                {
-                    onSuccess: (data) => {
-                        setSessionId(data.session.id)
-                        setCurrentQuestion(data.currentQuestion)
-                        setQuestionNumber(1)
-                        setTotalQuestions(5) // Default to 5 questions
-                    },
-                    onError: (error) => {
-                        console.error('Failed to start text interview:', error)
-                        // Navigate back to setup on error
-                        navigate('/interview-setup')
+            // Check if we have a loading state from navigation
+            if (config.isLoading || !config.sessionId) {
+                startTextInterview.mutate(
+                    { config, userId: user.id },
+                    {
+                        onSuccess: (data) => {
+                            setSessionId(data.session.id)
+                            setCurrentQuestion(data.currentQuestion)
+                            setQuestionNumber(1)
+                            setTotalQuestions(data.currentQuestion?.totalQuestions || 5)
+                        },
+                        onError: (error) => {
+                            console.error('Failed to start text interview:', error)
+                            // Navigate back to setup on error
+                            navigate('/interview-setup')
+                        }
                     }
-                }
-            )
+                )
+            } else {
+                // Use existing session data
+                setSessionId(config.sessionId)
+                setCurrentQuestion(config.currentQuestion)
+            }
         }
     }, [config, user, sessionId])
 
@@ -108,10 +118,8 @@ const TextInterviewSession = () => {
             setFeedback(result)
             setCurrentAnswer('')
 
-            // Get next question after a brief delay to show feedback
-            setTimeout(() => {
-                handleNextQuestion()
-            }, 2000)
+            // Get next question immediately without delay
+            handleNextQuestion()
 
         } catch (error) {
             console.error('Failed to submit answer:', error)
@@ -186,12 +194,10 @@ const TextInterviewSession = () => {
 
     if (!currentQuestion && !isCompleted) {
         return (
-            <div className="flex items-center justify-center min-h-screen">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                    <p>Starting your interview...</p>
-                </div>
-            </div>
+            <InterviewLoading
+                type="text"
+                message={config?.isLoading ? "Setting up your interview session..." : "Loading next question..."}
+            />
         )
     }
 

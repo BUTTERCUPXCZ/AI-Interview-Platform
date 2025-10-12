@@ -8,6 +8,9 @@ import authRoutes from '../routes/authRoutes';
 import codingRoutes from '../routes/codingRoutes';
 import interview from '../routes/interview';
 import textInterviewRoutes from '../routes/textInterviewRoutes';
+import dashboardRoutes from '../routes/dashboardRoutes';
+import progressRoutes from '../routes/progressRoutes';
+import profileRoutes from '../routes/profileRoutes';
 import { connectPrisma } from '../lib/prisma';
 
 dotenv.config();
@@ -39,6 +42,9 @@ app.use("/api/auth", authRoutes);
 app.use("/api/coding", codingRoutes);
 app.use("/api/interview", interview);
 app.use("/api/interview", textInterviewRoutes);
+app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/progress", progressRoutes);
+app.use("/api/profile", profileRoutes);
 
 // Initialize Prisma connection and start server
 const startServer = async () => {

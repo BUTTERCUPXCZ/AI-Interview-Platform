@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import Sidebar from '@/components/Sidebar'
+import { useCareerRecommendations } from '@/hooks/useCareerRecommendations'
 import {
     Brain,
     CheckCircle2,
@@ -19,7 +20,9 @@ import {
     TrendingDown as Warning,
     Info,
     Target,
-    Clock
+    Clock,
+    Code,
+    Trophy
 } from 'lucide-react'
 
 interface LocationState {
@@ -55,6 +58,15 @@ const EnhancedFeedback: React.FC = () => {
     const [interviewerAnalysis, setInterviewerAnalysis] = useState<InterviewerPerformance | null>(null)
     const [isAnalyzingInterviewer, setIsAnalyzingInterviewer] = useState(false)
     const [analysisError, setAnalysisError] = useState<string | null>(null)
+
+    // Fetch AI-powered career recommendations
+    const {
+        recommendations,
+        isLoading: isLoadingRecommendations,
+        error: recommendationsError,
+        overallScore,
+        refetch: refetchRecommendations
+    } = useCareerRecommendations(sessionId ?? null)
 
     const analyzeInterviewerBehavior = async () => {
         if (!sessionId) {
@@ -113,7 +125,7 @@ const EnhancedFeedback: React.FC = () => {
             <div className="flex h-screen bg-background">
                 <Sidebar />
                 <div className="flex-1 flex items-center justify-center">
-                    <div className="text-center">
+                    <div className="text-center p-8">
                         <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-4" />
                         <h2 className="text-xl font-semibold mb-2">No Session Found</h2>
                         <p className="text-muted-foreground mb-4">Please start from an interview session.</p>
@@ -128,298 +140,548 @@ const EnhancedFeedback: React.FC = () => {
 
     return (
         <div className="flex h-screen bg-background">
-            {/* Sidebar */}
             <Sidebar />
 
-            {/* Main Content */}
             <div className="flex-1 flex flex-col overflow-hidden">
                 {/* Header */}
-                <header className="bg-card border-b border-border p-3">
-                    <div className="max-w-6xl">
-                        <div className="flex items-center gap-4 mb-2">
-
-                            <div>
-                                <h1 className="text-2xl font-bold text-foreground">
-                                    Interviewer Performance Analysis
-                                </h1>
-
-                            </div>
+                <header className="bg-card border-b border-border px-6 py-4">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h1 className="text-2xl font-semibold text-foreground">Interview Analysis Dashboard</h1>
+                            <p className="text-muted-foreground mt-1">
+                                AI-powered insights and personalized recommendations
+                            </p>
                         </div>
+                        <Button
+                            variant="outline"
+                            onClick={() => navigate('/dashboard')}
+                        >
+                            Back to Dashboard
+                        </Button>
                     </div>
                 </header>
 
                 {/* Main Content Area */}
-                <main className="flex-1 overflow-y-auto p-6 bg-gradient-to-br from-background via-background to-muted/20">
-                    <div className="max-w-6xl mx-auto space-y-8">
-
-                        {/* Main Content */}
-                        <Card className="shadow-lg">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2 text-2xl">
-                                    <BarChart3 className="w-6 h-6 text-blue-600" />
-                                    AI Performance Evaluation
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="p-8">
-                                {!interviewerAnalysis ? (
-                                    <div className="text-center py-12">
-                                        {analysisError ? (
-                                            <div className="space-y-4">
-                                                <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-                                                    <AlertCircle className="w-8 h-8 text-red-600 mx-auto mb-4" />
-                                                    <h3 className="text-lg font-semibold text-red-800 mb-2">Analysis Failed</h3>
-                                                    <p className="text-red-700">{analysisError}</p>
-                                                </div>
-                                                <Button
-                                                    onClick={analyzeInterviewerBehavior}
-                                                    disabled={isAnalyzingInterviewer}
-                                                    variant="outline"
-                                                    size="lg"
-                                                >
-                                                    {isAnalyzingInterviewer ? (
-                                                        <>
-                                                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                                                            Retrying Analysis...
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <Brain className="w-5 h-5 mr-2" />
-                                                            Retry Analysis
-                                                        </>
-                                                    )}
-                                                </Button>
-                                            </div>
-                                        ) : (
-                                            <div className="space-y-6">
-                                                <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
-                                                    <Brain className="w-10 h-10 text-blue-600" />
-                                                </div>
-                                                <div>
-                                                    <h3 className="text-2xl font-semibold mb-3">Ready to Analyze</h3>
-                                                    <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-                                                        Click the button below to generate a comprehensive AI-powered analysis of the interviewer's performance, including communication style, question quality, and professional conduct.
-                                                    </p>
-                                                </div>
-                                                <Button
-                                                    onClick={analyzeInterviewerBehavior}
-                                                    disabled={isAnalyzingInterviewer}
-                                                    size="lg"
-                                                    className="text-lg px-8 py-3"
-                                                >
-                                                    {isAnalyzingInterviewer ? (
-                                                        <>
-                                                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                                                            Gemini AI Analyzing...
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <Brain className="w-5 h-5 mr-2" />
-                                                            Generate AI Analysis
-                                                        </>
-                                                    )}
-                                                </Button>
-                                            </div>
-                                        )}
+                <main className="flex-1 overflow-y-auto p-6">
+                    <div className="space-y-6">
+                        {/* Analysis Section */}
+                        <Card className="p-6">
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                                        <BarChart3 className="w-5 h-5 text-primary" />
                                     </div>
-                                ) : (
-                                    <div className="space-y-8">
-                                        {/* Overall Impression */}
-                                        <div className="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-r-lg">
-                                            <h3 className="flex items-center gap-2 text-xl font-semibold text-blue-900 mb-3">
-                                                <Star className="w-5 h-5" />
-                                                Overall Impression
-                                            </h3>
-                                            <p className="text-blue-800 text-lg leading-relaxed">
-                                                {interviewerAnalysis.overall_impression}
-                                            </p>
+                                    <div>
+                                        <h2 className="text-xl font-semibold tracking-tight">
+                                            Interviewer Performance Analysis
+                                        </h2>
+                                        <p className="text-muted-foreground">
+                                            Comprehensive AI-powered evaluation and insights
+                                        </p>
+                                    </div>
+                                </div>
+                                {interviewerAnalysis && (
+                                    <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
+                                        Analysis Complete
+                                    </Badge>
+                                )}
+                            </div>
+                            {!interviewerAnalysis ? (
+                                <div className="text-center py-16">
+                                    {analysisError ? (
+                                        <div className="max-w-md mx-auto space-y-6">
+                                            <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
+                                                <AlertCircle className="w-8 h-8 text-destructive" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <h3 className="text-xl font-semibold text-foreground">Analysis Failed</h3>
+                                                <p className="text-muted-foreground text-sm leading-relaxed">{analysisError}</p>
+                                            </div>
+                                            <Button
+                                                onClick={analyzeInterviewerBehavior}
+                                                disabled={isAnalyzingInterviewer}
+                                                variant="default"
+                                                size="lg"
+                                                className="w-full sm:w-auto"
+                                            >
+                                                {isAnalyzingInterviewer ? (
+                                                    <>
+                                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                        Retrying Analysis...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Brain className="w-4 h-4 mr-2" />
+                                                        Retry Analysis
+                                                    </>
+                                                )}
+                                            </Button>
                                         </div>
+                                    ) : (
+                                        <div className="max-w-lg mx-auto space-y-8">
+                                            <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+                                                <Brain className="w-12 h-12 text-primary" />
+                                            </div>
+                                            <div className="space-y-3">
+                                                <h3 className="text-2xl font-bold tracking-tight">Ready to Analyze</h3>
+                                                <p className="text-muted-foreground leading-relaxed">
+                                                    Generate comprehensive AI insights about interviewer performance,
+                                                    communication style, and professional conduct.
+                                                </p>
+                                            </div>
+                                            <Button
+                                                onClick={analyzeInterviewerBehavior}
+                                                disabled={isAnalyzingInterviewer}
+                                                size="lg"
+                                                className="px-8 py-3 h-auto text-base font-medium"
+                                            >
+                                                {isAnalyzingInterviewer ? (
+                                                    <>
+                                                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                                                        AI Analyzing...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Brain className="w-5 h-5 mr-2" />
+                                                        Start AI Analysis
+                                                    </>
+                                                )}
+                                            </Button>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="space-y-8">
+                                    {/* Overall Impression - Enhanced */}
+                                    <div className="rounded-xl bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 border border-primary/20 p-8">
+                                        <div className="flex items-start gap-4">
+                                            <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0">
+                                                <Star className="w-6 h-6 text-primary" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <h3 className="text-xl font-semibold text-foreground">Overall Impression</h3>
+                                                <p className="text-foreground/80 leading-relaxed text-lg">
+                                                    {interviewerAnalysis.overall_impression}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
 
-                                        {/* AI Performance Summary */}
-                                        <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-                                            <h3 className="flex items-center gap-2 text-xl font-semibold text-green-900 mb-4">
-                                                <CheckCircle2 className="w-5 h-5" />
-                                                AI Performance Summary
-                                                <Badge variant="outline" className="ml-2 text-green-700 border-green-300">
-                                                    Bullet Format
+                                    {/* Performance Summary - Enhanced */}
+                                    <Card className="border-0 shadow-md">
+                                        <CardHeader className="pb-4">
+                                            <CardTitle className="flex items-center gap-3 text-lg">
+                                                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                                                    <CheckCircle2 className="w-5 h-5 text-primary" />
+                                                </div>
+                                                Performance Highlights
+                                                <Badge variant="outline" className="text-xs font-normal">
+                                                    AI Generated
                                                 </Badge>
-                                            </h3>
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="pt-0">
                                             <div className="space-y-3">
                                                 {interviewerAnalysis.performance_summary && interviewerAnalysis.performance_summary.length > 0 ? (
                                                     interviewerAnalysis.performance_summary.map((point, index) => (
-                                                        <div key={index} className="flex items-start gap-3">
-                                                            <div className="w-2 h-2 bg-green-600 rounded-full mt-3 flex-shrink-0" />
-                                                            <p className="text-green-800 text-base leading-relaxed">{point}</p>
+                                                        <div key={index} className="flex items-start gap-3 p-4 rounded-lg bg-muted/30 hover:bg-muted/40 transition-colors">
+                                                            <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
+                                                            <p className="text-foreground leading-relaxed">{point}</p>
                                                         </div>
                                                     ))
                                                 ) : (
-                                                    <p className="text-muted-foreground">No performance summary available</p>
+                                                    <div className="text-center py-8 text-muted-foreground">
+                                                        <Info className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                                                        <p>No performance summary available</p>
+                                                    </div>
                                                 )}
                                             </div>
+                                        </CardContent>
+                                    </Card>
+
+                                    {/* Category Analysis - Enhanced */}
+                                    <div className="space-y-6">
+                                        <div className="text-center">
+                                            <h3 className="text-xl sm:text-2xl font-bold tracking-tight mb-2">Category Analysis</h3>
+                                            <p className="text-sm sm:text-base text-muted-foreground">
+                                                Detailed breakdown across key interview dimensions
+                                            </p>
                                         </div>
 
-                                        {/* Category Analysis */}
-                                        <div>
-                                            <h3 className="flex items-center gap-2 text-xl font-semibold mb-6">
-                                                <BarChart3 className="w-5 h-5 text-purple-600" />
-                                                Category Analysis
-                                            </h3>
-                                            <div className="grid md:grid-cols-2 gap-6">
-                                                <Card className="border-blue-200">
-                                                    <CardContent className="p-6">
-                                                        <h4 className="font-semibold text-blue-700 mb-3 flex items-center gap-2">
-                                                            <MessageSquare className="w-4 h-4" />
-                                                            Clarity & Tone
-                                                        </h4>
-                                                        <p className="text-gray-700 leading-relaxed">
-                                                            {interviewerAnalysis.categories?.clarity_and_tone || "No analysis available"}
-                                                        </p>
-                                                    </CardContent>
-                                                </Card>
-
-                                                <Card className="border-green-200">
-                                                    <CardContent className="p-6">
-                                                        <h4 className="font-semibold text-green-700 mb-3 flex items-center gap-2">
-                                                            <Target className="w-4 h-4" />
-                                                            Question Relevance
-                                                        </h4>
-                                                        <p className="text-gray-700 leading-relaxed">
-                                                            {interviewerAnalysis.categories?.question_relevance || "No analysis available"}
-                                                        </p>
-                                                    </CardContent>
-                                                </Card>
-
-                                                <Card className="border-purple-200">
-                                                    <CardContent className="p-6">
-                                                        <h4 className="font-semibold text-purple-700 mb-3 flex items-center gap-2">
-                                                            <Users className="w-4 h-4" />
-                                                            Candidate Engagement
-                                                        </h4>
-                                                        <p className="text-gray-700 leading-relaxed">
-                                                            {interviewerAnalysis.categories?.candidate_engagement || "No analysis available"}
-                                                        </p>
-                                                    </CardContent>
-                                                </Card>
-
-                                                <Card className="border-orange-200">
-                                                    <CardContent className="p-6">
-                                                        <h4 className="font-semibold text-orange-700 mb-3 flex items-center gap-2">
-                                                            <Award className="w-4 h-4" />
-                                                            Professionalism
-                                                        </h4>
-                                                        <p className="text-gray-700 leading-relaxed">
-                                                            {interviewerAnalysis.categories?.professionalism || "No analysis available"}
-                                                        </p>
-                                                    </CardContent>
-                                                </Card>
-
-                                                <Card className="border-indigo-200 md:col-span-2">
-                                                    <CardContent className="p-6">
-                                                        <h4 className="font-semibold text-indigo-700 mb-3 flex items-center gap-2">
-                                                            <Activity className="w-4 h-4" />
-                                                            Fairness & Neutrality
-                                                        </h4>
-                                                        <p className="text-gray-700 leading-relaxed">
-                                                            {interviewerAnalysis.categories?.fairness || "No analysis available"}
-                                                        </p>
-                                                    </CardContent>
-                                                </Card>
-                                            </div>
-                                        </div>
-
-                                        {/* Quality Indicators */}
-                                        <div>
-                                            <h3 className="flex items-center gap-2 text-xl font-semibold mb-6">
-                                                <AlertCircle className="w-5 h-5 text-amber-600" />
-                                                Quality Indicators
-                                            </h3>
-                                            <div className="grid md:grid-cols-3 gap-6">
-                                                <Card className={`${interviewerAnalysis.flags?.bias_detected ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
-                                                    <CardContent className="p-6 text-center">
-                                                        {interviewerAnalysis.flags?.bias_detected ?
-                                                            <Warning className="w-8 h-8 text-red-600 mx-auto mb-3" /> :
-                                                            <CheckCircle2 className="w-8 h-8 text-green-600 mx-auto mb-3" />
-                                                        }
-                                                        <h4 className={`font-semibold mb-2 ${interviewerAnalysis.flags?.bias_detected ? 'text-red-800' : 'text-green-800'}`}>
-                                                            Bias Detection
-                                                        </h4>
-                                                        <p className={`text-sm ${interviewerAnalysis.flags?.bias_detected ? 'text-red-700' : 'text-green-700'}`}>
-                                                            {interviewerAnalysis.flags?.bias_detected ? 'Potential bias detected' : 'No bias detected'}
-                                                        </p>
-                                                    </CardContent>
-                                                </Card>
-
-                                                <Card className={`${interviewerAnalysis.flags?.unprofessional_language ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
-                                                    <CardContent className="p-6 text-center">
-                                                        {interviewerAnalysis.flags?.unprofessional_language ?
-                                                            <Warning className="w-8 h-8 text-red-600 mx-auto mb-3" /> :
-                                                            <CheckCircle2 className="w-8 h-8 text-green-600 mx-auto mb-3" />
-                                                        }
-                                                        <h4 className={`font-semibold mb-2 ${interviewerAnalysis.flags?.unprofessional_language ? 'text-red-800' : 'text-green-800'}`}>
-                                                            Language Quality
-                                                        </h4>
-                                                        <p className={`text-sm ${interviewerAnalysis.flags?.unprofessional_language ? 'text-red-700' : 'text-green-700'}`}>
-                                                            {interviewerAnalysis.flags?.unprofessional_language ? 'Unprofessional language detected' : 'Professional language maintained'}
-                                                        </p>
-                                                    </CardContent>
-                                                </Card>
-
-                                                <Card className={`${interviewerAnalysis.flags?.pacing_issues ? 'bg-yellow-50 border-yellow-200' : 'bg-green-50 border-green-200'}`}>
-                                                    <CardContent className="p-6 text-center">
-                                                        {interviewerAnalysis.flags?.pacing_issues ?
-                                                            <Clock className="w-8 h-8 text-yellow-600 mx-auto mb-3" /> :
-                                                            <CheckCircle2 className="w-8 h-8 text-green-600 mx-auto mb-3" />
-                                                        }
-                                                        <h4 className={`font-semibold mb-2 ${interviewerAnalysis.flags?.pacing_issues ? 'text-yellow-800' : 'text-green-800'}`}>
-                                                            Pacing
-                                                        </h4>
-                                                        <p className={`text-sm ${interviewerAnalysis.flags?.pacing_issues ? 'text-yellow-700' : 'text-green-700'}`}>
-                                                            {interviewerAnalysis.flags?.pacing_issues ? 'Pacing could be improved' : 'Good pacing maintained'}
-                                                        </p>
-                                                    </CardContent>
-                                                </Card>
-                                            </div>
-                                        </div>
-
-                                        {/* Interview Details */}
-                                        <Card className="bg-gray-50 border-gray-200">
-                                            <CardContent className="p-6">
-                                                <h3 className="flex items-center gap-2 text-lg font-semibold mb-4">
-                                                    <Info className="w-5 h-5 text-gray-600" />
-                                                    Interview Details
-                                                </h3>
-                                                <div className="grid md:grid-cols-2 gap-4">
-                                                    <div>
-                                                        <span className="font-medium text-gray-600">Interview ID:</span>
-                                                        <span className="ml-3 text-gray-800">{interviewerAnalysis.interview_id}</span>
+                                        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
+                                            <Card className="border-0 shadow-md hover:shadow-lg transition-shadow">
+                                                <CardContent className="p-4 sm:p-6">
+                                                    <div className="flex items-center gap-3 mb-4">
+                                                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                                                            <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+                                                        </div>
+                                                        <h4 className="font-semibold text-foreground text-sm sm:text-base">Clarity & Tone</h4>
                                                     </div>
-                                                    <div>
-                                                        <span className="font-medium text-gray-600">Interviewer:</span>
-                                                        <span className="ml-3 text-gray-800">{interviewerAnalysis.interviewer_name}</span>
+                                                    <p className="text-muted-foreground leading-relaxed text-xs sm:text-sm">
+                                                        {interviewerAnalysis.categories?.clarity_and_tone || "No analysis available"}
+                                                    </p>
+                                                </CardContent>
+                                            </Card>
+
+                                            <Card className="border-0 shadow-md hover:shadow-lg transition-shadow">
+                                                <CardContent className="p-4 sm:p-6">
+                                                    <div className="flex items-center gap-3 mb-4">
+                                                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-green-100 flex items-center justify-center">
+                                                            <Target className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
+                                                        </div>
+                                                        <h4 className="font-semibold text-foreground text-sm sm:text-base">Question Relevance</h4>
                                                     </div>
-                                                </div>
-                                            </CardContent>
-                                        </Card>
+                                                    <p className="text-muted-foreground leading-relaxed text-xs sm:text-sm">
+                                                        {interviewerAnalysis.categories?.question_relevance || "No analysis available"}
+                                                    </p>
+                                                </CardContent>
+                                            </Card>
+
+                                            <Card className="border-0 shadow-md hover:shadow-lg transition-shadow">
+                                                <CardContent className="p-4 sm:p-6">
+                                                    <div className="flex items-center gap-3 mb-4">
+                                                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                                                            <Users className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
+                                                        </div>
+                                                        <h4 className="font-semibold text-foreground text-sm sm:text-base">Engagement</h4>
+                                                    </div>
+                                                    <p className="text-muted-foreground leading-relaxed text-xs sm:text-sm">
+                                                        {interviewerAnalysis.categories?.candidate_engagement || "No analysis available"}
+                                                    </p>
+                                                </CardContent>
+                                            </Card>
+
+                                            <Card className="border-0 shadow-md hover:shadow-lg transition-shadow">
+                                                <CardContent className="p-4 sm:p-6">
+                                                    <div className="flex items-center gap-3 mb-4">
+                                                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-orange-100 flex items-center justify-center">
+                                                            <Award className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
+                                                        </div>
+                                                        <h4 className="font-semibold text-foreground text-sm sm:text-base">Professionalism</h4>
+                                                    </div>
+                                                    <p className="text-muted-foreground leading-relaxed text-xs sm:text-sm">
+                                                        {interviewerAnalysis.categories?.professionalism || "No analysis available"}
+                                                    </p>
+                                                </CardContent>
+                                            </Card>
+
+                                            <Card className="border-0 shadow-md hover:shadow-lg transition-shadow sm:col-span-2 xl:col-span-1">
+                                                <CardContent className="p-4 sm:p-6">
+                                                    <div className="flex items-center gap-3 mb-4">
+                                                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
+                                                            <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" />
+                                                        </div>
+                                                        <h4 className="font-semibold text-foreground text-sm sm:text-base">Fairness</h4>
+                                                    </div>
+                                                    <p className="text-muted-foreground leading-relaxed text-xs sm:text-sm">
+                                                        {interviewerAnalysis.categories?.fairness || "No analysis available"}
+                                                    </p>
+                                                </CardContent>
+                                            </Card>
+                                        </div>
                                     </div>
-                                )}
-                            </CardContent>
-                        </Card>
 
-                        {/* Action Buttons */}
-                        <div className="flex items-center justify-between pt-6 border-t">
-                            <Button variant="outline" onClick={() => navigate('/dashboard')} size="lg">
-                                <Target className="w-4 h-4 mr-2" />
-                                Back to Dashboard
-                            </Button>
-                            <div className="flex items-center gap-4">
-                                <Button variant="outline" onClick={() => window.print()} size="lg">
-                                    <Download className="w-4 h-4 mr-2" />
-                                    Download Report
-                                </Button>
-                                <Button onClick={() => navigate('/interview-setup')} size="lg">
-                                    Start New Interview
-                                </Button>
+                                    {/* Quality Indicators - Enhanced */}
+                                    <div className="space-y-6">
+                                        <div className="text-center">
+                                            <h3 className="text-xl sm:text-2xl font-bold tracking-tight mb-2">Quality Indicators</h3>
+                                            <p className="text-sm sm:text-base text-muted-foreground">
+                                                Key metrics for interview quality and professionalism
+                                            </p>
+                                        </div>
+
+                                        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                                            <Card className={`border-0 shadow-md transition-all duration-200 ${interviewerAnalysis.flags?.bias_detected
+                                                    ? 'bg-red-50 border-red-200 hover:shadow-red-100'
+                                                    : 'bg-green-50 border-green-200 hover:shadow-green-100'
+                                                }`}>
+                                                <CardContent className="p-6 text-center">
+                                                    <div className={`w-12 h-12 rounded-full mx-auto mb-4 flex items-center justify-center ${interviewerAnalysis.flags?.bias_detected
+                                                            ? 'bg-red-100'
+                                                            : 'bg-green-100'
+                                                        }`}>
+                                                        {interviewerAnalysis.flags?.bias_detected ? (
+                                                            <Warning className="w-6 h-6 text-red-600" />
+                                                        ) : (
+                                                            <CheckCircle2 className="w-6 h-6 text-green-600" />
+                                                        )}
+                                                    </div>
+                                                    <h4 className={`font-semibold mb-2 ${interviewerAnalysis.flags?.bias_detected
+                                                            ? 'text-red-700'
+                                                            : 'text-green-700'
+                                                        }`}>
+                                                        Bias Detection
+                                                    </h4>
+                                                    <p className={`text-sm ${interviewerAnalysis.flags?.bias_detected
+                                                            ? 'text-red-600'
+                                                            : 'text-green-600'
+                                                        }`}>
+                                                        {interviewerAnalysis.flags?.bias_detected
+                                                            ? 'Potential bias detected'
+                                                            : 'No bias detected'
+                                                        }
+                                                    </p>
+                                                </CardContent>
+                                            </Card>
+
+                                            <Card className={`border-0 shadow-md transition-all duration-200 ${interviewerAnalysis.flags?.unprofessional_language
+                                                    ? 'bg-red-50 border-red-200 hover:shadow-red-100'
+                                                    : 'bg-green-50 border-green-200 hover:shadow-green-100'
+                                                }`}>
+                                                <CardContent className="p-6 text-center">
+                                                    <div className={`w-12 h-12 rounded-full mx-auto mb-4 flex items-center justify-center ${interviewerAnalysis.flags?.unprofessional_language
+                                                            ? 'bg-red-100'
+                                                            : 'bg-green-100'
+                                                        }`}>
+                                                        {interviewerAnalysis.flags?.unprofessional_language ? (
+                                                            <Warning className="w-6 h-6 text-red-600" />
+                                                        ) : (
+                                                            <CheckCircle2 className="w-6 h-6 text-green-600" />
+                                                        )}
+                                                    </div>
+                                                    <h4 className={`font-semibold mb-2 ${interviewerAnalysis.flags?.unprofessional_language
+                                                            ? 'text-red-700'
+                                                            : 'text-green-700'
+                                                        }`}>
+                                                        Language Quality
+                                                    </h4>
+                                                    <p className={`text-sm ${interviewerAnalysis.flags?.unprofessional_language
+                                                            ? 'text-red-600'
+                                                            : 'text-green-600'
+                                                        }`}>
+                                                        {interviewerAnalysis.flags?.unprofessional_language
+                                                            ? 'Issues detected'
+                                                            : 'Professional maintained'
+                                                        }
+                                                    </p>
+                                                </CardContent>
+                                            </Card>
+
+                                            <Card className={`border-0 shadow-md transition-all duration-200 ${interviewerAnalysis.flags?.pacing_issues
+                                                    ? 'bg-amber-50 border-amber-200 hover:shadow-amber-100'
+                                                    : 'bg-green-50 border-green-200 hover:shadow-green-100'
+                                                }`}>
+                                                <CardContent className="p-6 text-center">
+                                                    <div className={`w-12 h-12 rounded-full mx-auto mb-4 flex items-center justify-center ${interviewerAnalysis.flags?.pacing_issues
+                                                            ? 'bg-amber-100'
+                                                            : 'bg-green-100'
+                                                        }`}>
+                                                        {interviewerAnalysis.flags?.pacing_issues ? (
+                                                            <Clock className="w-6 h-6 text-amber-600" />
+                                                        ) : (
+                                                            <CheckCircle2 className="w-6 h-6 text-green-600" />
+                                                        )}
+                                                    </div>
+                                                    <h4 className={`font-semibold mb-2 ${interviewerAnalysis.flags?.pacing_issues
+                                                            ? 'text-amber-700'
+                                                            : 'text-green-700'
+                                                        }`}>
+                                                        Pacing
+                                                    </h4>
+                                                    <p className={`text-sm ${interviewerAnalysis.flags?.pacing_issues
+                                                            ? 'text-amber-600'
+                                                            : 'text-green-600'
+                                                        }`}>
+                                                        {interviewerAnalysis.flags?.pacing_issues
+                                                            ? 'Could be improved'
+                                                            : 'Well maintained'
+                                                        }
+                                                    </p>
+                                                </CardContent>
+                                            </Card>
+                                        </div>
+                                    </div>
+
+                                    {/* Interview Details - Enhanced */}
+                                    <Card className="border-0 shadow-md bg-muted/20">
+                                        <CardContent className="p-4 sm:p-6">
+                                            <div className="flex items-center gap-3 mb-4">
+                                                <div className="w-8 h-8 rounded-lg bg-muted/50 flex items-center justify-center">
+                                                    <Info className="w-4 h-4 text-muted-foreground" />
+                                                </div>
+                                                <h3 className="text-base sm:text-lg font-semibold">Interview Details</h3>
+                                            </div>
+                                            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 rounded-lg bg-background/60 border gap-2">
+                                                    <span className="text-muted-foreground font-medium text-sm">Interview ID</span>
+                                                    <span className="text-foreground font-mono text-xs sm:text-sm bg-muted/30 px-2 py-1 rounded self-start sm:self-auto">
+                                                        {interviewerAnalysis.interview_id}
+                                                    </span>
+                                                </div>
+                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 rounded-lg bg-background/60 border gap-2">
+                                                    <span className="text-muted-foreground font-medium text-sm">Interviewer</span>
+                                                    <span className="text-foreground font-medium text-sm">
+                                                        {interviewerAnalysis.interviewer_name}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+
+                                    {/* AI-Powered Recommendations */}
+                                    <div className="space-y-6">
+                                        {/* Header Section */}
+                                        <div className="text-center">
+                                            <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-lg mb-4">
+                                                <Brain className="w-8 h-8 text-primary" />
+                                            </div>
+                                            <h3 className="text-2xl font-semibold mb-2">
+                                                AI-Powered Career Recommendations
+                                            </h3>
+                                            <p className="text-muted-foreground">
+                                                Personalized insights based on your interview performance
+                                            </p>
+                                        </div>
+
+                                        {/* Loading State */}
+                                        {isLoadingRecommendations && (
+                                            <Card className="p-8 text-center">
+                                                <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+                                                <h4 className="text-lg font-semibold mb-2">Analyzing Your Performance</h4>
+                                                <p className="text-muted-foreground">Generating personalized recommendations...</p>
+                                            </Card>
+                                        )}
+
+                                        {/* Error State */}
+                                        {recommendationsError && (
+                                            <Card className="p-8 text-center">
+                                                <AlertCircle className="w-8 h-8 text-red-600 mx-auto mb-4" />
+                                                <h4 className="text-lg font-semibold mb-2 text-red-700">Failed to Generate Recommendations</h4>
+                                                <p className="text-red-600 mb-6">We encountered an issue while analyzing your performance.</p>
+                                                <Button
+                                                    variant="outline"
+                                                    onClick={() => refetchRecommendations()}
+                                                    className="border-red-200 text-red-700 hover:bg-red-50"
+                                                >
+                                                    <Brain className="w-4 h-4 mr-2" />
+                                                    Try Again
+                                                </Button>
+                                            </Card>
+                                        )}
+
+                                        {/* Recommendations Content */}
+                                        {recommendations && !isLoadingRecommendations && (
+                                            <div className="space-y-6">
+                                                {/* Priority Improvement Areas */}
+                                                <Card className="p-6">
+                                                    <div className="flex items-center gap-3 mb-4">
+                                                        <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                                                            <Target className="w-4 h-4 text-primary" />
+                                                        </div>
+                                                        <div>
+                                                            <h4 className="text-lg font-semibold">Priority Focus Areas</h4>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                Key areas for significant improvement
+                                                            </p>
+                                                        </div>
+                                                        <Badge variant="secondary">High Impact</Badge>
+                                                    </div>
+
+                                                    <div className="grid gap-4 md:grid-cols-2">
+                                                        {/* Technical Skills */}
+                                                        <div className="p-4 rounded-lg border bg-muted/20">
+                                                            <div className="flex items-center gap-2 mb-3">
+                                                                <Code className="w-5 h-5 text-primary" />
+                                                                <h5 className="font-semibold">{recommendations.priorityAreas.technical.title}</h5>
+                                                            </div>
+                                                            <p className="text-sm text-muted-foreground mb-4">
+                                                                {recommendations.priorityAreas.technical.description}
+                                                            </p>
+                                                            <div className="space-y-2">
+                                                                {recommendations.priorityAreas.technical.actions.map((action, index) => (
+                                                                    <div key={index} className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                                        <div className="w-1 h-1 bg-primary rounded-full"></div>
+                                                                        {action}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Communication Skills */}
+                                                        <div className="p-4 rounded-lg border bg-muted/20">
+                                                            <div className="flex items-center gap-2 mb-3">
+                                                                <MessageSquare className="w-5 h-5 text-primary" />
+                                                                <h5 className="font-semibold">{recommendations.priorityAreas.communication.title}</h5>
+                                                            </div>
+                                                            <p className="text-sm text-muted-foreground mb-4">
+                                                                {recommendations.priorityAreas.communication.description}
+                                                            </p>
+                                                            <div className="space-y-2">
+                                                                {recommendations.priorityAreas.communication.actions.map((action, index) => (
+                                                                    <div key={index} className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                                        <div className="w-1 h-1 bg-primary rounded-full"></div>
+                                                                        {action}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </Card>
+
+                                                {/* Final Score */}
+                                                <Card className="p-6 bg-primary text-primary-foreground text-center">
+                                                    <div className="flex items-center justify-center gap-3 mb-4">
+                                                        <Trophy className="w-6 h-6" />
+                                                        <h4 className="text-xl font-semibold">Overall Performance Score</h4>
+                                                    </div>
+                                                    <p className="text-2xl font-bold mb-2">{overallScore.toFixed(1)}/10</p>
+                                                    <p className="text-primary-foreground/80 mb-4">
+                                                        Start implementing these recommendations today for better results.
+                                                    </p>
+                                                </Card>
+                                            </div>
+                                        )}
+
+                                        {/* Empty State - No Session ID */}
+                                        {!sessionId && (
+                                            <Card className="border">
+                                                <CardContent className="p-8 text-center">
+                                                    <Info className="w-8 h-8 mx-auto mb-4 text-muted-foreground" />
+                                                    <p className="text-muted-foreground mb-4">No interview session found</p>
+                                                    <Button
+                                                        variant="outline"
+                                                        onClick={() => navigate('/interview-setup')}
+                                                    >
+                                                        Start New Interview
+                                                    </Button>
+                                                </CardContent>
+                                            </Card>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Action Buttons */}
+                            <div className="pt-6 border-t">
+                                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => navigate('/dashboard')}
+                                        size="lg"
+                                        className="w-full sm:w-auto"
+                                    >
+                                        <Target className="w-4 h-4 mr-2" />
+                                        Back to Dashboard
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => window.print()}
+                                        size="lg"
+                                        className="w-full sm:w-auto"
+                                    >
+                                        <Download className="w-4 h-4 mr-2" />
+                                        Download Report
+                                    </Button>
+                                    <Button
+                                        onClick={() => navigate('/interview-setup')}
+                                        size="lg"
+                                        className="w-full sm:w-auto"
+                                    >
+                                        Start New Interview
+                                    </Button>
+                                </div>
                             </div>
-                        </div>
+                        </Card>
                     </div>
                 </main>
             </div>

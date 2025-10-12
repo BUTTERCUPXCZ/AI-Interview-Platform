@@ -1,7 +1,15 @@
-import { useState } from 'react'
-import { useAuth } from '../contexts/AuthContext'
-import { useLogout } from '../hooks/useAuth'
-import Sidebar from '../components/Sidebar'
+import { useState, useEffect } from 'react'
+import { useAuth } from '@/contexts/AuthContext'
+import { useLogout } from '@/hooks/useAuth'
+import {
+    useUserProfile,
+    useUpdateProfile,
+    useUpdateNotifications,
+    useChangePassword,
+    useUpdateSkills
+} from '@/hooks/useProfile'
+import Sidebar from '@/components/Sidebar'
+import Navbar from '@/components/Navbar'
 import {
     User,
     Lock,
@@ -13,24 +21,33 @@ import {
     Eye,
     EyeOff,
     Star,
-    Crown
+    Crown,
+    Loader2,
+    AlertCircle
 } from 'lucide-react'
-import { Button } from '../components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
-import { Input } from '../components/ui/input'
-import { Label } from '../components/ui/label'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
-import { Switch } from '../components/ui/switch'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
-import { Separator } from '../components/ui/separator'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Switch } from '@/components/ui/switch'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Separator } from '@/components/ui/separator'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 
 interface UserProfile {
     firstName: string
     lastName: string
     email: string
-    experienceLevel: 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert'
+    experienceLevel: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'EXPERT'
     skillTags: string[]
     bio: string
+    phoneNumber: string
+    location: string
+    linkedinProfile: string
+    githubProfile: string
+    portfolioWebsite: string
+    timezone: string
 }
 
 interface NotificationSettings {
@@ -51,17 +68,29 @@ const ProfilePage = () => {
     const { user } = useAuth()
     const logout = useLogout()
 
-    // Profile state
+    // Database hooks
+    const { data: profileData, isLoading: profileLoading, error: profileError } = useUserProfile(user?.id)
+    const updateProfileMutation = useUpdateProfile()
+    const updateNotificationsMutation = useUpdateNotifications()
+    const changePasswordMutation = useChangePassword()
+    const updateSkillsMutation = useUpdateSkills()
+
+    // Local state for form management
     const [profile, setProfile] = useState<UserProfile>({
-        firstName: user?.Firstname || '',
-        lastName: user?.Lastname || '',
-        email: user?.email || '',
-        experienceLevel: 'Intermediate',
-        skillTags: ['JavaScript', 'React', 'Node.js'],
-        bio: 'Passionate developer looking to improve my interview skills and land my dream job.'
+        firstName: '',
+        lastName: '',
+        email: '',
+        experienceLevel: 'INTERMEDIATE',
+        skillTags: [],
+        bio: '',
+        phoneNumber: '',
+        location: '',
+        linkedinProfile: '',
+        githubProfile: '',
+        portfolioWebsite: '',
+        timezone: 'UTC'
     })
 
-    // Notification settings state
     const [notifications, setNotifications] = useState<NotificationSettings>({
         emailNotifications: true,
         pushNotifications: false,
@@ -70,7 +99,6 @@ const ProfilePage = () => {
         marketingEmails: false
     })
 
-    // Account settings state
     const [accountSettings, setAccountSettings] = useState<AccountSettings>({
         currentPassword: '',
         newPassword: '',
@@ -78,13 +106,41 @@ const ProfilePage = () => {
     })
 
     // UI state
-    const [isLoading, setIsLoading] = useState(false)
     const [showPasswords, setShowPasswords] = useState({
         current: false,
         new: false,
         confirm: false
     })
     const [newSkillTag, setNewSkillTag] = useState('')
+    const [saveSuccess, setSaveSuccess] = useState<string | null>(null)
+    const [saveError, setSaveError] = useState<string | null>(null)
+
+    // Update local state when profile data loads
+    useEffect(() => {
+        if (profileData) {
+            setProfile({
+                firstName: profileData.firstName || '',
+                lastName: profileData.lastName || '',
+                email: profileData.email || '',
+                experienceLevel: profileData.experienceLevel as 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'EXPERT',
+                skillTags: profileData.skillTags || [],
+                bio: profileData.bio || '',
+                phoneNumber: profileData.phoneNumber || '',
+                location: profileData.location || '',
+                linkedinProfile: profileData.linkedinProfile || '',
+                githubProfile: profileData.githubProfile || '',
+                portfolioWebsite: profileData.portfolioWebsite || '',
+                timezone: profileData.timezone || 'UTC'
+            })
+            setNotifications({
+                emailNotifications: profileData.emailNotifications,
+                pushNotifications: profileData.pushNotifications,
+                interviewReminders: profileData.interviewReminders,
+                weeklyReports: profileData.weeklyReports,
+                marketingEmails: profileData.marketingEmails
+            })
+        }
+    }, [profileData])
 
     // Available skill tags
     const availableSkills = [
@@ -116,32 +172,134 @@ const ProfilePage = () => {
     }
 
     const handleSaveProfile = async () => {
-        setIsLoading(true)
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        setIsLoading(false)
-        // Show success message
+        if (!user?.id) return
+
+        try {
+            setSaveError(null)
+            await updateProfileMutation.mutateAsync({
+                userId: user.id,
+                data: {
+                    firstName: profile.firstName,
+                    lastName: profile.lastName,
+                    bio: profile.bio,
+                    experienceLevel: profile.experienceLevel,
+                    phoneNumber: profile.phoneNumber,
+                    location: profile.location,
+                    linkedinProfile: profile.linkedinProfile,
+                    githubProfile: profile.githubProfile,
+                    portfolioWebsite: profile.portfolioWebsite,
+                    timezone: profile.timezone
+                }
+            })
+            setSaveSuccess('Profile updated successfully!')
+            setTimeout(() => setSaveSuccess(null), 3000)
+        } catch (error) {
+            setSaveError('Failed to update profile. Please try again.')
+            setTimeout(() => setSaveError(null), 5000)
+        }
+    }
+
+    const handleSaveSkills = async () => {
+        if (!user?.id) return
+
+        try {
+            setSaveError(null)
+            await updateSkillsMutation.mutateAsync({
+                userId: user.id,
+                data: { skillTags: profile.skillTags }
+            })
+            setSaveSuccess('Skills updated successfully!')
+            setTimeout(() => setSaveSuccess(null), 3000)
+        } catch (error) {
+            setSaveError('Failed to update skills. Please try again.')
+            setTimeout(() => setSaveError(null), 5000)
+        }
     }
 
     const handleSaveNotifications = async () => {
-        setIsLoading(true)
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        setIsLoading(false)
+        if (!user?.id) return
+
+        try {
+            setSaveError(null)
+            await updateNotificationsMutation.mutateAsync({
+                userId: user.id,
+                data: notifications
+            })
+            setSaveSuccess('Notification settings updated successfully!')
+            setTimeout(() => setSaveSuccess(null), 3000)
+        } catch (error) {
+            setSaveError('Failed to update notification settings. Please try again.')
+            setTimeout(() => setSaveError(null), 5000)
+        }
     }
 
     const handlePasswordChange = async () => {
+        if (!user?.id) return
+
         if (accountSettings.newPassword !== accountSettings.confirmPassword) {
-            alert('New passwords do not match')
+            setSaveError('New passwords do not match')
+            setTimeout(() => setSaveError(null), 5000)
             return
         }
-        setIsLoading(true)
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        setIsLoading(false)
-        setAccountSettings({ currentPassword: '', newPassword: '', confirmPassword: '' })
+
+        if (accountSettings.newPassword.length < 6) {
+            setSaveError('Password must be at least 6 characters long')
+            setTimeout(() => setSaveError(null), 5000)
+            return
+        }
+
+        try {
+            setSaveError(null)
+            await changePasswordMutation.mutateAsync({
+                userId: user.id,
+                data: {
+                    currentPassword: accountSettings.currentPassword,
+                    newPassword: accountSettings.newPassword
+                }
+            })
+            setAccountSettings({ currentPassword: '', newPassword: '', confirmPassword: '' })
+            setSaveSuccess('Password changed successfully!')
+            setTimeout(() => setSaveSuccess(null), 3000)
+        } catch (error) {
+            setSaveError('Failed to change password. Please check your current password.')
+            setTimeout(() => setSaveError(null), 5000)
+        }
     }
 
     const handleLogout = () => {
         logout.mutate()
+    }
+
+    // Show loading state
+    if (profileLoading) {
+        return (
+            <div className="flex h-screen bg-background">
+                <Sidebar />
+                <div className="flex-1 flex items-center justify-center">
+                    <div className="flex items-center gap-2">
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                        <span>Loading profile...</span>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    // Show error state
+    if (profileError) {
+        return (
+            <div className="flex h-screen bg-background">
+                <Sidebar />
+                <div className="flex-1 flex items-center justify-center">
+                    <Alert className="max-w-md">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>
+                            Failed to load profile data. Please refresh the page or try again later.
+                        </AlertDescription>
+                    </Alert>
+                </div>
+            </div>
+        )
     }
 
     return (
@@ -151,9 +309,23 @@ const ProfilePage = () => {
 
             {/* Main Content */}
             <div className="flex-1 flex flex-col overflow-hidden">
+                <Navbar />
                 <main className="flex-1 overflow-x-hidden overflow-y-auto bg-background">
                     <div className="container mx-auto py-6 px-6 space-y-6 ml-6 mr-20">
-                        <div className="flex items-center justify-between">
+
+                        {/* Success/Error Messages */}
+                        {saveSuccess && (
+                            <Alert className="border-green-200 bg-green-50 text-green-800">
+                                <AlertDescription>{saveSuccess}</AlertDescription>
+                            </Alert>
+                        )}
+                        {saveError && (
+                            <Alert className="border-red-200 bg-red-50 text-red-800">
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertDescription>{saveError}</AlertDescription>
+                            </Alert>
+                        )}
+                        <div className="flex items-center justify-between mr-8">
                             <div>
                                 <h1 className="text-3xl font-bold tracking-tight text-foreground">Profile & Settings</h1>
                                 <p className="text-muted-foreground">
@@ -168,7 +340,7 @@ const ProfilePage = () => {
                             </div>
                         </div>
 
-                        <Tabs defaultValue="profile" className="space-y-4">
+                        <Tabs defaultValue="profile" className="space-y-4 mr-8">
                             <TabsList className="grid w-full grid-cols-4">
                                 <TabsTrigger value="profile" className="gap-2">
                                     <User className="h-4 w-4" />
@@ -237,10 +409,10 @@ const ProfilePage = () => {
                                                     <SelectValue placeholder="Select experience level" />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="Beginner">Beginner</SelectItem>
-                                                    <SelectItem value="Intermediate">Intermediate</SelectItem>
-                                                    <SelectItem value="Advanced">Advanced</SelectItem>
-                                                    <SelectItem value="Expert">Expert</SelectItem>
+                                                    <SelectItem value="BEGINNER">Beginner</SelectItem>
+                                                    <SelectItem value="INTERMEDIATE">Intermediate</SelectItem>
+                                                    <SelectItem value="ADVANCED">Advanced</SelectItem>
+                                                    <SelectItem value="EXPERT">Expert</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </div>
@@ -256,9 +428,85 @@ const ProfilePage = () => {
                                             />
                                         </div>
 
-                                        <Button onClick={handleSaveProfile} disabled={isLoading} className="gap-2">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="phoneNumber">Phone Number</Label>
+                                                <Input
+                                                    id="phoneNumber"
+                                                    value={profile.phoneNumber}
+                                                    onChange={(e) => handleProfileUpdate('phoneNumber', e.target.value)}
+                                                    placeholder="Enter your phone number"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="location">Location</Label>
+                                                <Input
+                                                    id="location"
+                                                    value={profile.location}
+                                                    onChange={(e) => handleProfileUpdate('location', e.target.value)}
+                                                    placeholder="City, Country"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label htmlFor="linkedinProfile">LinkedIn Profile</Label>
+                                            <Input
+                                                id="linkedinProfile"
+                                                value={profile.linkedinProfile}
+                                                onChange={(e) => handleProfileUpdate('linkedinProfile', e.target.value)}
+                                                placeholder="https://linkedin.com/in/username"
+                                            />
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="githubProfile">GitHub Profile</Label>
+                                                <Input
+                                                    id="githubProfile"
+                                                    value={profile.githubProfile}
+                                                    onChange={(e) => handleProfileUpdate('githubProfile', e.target.value)}
+                                                    placeholder="https://github.com/username"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="portfolioWebsite">Portfolio Website</Label>
+                                                <Input
+                                                    id="portfolioWebsite"
+                                                    value={profile.portfolioWebsite}
+                                                    onChange={(e) => handleProfileUpdate('portfolioWebsite', e.target.value)}
+                                                    placeholder="https://yourportfolio.com"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label htmlFor="timezone">Timezone</Label>
+                                            <Select
+                                                value={profile.timezone}
+                                                onValueChange={(value) => handleProfileUpdate('timezone', value)}
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select timezone" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="UTC">UTC</SelectItem>
+                                                    <SelectItem value="America/New_York">Eastern Time (ET)</SelectItem>
+                                                    <SelectItem value="America/Chicago">Central Time (CT)</SelectItem>
+                                                    <SelectItem value="America/Denver">Mountain Time (MT)</SelectItem>
+                                                    <SelectItem value="America/Los_Angeles">Pacific Time (PT)</SelectItem>
+                                                    <SelectItem value="Europe/London">London (GMT)</SelectItem>
+                                                    <SelectItem value="Europe/Paris">Paris (CET)</SelectItem>
+                                                    <SelectItem value="Asia/Tokyo">Tokyo (JST)</SelectItem>
+                                                    <SelectItem value="Asia/Shanghai">Shanghai (CST)</SelectItem>
+                                                    <SelectItem value="Australia/Sydney">Sydney (AEST)</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+
+                                        <Button onClick={handleSaveProfile} disabled={updateProfileMutation.isPending} className="gap-2">
                                             <Save className="h-4 w-4" />
-                                            {isLoading ? 'Saving...' : 'Save Changes'}
+                                            {updateProfileMutation.isPending ? 'Saving...' : 'Save Changes'}
                                         </Button>
                                     </CardContent>
                                 </Card>
@@ -306,6 +554,11 @@ const ProfilePage = () => {
                                                 </div>
                                             ))}
                                         </div>
+
+                                        <Button onClick={handleSaveSkills} disabled={updateSkillsMutation.isPending} className="gap-2 mt-4">
+                                            <Save className="h-4 w-4" />
+                                            {updateSkillsMutation.isPending ? 'Saving...' : 'Save Skills'}
+                                        </Button>
                                     </CardContent>
                                 </Card>
                             </TabsContent>
@@ -383,9 +636,9 @@ const ProfilePage = () => {
                                             </div>
                                         </div>
 
-                                        <Button onClick={handlePasswordChange} disabled={isLoading} className="gap-2">
+                                        <Button onClick={handlePasswordChange} disabled={changePasswordMutation.isPending} className="gap-2">
                                             <Lock className="h-4 w-4" />
-                                            {isLoading ? 'Updating...' : 'Update Password'}
+                                            {changePasswordMutation.isPending ? 'Changing...' : 'Change Password'}
                                         </Button>
                                     </CardContent>
                                 </Card>
@@ -498,9 +751,9 @@ const ProfilePage = () => {
                                             />
                                         </div>
 
-                                        <Button onClick={handleSaveNotifications} disabled={isLoading} className="gap-2">
+                                        <Button onClick={handleSaveNotifications} disabled={updateNotificationsMutation.isPending} className="gap-2">
                                             <Save className="h-4 w-4" />
-                                            {isLoading ? 'Saving...' : 'Save Preferences'}
+                                            {updateNotificationsMutation.isPending ? 'Saving...' : 'Save Preferences'}
                                         </Button>
                                     </CardContent>
                                 </Card>

@@ -1,8 +1,10 @@
-// Simple API test for interviewer analysis
-const testApi = async () => {
+// Simple API test for coding question generation
+const testCodingQuestionAPI = async () => {
     try {
-        const response = await fetch('http://localhost:3000/api/interview/session/1/interviewer-analysis', {
-            method: 'POST',
+        console.log('Testing coding question API...');
+
+        const response = await fetch('http://localhost:3000/api/coding/question?domain=frontend&difficulty=intermediate&language=javascript', {
+            method: 'GET',
             headers: {
                 'Content-Type': 'application/json'
             }
@@ -12,14 +14,16 @@ const testApi = async () => {
 
         if (response.ok) {
             const data = await response.json();
-            console.log('Success:', data);
+            console.log('✅ API call successful!');
+            console.log('Response data:', JSON.stringify(data, null, 2));
         } else {
             const errorText = await response.text();
+            console.log('❌ API call failed:');
             console.log('Error:', errorText);
         }
     } catch (error) {
-        console.error('Network error:', error);
+        console.error('❌ Network error:', error.message);
     }
 };
 
-testApi();
+testCodingQuestionAPI();

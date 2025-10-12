@@ -66,6 +66,13 @@ enum ProgrammingLanguage {
   RUST
 }
 
+enum ExperienceLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
 // ============================================
 // USER MODEL
 // ============================================
@@ -76,6 +83,36 @@ model User {
   email     String @unique
   password  String
   role      String @default("student")
+
+  // Profile fields
+  bio              String?         @db.Text
+  experienceLevel  ExperienceLevel @default(BEGINNER)
+  avatar           String? // URL to profile picture
+  phoneNumber      String?
+  location         String?
+  linkedinProfile  String?
+  githubProfile    String?
+  portfolioWebsite String?
+  timezone         String?         @default("UTC")
+
+  // Notification preferences
+  emailNotifications Boolean @default(true)
+  pushNotifications  Boolean @default(false)
+  interviewReminders Boolean @default(true)
+  weeklyReports      Boolean @default(true)
+  marketingEmails    Boolean @default(false)
+
+  // Account settings
+  isEmailVerified      Boolean   @default(false)
+  isActive             Boolean   @default(true)
+  lastLoginAt          DateTime?
+  emailVerifiedAt      DateTime?
+  passwordResetToken   String?
+  passwordResetExpires DateTime?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
   // Relationships
   sessions     InterviewSession[]

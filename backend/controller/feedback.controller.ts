@@ -480,3 +480,63 @@ async function generateGeminiInterviewerAnalysis(session: any) {
         throw new Error('Failed to generate AI analysis. Please ensure Gemini API is properly configured and try again.');
     }
 }
+
+// Generate AI-powered career recommendations
+export const generateAICareerRecommendations = async (req: Request, res: Response) => {
+    try {
+        const { sessionId } = req.params
+
+        // Fetch session details
+        const session = await prisma.interviewSession.findUnique({
+            where: { id: parseInt(sessionId) },
+            include: {
+                questions: true
+            }
+        })
+
+        if (!session) {
+            return res.status(404).json({ error: 'Interview session not found' })
+        }
+
+        // Transform questions to the format expected by the service
+        const questions = session.questions.map(q => ({
+            id: q.id,
+            questionText: q.questionText,
+            userAnswer: q.userAnswer,
+            score: q.score,
+            aiEvaluation: q.aiEvaluation,
+            isCodingQuestion: q.isCodingQuestion || false,
+            difficulty: 'intermediate', // Default if not stored
+            category: determineCategoryFromQuestion(q.questionText, session.domain, session.interviewType)
+        }))
+
+        // Calculate overall score
+        const scores = questions.filter(q => q.score !== null).map(q => q.score!)
+        const overallScore = scores.length > 0 ? scores.reduce((sum, score) => sum + score, 0) / scores.length : 0
+
+        // Generate AI recommendations using the new service
+        const { generateCareerRecommendations } = await import('../services/feedbackService')
+
+        const recommendations = await generateCareerRecommendations(
+            {
+                domain: session.domain,
+                interviewType: session.interviewType,
+                difficulty: session.difficulty || 'intermediate',
+                duration: session.duration || 30
+            },
+            questions,
+            overallScore
+        )
+
+        res.json({
+            success: true,
+            sessionId: sessionId,
+            overallScore: Math.round(overallScore * 10) / 10,
+            recommendations
+        })
+
+    } catch (error: any) {
+        console.error('Error generating AI career recommendations:', error)
+        res.status(500).json({ error: 'Failed to generate career recommendations' })
+    }
+}

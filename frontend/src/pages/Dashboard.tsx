@@ -1,8 +1,11 @@
 import React from 'react'
 import Sidebar from '@/components/Sidebar'
+import Navbar from '@/components/Navbar'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { useAuth } from '@/contexts/AuthContext'
+import { useDashboardData } from '@/hooks/useDashboard'
 import {
     PlayCircle,
     Calendar,
@@ -17,91 +20,85 @@ import {
     Database,
     Lightbulb,
     Award,
-    BarChart3
+    BarChart3,
+    Loader2,
+    AlertCircle
 } from 'lucide-react'
 
-// Mock data - you can replace this with real API calls later
-const mockData = {
-    candidate: {
-        name: "John Doe",
-        email: "john.doe@example.com",
-        avatar: "/avatars/candidate.png",
-        experienceLevel: "Senior",
-        skillTags: ["React", "Node.js", "TypeScript", "Python", "AWS"],
-        joinDate: "2024-01-15"
-    },
-    recentSessions: [
-        {
-            id: 1,
-            date: "2024-10-08",
-            domain: "Frontend Development",
-            score: 85,
-            duration: "45 min",
-            questions: 12
-        },
-        {
-            id: 2,
-            date: "2024-10-05",
-            domain: "System Design",
-            score: 78,
-            duration: "60 min",
-            questions: 8
-        },
-        {
-            id: 3,
-            date: "2024-10-02",
-            domain: "Data Structures",
-            score: 92,
-            duration: "40 min",
-            questions: 15
-        },
-        {
-            id: 4,
-            date: "2024-09-28",
-            domain: "Backend Development",
-            score: 76,
-            duration: "50 min",
-            questions: 10
-        }
-    ],
-    skillScores: {
-        "Frontend": 85,
-        "Backend": 76,
-        "System Design": 78,
-        "Data Structures": 92,
-        "Algorithms": 88,
-        "Database": 82
-    },
-    stats: {
-        averageScore: 82,
-        totalSessions: 15,
-        strongestSkill: "Data Structures",
-        improvementArea: "Backend Development"
-    },
-    recommendedTopics: [
-        {
-            title: "Advanced React Patterns",
-            description: "Deep dive into render props, compound components, and custom hooks",
-            difficulty: "Advanced",
-            estimatedTime: "2 hours"
-        },
-        {
-            title: "Database Optimization",
-            description: "Learn indexing strategies and query optimization techniques",
-            difficulty: "Intermediate",
-            estimatedTime: "1.5 hours"
-        },
-        {
-            title: "Microservices Architecture",
-            description: "Understanding distributed systems and service communication",
-            difficulty: "Advanced",
-            estimatedTime: "3 hours"
-        }
-    ]
-}
-
 const Dashboard = () => {
-    const { candidate, recentSessions, skillScores, stats, recommendedTopics } = mockData
+    const { user } = useAuth();
+    const { data: dashboardData, isLoading, error, refetch } = useDashboardData(user?.id);
+
+    // Show loading state
+    if (isLoading) {
+        return (
+            <div className="flex h-screen bg-background">
+                <Sidebar />
+                <div className="flex-1 flex flex-col overflow-hidden">
+                    <Navbar />
+                    <main className="flex-1 flex items-center justify-center">
+                        <div className="text-center">
+                            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+                            <p className="text-muted-foreground">Fetching your performance data...</p>
+                        </div>
+                    </main>
+                </div>
+            </div>
+        );
+    }
+
+    // Show error state
+    if (error) {
+        return (
+            <div className="flex h-screen bg-background">
+                <Sidebar />
+                <div className="flex-1 flex flex-col overflow-hidden">
+                    <Navbar />
+                    <header className="bg-card border-b border-border px-6 py-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h1 className="text-2xl font-semibold text-foreground">Dashboard Error</h1>
+                            </div>
+                        </div>
+                    </header>
+                    <main className="flex-1 flex items-center justify-center">
+                        <div className="text-center max-w-md">
+                            <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-4" />
+                            <h2 className="text-lg font-semibold mb-2">Failed to load dashboard</h2>
+                            <p className="text-muted-foreground mb-4">
+                                {error instanceof Error ? error.message : 'Something went wrong'}
+                            </p>
+                            <Button onClick={() => refetch()}>
+                                Try Again
+                            </Button>
+                        </div>
+                    </main>
+                </div>
+            </div>
+        );
+    }
+
+    // Use dashboard data or fallback to default values
+    const {
+        profile = {
+            name: 'User',
+            email: user?.email || '',
+            experienceLevel: 'Beginner',
+            skillTags: [],
+            joinDate: new Date().toISOString().split('T')[0]
+        },
+        stats = {
+            averageScore: 0,
+            totalSessions: 0,
+            strongestSkill: 'No data yet',
+            improvementArea: 'Complete your first interview',
+            completionRate: 0,
+            totalQuestionsAnswered: 0
+        },
+        recentSessions = [],
+        skillScores = {},
+        recommendedTopics = []
+    } = dashboardData || {};
 
     return (
         <div className="flex h-screen bg-background">
@@ -110,15 +107,9 @@ const Dashboard = () => {
 
             {/* Main Content */}
             <div className="flex-1 flex flex-col overflow-hidden">
+                <Navbar />
                 {/* Header */}
-                <header className="bg-card border-b border-border px-6 py-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className="text-2xl font-semibold text-foreground">Welcome back, {candidate.name}!</h1>
 
-                        </div>
-                    </div>
-                </header>
 
                 {/* Main Content Area */}
                 <main className="flex-1 overflow-y-auto p-6">
@@ -248,21 +239,21 @@ const Dashboard = () => {
                                     <div className="space-y-4">
                                         <div className="flex items-center gap-3">
                                             <Avatar className="h-12 w-12">
-                                                <AvatarImage src={candidate.avatar} alt={candidate.name} />
+                                                <AvatarImage src="/avatars/default.png" alt={profile.name} />
                                                 <AvatarFallback>
-                                                    {candidate.name.split(' ').map(n => n[0]).join('')}
+                                                    {profile.name.split(' ').map((n: string) => n[0]).join('')}
                                                 </AvatarFallback>
                                             </Avatar>
                                             <div>
-                                                <p className="font-medium">{candidate.name}</p>
-                                                <p className="text-sm text-muted-foreground">{candidate.experienceLevel} Developer</p>
+                                                <p className="font-medium">{profile.name}</p>
+                                                <p className="text-sm text-muted-foreground">{profile.experienceLevel} Developer</p>
                                             </div>
                                         </div>
 
                                         <div>
                                             <p className="text-sm font-medium mb-2">Skills</p>
                                             <div className="flex flex-wrap gap-2">
-                                                {candidate.skillTags.map((skill) => (
+                                                {profile.skillTags.map((skill: string) => (
                                                     <span key={skill} className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-md">
                                                         {skill}
                                                     </span>
@@ -272,7 +263,7 @@ const Dashboard = () => {
 
                                         <div className="pt-2 border-t border-border">
                                             <p className="text-xs text-muted-foreground">
-                                                Member since {new Date(candidate.joinDate).toLocaleDateString()}
+                                                Member since {new Date(profile.joinDate).toLocaleDateString()}
                                             </p>
                                         </div>
                                     </div>
