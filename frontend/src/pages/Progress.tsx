@@ -12,8 +12,6 @@ import {
     Target,
     Award,
     Calendar,
-    Filter,
-    Download,
     BarChart3,
     ArrowUp,
     ArrowDown,

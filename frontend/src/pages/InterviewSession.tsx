@@ -8,12 +8,7 @@ import {
     useGenerateCodingQuestion,
     useEvaluateCode,
     useSubmitAnswer,
-    useStartTextInterview,
-    useGetNextTextQuestion,
-    useSubmitTextAnswer,
-    useCompleteTextInterview
 } from '../hooks/useInterview'
-import { useAuth } from '../contexts/AuthContext'
 import type { InterviewConfig, CodingQuestion } from '../domain/entities'
 import {
     MessageSquare,

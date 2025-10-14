@@ -1,4 +1,3 @@
-import React from 'react'
 import Sidebar from '@/components/Sidebar'
 import Navbar from '@/components/Navbar'
 import { Button } from '@/components/ui/button'
@@ -7,19 +6,14 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useAuth } from '@/contexts/AuthContext'
 import { useDashboardData } from '@/hooks/useDashboard'
 import {
-    PlayCircle,
     Calendar,
-    TrendingUp,
     Target,
     Trophy,
-    BookOpen,
     Star,
     ArrowUpRight,
     Clock,
     Code,
-    Database,
     Lightbulb,
-    Award,
     BarChart3,
     Loader2,
     AlertCircle

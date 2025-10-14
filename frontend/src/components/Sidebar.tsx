@@ -1,27 +1,12 @@
 import React from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Separator } from '@/components/ui/separator'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { useTheme } from '@/components/theme-provider'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
     Home,
     Users,
-    Settings,
     FileText,
     BarChart3,
-    ChevronDown,
-    LogOut,
-    User,
-    Mail,
-    Calendar,
-    Database,
-    Shield,
-    Bell,
-    Sun,
-    Moon
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -29,8 +14,6 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ className }) => {
-    const [openSections, setOpenSections] = React.useState<Record<string, boolean>>({})
-    const { theme, setTheme } = useTheme()
     const location = useLocation()
     const navigate = useNavigate()
 
@@ -60,18 +43,6 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
             current: location.pathname === '/profile'
         }
     ]
-
-
-    const toggleSection = (sectionName: string) => {
-        setOpenSections(prev => ({
-            ...prev,
-            [sectionName]: !prev[sectionName]
-        }))
-    }
-
-    const toggleTheme = () => {
-        setTheme(theme === 'light' ? 'dark' : 'light')
-    }
 
     const handleNavigation = (href: string) => {
         navigate(href)

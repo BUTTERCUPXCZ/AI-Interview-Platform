@@ -4,7 +4,7 @@ import Sidebar from '@/components/Sidebar'
 import Navbar from '@/components/Navbar'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { useCreateInterviewSession, useStartTextInterview, useGenerateCodingQuestion } from '../hooks/useInterview'
+import { useCreateInterviewSession, useStartTextInterview } from '../hooks/useInterview'
 import { useAuth } from '../contexts/AuthContext'
 import type { InterviewConfig, Difficulty, InterviewFormat } from '../domain/entities'
 import {
