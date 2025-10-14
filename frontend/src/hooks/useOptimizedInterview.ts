@@ -8,7 +8,8 @@ export const useFastInterviewSession = () => {
     return useMutation({
         mutationFn: async ({ config, userId }: { config: InterviewConfig; userId: number }) => {
             // Use optimized endpoint that returns minimal data for fast response
-            const response = await httpClient.post('/text-interview/fast-start', {
+            // Use backend optimized route (mounted under /api/interview -> frontend uses /interview/... as base)
+            const response = await httpClient.post('/interview/text/start', {
                 userId,
                 domain: config.domain,
                 interviewType: config.interviewType,
@@ -28,7 +29,7 @@ export const useFastInterviewSession = () => {
 export const useOptimizedStartTextInterview = () => {
     return useMutation({
         mutationFn: async ({ config, userId }: { config: InterviewConfig; userId: number }) => {
-            const response = await httpClient.post('/text-interview/optimized-start', {
+            const response = await httpClient.post('/interview/text/start', {
                 userId,
                 domain: config.domain,
                 interviewType: config.interviewType,
@@ -54,7 +55,7 @@ export const useFastSubmitAnswer = () => {
             questionId: number;
             answer: string
         }) => {
-            const response = await httpClient.post('/text-interview/fast-submit', {
+            const response = await httpClient.post('/interview/text/answer', {
                 sessionId,
                 questionId,
                 answer
@@ -81,7 +82,7 @@ export const useFastNextQuestion = () => {
             sessionId: number;
             currentQuestionId: number
         }) => {
-            const response = await httpClient.get(`/text-interview/session/${sessionId}/next-question-fast?currentQuestionId=${currentQuestionId}`)
+            const response = await httpClient.get(`/interview/text/session/${sessionId}/next-question-fast?currentQuestionId=${currentQuestionId}`)
             return response
         },
         onError: (error) => {
@@ -95,7 +96,8 @@ export const useBackgroundSync = (sessionId: number, enabled = true) => {
     return useQuery({
         queryKey: ['interview-sync', sessionId],
         queryFn: async () => {
-            const response = await httpClient.get(`/text-interview/session/${sessionId}/sync`)
+            // Note: backend doesn't currently expose /sync; keep this if you implement a sync endpoint later
+            const response = await httpClient.get(`/interview/text/session/${sessionId}/sync`)
             return response
         },
         enabled: enabled && !!sessionId,
@@ -114,7 +116,8 @@ export const usePrefetchNextQuestion = () => {
             sessionId: number;
             currentQuestionNumber: number
         }) => {
-            const response = await httpClient.post('/text-interview/prefetch-question', {
+            // Prefetch endpoint is optional on backend; align path if implemented
+            const response = await httpClient.post('/interview/text/prefetch-question', {
                 sessionId,
                 nextQuestionNumber: currentQuestionNumber + 1
             })
@@ -207,7 +210,7 @@ export const usePreloadInterviewData = () => {
         }) => {
             const promises = domains.flatMap(domain =>
                 difficulties.map(difficulty =>
-                    httpClient.post('/text-interview/preload', { domain, difficulty })
+                    httpClient.post('/interview/text/preload', { domain, difficulty })
                         .then(data => {
                             // Cache preloaded questions
                             queryClient.setQueryData(

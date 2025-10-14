@@ -2,7 +2,12 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { useStartTextInterview, useGetNextTextQuestion, useSubmitTextAnswer, useGetInterviewProgress, useCompleteTextInterview } from '../hooks/useInterview'
+import { useGetInterviewProgress, useCompleteTextInterview } from '../hooks/useInterview'
+import {
+    useOptimizedStartTextInterview,
+    useFastNextQuestion,
+    useFastSubmitAnswer
+} from '../hooks/useOptimizedInterview'
 import { useAuth } from '../contexts/AuthContext'
 import type { InterviewConfig } from '../domain/entities'
 import InterviewLoading from '@/components/InterviewLoading'
@@ -27,9 +32,10 @@ const TextInterviewSession = () => {
     const config = location.state as TextInterviewSessionConfig
 
     // Hooks
-    const startTextInterview = useStartTextInterview()
-    const getNextQuestion = useGetNextTextQuestion()
-    const submitAnswer = useSubmitTextAnswer()
+    // use optimized hooks for faster UX
+    const startTextInterview = useOptimizedStartTextInterview() // optimized start
+    const getNextQuestion = useFastNextQuestion()
+    const submitAnswer = useFastSubmitAnswer()
     const completeInterview = useCompleteTextInterview()
 
     // State
@@ -54,14 +60,14 @@ const TextInterviewSession = () => {
                 startTextInterview.mutate(
                     { config, userId: user.id },
                     {
-                        onSuccess: (data) => {
+                        onSuccess: (data: any) => {
                             setSessionId(data.session.id)
                             setCurrentQuestion(data.currentQuestion)
                             setQuestionNumber(1)
                             setTotalQuestions(data.currentQuestion?.totalQuestions || 5)
                         },
-                        onError: (error) => {
-                            console.error('Failed to start text interview:', error)
+                        onError: (error: any) => {
+                            console.error('Failed to start optimized text interview:', error)
                             // Navigate back to setup on error
                             navigate('/interview-setup')
                         }
@@ -132,6 +138,8 @@ const TextInterviewSession = () => {
         if (!sessionId || !currentQuestion) return
 
         try {
+            console.log('Fetching next question after question:', currentQuestion.id, 'Question number:', questionNumber)
+
             const result = await new Promise((resolve, reject) => {
                 getNextQuestion.mutate(
                     { sessionId, currentQuestionId: currentQuestion.id },
@@ -143,9 +151,13 @@ const TextInterviewSession = () => {
             })
 
             const nextData = result as any
+            console.log('Next question response:', nextData)
+
             if (nextData.completed) {
+                console.log('Interview completed, proceeding to complete interview')
                 handleCompleteInterview()
             } else {
+                console.log('Moving to next question:', nextData.currentQuestion.questionNumber)
                 setCurrentQuestion(nextData.currentQuestion)
                 setQuestionNumber(nextData.currentQuestion.questionNumber)
                 setFeedback(null)

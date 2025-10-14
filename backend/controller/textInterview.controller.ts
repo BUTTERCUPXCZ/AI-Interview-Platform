@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 import { generateTextInterviewQuestions, evaluateTextAnswer } from "../services/geminiService";
+import { CacheService } from '../services/cacheService';
 import {
     getInterviewSessionById,
     validateUserSession,
@@ -88,6 +89,19 @@ export const startTextInterview = async (req: Request, res: Response) => {
             savedQuestions.push(savedQuestion);
         }
 
+        // Cache interview session state for faster access
+        await CacheService.setInterviewState(session.id.toString(), {
+            sessionId: session.id,
+            userId: session.userId,
+            domain: session.domain,
+            interviewType: session.interviewType,
+            difficulty: session.difficulty,
+            currentQuestionIndex: 0,
+            totalQuestions: savedQuestions.length,
+            startedAt: session.startedAt,
+            questions: savedQuestions.map(q => ({ id: q.id, questionText: q.questionText }))
+        });
+
         // Return session details with first question
         const firstQuestion = savedQuestions[0];
 
@@ -125,6 +139,10 @@ export const getNextQuestion = async (req: Request, res: Response) => {
         const { sessionId } = req.params;
         const currentQuestionId = parseInt(req.query.currentQuestionId as string);
 
+        // Try to get session from cache first
+        const cachedState = await CacheService.getInterviewState(sessionId);
+        let sessionQuestions;
+
         const session = await getInterviewSessionById(parseInt(sessionId));
         if (!session) {
             return res.status(404).json({ error: "Session not found" });
@@ -139,15 +157,35 @@ export const getNextQuestion = async (req: Request, res: Response) => {
             });
         }
 
+        // Use cached questions if available, otherwise fetch from DB
+        if (cachedState && cachedState.questions) {
+            sessionQuestions = cachedState.questions;
+        } else {
+            sessionQuestions = await getSessionQuestions(parseInt(sessionId));
+
+            // Update cache with questions for next time
+            await CacheService.setInterviewState(sessionId, {
+                sessionId: session.id,
+                userId: session.userId,
+                domain: session.domain,
+                interviewType: session.interviewType,
+                difficulty: session.difficulty,
+                currentQuestionIndex: 0,
+                totalQuestions: sessionQuestions.length,
+                startedAt: session.startedAt,
+                questions: sessionQuestions.map((q: any) => ({ id: q.id, questionText: q.questionText }))
+            });
+        }
+
         // Get all questions for the session
-        const questions = await getSessionQuestions(parseInt(sessionId));
+        const questions = sessionQuestions;
 
         if (questions.length === 0) {
             return res.status(404).json({ error: "No questions found for this session" });
         }
 
         // Find current question index
-        const currentIndex = questions.findIndex(q => q.id === currentQuestionId);
+        const currentIndex = questions.findIndex((q: any) => q.id === currentQuestionId);
 
         if (currentIndex === -1) {
             return res.status(404).json({ error: "Current question not found" });

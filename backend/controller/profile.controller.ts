@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
+import { CacheService } from '../services/cacheService';
 
 const prisma = new PrismaClient();
 
@@ -67,6 +68,14 @@ export const getUserProfile = async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'User ID is required' });
         }
 
+        // Try to get cached profile data first
+        const cacheKey = `profile:${userId}`;
+        const cachedProfile = await CacheService.get(cacheKey);
+        if (cachedProfile) {
+            console.log('📦 Profile data served from cache');
+            return res.json(cachedProfile);
+        }
+
         const user = await prisma.user.findUnique({
             where: { id: userId },
             include: {
@@ -87,15 +96,15 @@ export const getUserProfile = async (req: Request, res: Response) => {
             firstName: user.Firstname,
             lastName: user.Lastname,
             email: user.email,
-            bio: user.bio,
+            bio: user.bio || undefined,
             experienceLevel: user.experienceLevel,
-            avatar: user.avatar,
-            phoneNumber: user.phoneNumber,
-            location: user.location,
-            linkedinProfile: user.linkedinProfile,
-            githubProfile: user.githubProfile,
-            portfolioWebsite: user.portfolioWebsite,
-            timezone: user.timezone,
+            avatar: user.avatar || undefined,
+            phoneNumber: user.phoneNumber || undefined,
+            location: user.location || undefined,
+            linkedinProfile: user.linkedinProfile || undefined,
+            githubProfile: user.githubProfile || undefined,
+            portfolioWebsite: user.portfolioWebsite || undefined,
+            timezone: user.timezone || 'UTC',
             emailNotifications: user.emailNotifications,
             pushNotifications: user.pushNotifications,
             interviewReminders: user.interviewReminders,
@@ -103,8 +112,12 @@ export const getUserProfile = async (req: Request, res: Response) => {
             marketingEmails: user.marketingEmails,
             skillTags: user.userSkills.map(us => us.skill.name),
             createdAt: user.createdAt,
-            lastLoginAt: user.lastLoginAt
+            lastLoginAt: user.lastLoginAt || undefined
         };
+
+        // Cache the profile data for future requests
+        await CacheService.set(cacheKey, profileData, 1800); // 30 minutes cache
+        console.log('💾 Profile data cached successfully');
 
         res.json(profileData);
 
@@ -150,6 +163,12 @@ export const updateUserProfile = async (req: Request, res: Response) => {
             }
         });
 
+        // Invalidate cached profile data after update
+        const cacheKey = `profile:${userId}`;
+        await CacheService.delete(cacheKey);
+        await CacheService.invalidateDashboardCache(userId.toString());
+        console.log('🗑️ Profile cache invalidated after update');
+
         res.json({
             message: 'Profile updated successfully',
             user: {
@@ -192,6 +211,11 @@ export const updateNotificationSettings = async (req: Request, res: Response) =>
                 updatedAt: new Date()
             }
         });
+
+        // Invalidate cached profile data after notification update
+        const cacheKey = `profile:${userId}`;
+        await CacheService.delete(cacheKey);
+        console.log('🗑️ Profile cache invalidated after notification update');
 
         res.json({
             message: 'Notification settings updated successfully',
@@ -309,6 +333,12 @@ export const updateUserSkills = async (req: Request, res: Response) => {
                 }
             });
         }
+
+        // Invalidate cached profile and dashboard data after skills update
+        const cacheKey = `profile:${userId}`;
+        await CacheService.delete(cacheKey);
+        await CacheService.invalidateDashboardCache(userId.toString());
+        console.log('🗑️ Profile and dashboard cache invalidated after skills update');
 
         res.json({
             message: 'Skills updated successfully',

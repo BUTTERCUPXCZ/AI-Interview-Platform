@@ -3,6 +3,7 @@ import { prisma } from "../lib/prisma"
 import { analyzeSession } from '../services/geminiService'
 import { generateComprehensiveFeedback, DetailedFeedback, QuestionAnalysis } from '../services/feedbackService'
 import { GoogleGenerativeAI } from "@google/generative-ai"
+import { CacheService } from '../services/cacheService';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "")
 
@@ -10,6 +11,13 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "")
 export const getUnifiedSessionFeedback = async (req: Request, res: Response) => {
     try {
         const { sessionId } = req.params;
+
+        // Try to get cached feedback first
+        const cachedFeedback = await CacheService.getFeedbackCache(sessionId);
+        if (cachedFeedback) {
+            console.log('📦 Session feedback served from cache');
+            return res.json(cachedFeedback);
+        }
 
         // First check if this session exists and get its type
         const session = await prisma.interviewSession.findUnique({
@@ -76,7 +84,8 @@ export const getUnifiedSessionFeedback = async (req: Request, res: Response) => 
         const scores = answeredQuestions.map(q => q.score || 0);
         const averageScore = scores.length > 0 ? scores.reduce((sum, score) => sum + score, 0) / scores.length : 0;
 
-        return res.json({
+        // Store response for caching
+        const responseData = {
             id: null, // No AI feedback generated yet
             sessionId: session.id,
             overallScore: Math.round(averageScore * 100) / 100,
@@ -110,7 +119,13 @@ export const getUnifiedSessionFeedback = async (req: Request, res: Response) => 
                 isCodingQuestion: q.isCodingQuestion,
                 codingLanguage: q.codingLanguage
             }))
-        });
+        };
+
+        // Cache the feedback for future requests
+        await CacheService.setFeedbackCache(sessionId, responseData);
+        console.log('💾 Session feedback cached successfully');
+
+        return res.json(responseData);
 
     } catch (error: any) {
         console.error("Error getting session feedback:", error);

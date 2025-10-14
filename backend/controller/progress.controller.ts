@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { CacheService } from '../services/cacheService';
 
 const prisma = new PrismaClient();
 
@@ -70,6 +71,13 @@ export const getProgressAnalytics = async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'User ID is required' });
         }
 
+        // Try to get cached progress data first
+        const cachedProgress = await CacheService.getUserProgress(userId.toString());
+        if (cachedProgress) {
+            console.log('📦 Progress data served from cache');
+            return res.json(cachedProgress);
+        }
+
         // Get user sessions with questions
         const sessions = await prisma.interviewSession.findMany({
             where: {
@@ -135,6 +143,10 @@ export const getProgressAnalytics = async (req: Request, res: Response) => {
             domainComparison,
             recommendations
         };
+
+        // Cache the progress data for future requests
+        await CacheService.setUserProgress(userId.toString(), progressData);
+        console.log('💾 Progress data cached successfully');
 
         res.json(progressData);
 

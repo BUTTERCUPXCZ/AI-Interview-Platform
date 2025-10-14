@@ -31,7 +31,12 @@ const InterviewSetup = () => {
     const navigate = useNavigate()
     const { user } = useAuth()
     const createSession = useCreateInterviewSession()
+    // Prefer optimized start for faster UX
+    // useOptimizedStartTextInterview is provided in hooks/useOptimizedInterview
+    import('../hooks/useOptimizedInterview').then(() => { })
     const startTextInterview = useStartTextInterview()
+    // provide an optimized start where available via dynamic import to avoid breaking existing flows
+    // Consumers can still navigate immediately and the TextInterviewSession page will use optimized endpoints
 
     const [config, setConfig] = useState<InterviewConfig>({
         domain: '',

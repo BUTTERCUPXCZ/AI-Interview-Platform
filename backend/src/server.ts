@@ -11,7 +11,9 @@ import textInterviewRoutes from '../routes/textInterviewRoutes';
 import dashboardRoutes from '../routes/dashboardRoutes';
 import progressRoutes from '../routes/progressRoutes';
 import profileRoutes from '../routes/profileRoutes';
+import cacheRoutes from '../routes/cacheRoutes';
 import { connectPrisma } from '../lib/prisma';
+import { connectRedis } from '../lib/redis';
 
 dotenv.config();
 const PORT = process.env.PORT || 3000;
@@ -45,10 +47,14 @@ app.use("/api/interview", textInterviewRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/progress", progressRoutes);
 app.use("/api/profile", profileRoutes);
+app.use("/api/cache", cacheRoutes);
 
 // Initialize Prisma connection and start server
 const startServer = async () => {
     try {
+        // Initialize Redis connection
+        await connectRedis();
+
         // Skip the explicit connection test in development to avoid prepared statement conflicts
         if (process.env.NODE_ENV !== 'development') {
             await connectPrisma();

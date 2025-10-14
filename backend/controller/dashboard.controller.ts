@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { CacheService } from '../services/cacheService';
 
 const prisma = new PrismaClient();
 
@@ -57,6 +58,19 @@ export const getDashboardData = async (req: Request, res: Response) => {
 
         if (!userId) {
             return res.status(400).json({ error: 'User ID is required' });
+        }
+
+        // Try to get cached dashboard data first
+        let cachedData = null;
+        try {
+            cachedData = await CacheService.getDashboardCache(userId.toString());
+            if (cachedData) {
+                console.log('📦 Dashboard data served from cache');
+                return res.json(cachedData);
+            }
+        } catch (cacheError) {
+            console.warn('Cache retrieval failed, proceeding with database query:', cacheError);
+            // Continue with database query if cache fails
         }
 
         // Get user profile
@@ -118,6 +132,15 @@ export const getDashboardData = async (req: Request, res: Response) => {
             skillScores,
             recommendedTopics
         };
+
+        // Cache the dashboard data for future requests
+        try {
+            await CacheService.setDashboardCache(userId.toString(), dashboardData);
+            console.log('💾 Dashboard data cached successfully');
+        } catch (cacheError) {
+            console.warn('Failed to cache dashboard data:', cacheError);
+            // Continue serving the response even if caching fails
+        }
 
         res.json(dashboardData);
 

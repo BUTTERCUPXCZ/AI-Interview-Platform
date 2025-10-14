@@ -9,6 +9,7 @@ import {
     verifyToken,
     JwtPayload
 } from "../utils/jwt.utils.js";
+import { CacheService } from "../services/cacheService";
 
 
 
@@ -102,6 +103,16 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
         // Set secure HTTP-only cookie
         setTokenCookie(res, token);
 
+        // Cache user session for faster subsequent requests
+        await CacheService.setUserSession(user.id.toString(), {
+            id: user.id,
+            email: user.email,
+            Firstname: user.Firstname,
+            Lastname: user.Lastname,
+            role: user.role,
+            lastLogin: new Date()
+        });
+
         // Return user without password
         const { password: _, ...userWithoutPassword } = user;
 
@@ -115,8 +126,21 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
 };
 
 // LOGOUT
-export const logoutUser = (req: Request, res: Response) => {
+export const logoutUser = async (req: Request, res: Response) => {
     try {
+        // Get user ID from token before clearing
+        const token = getTokenFromCookies(req.cookies);
+        if (token) {
+            try {
+                const decoded = verifyToken(token) as JwtPayload;
+                // Clear all user caches
+                await CacheService.clearUserCaches(decoded.id.toString());
+            } catch (error) {
+                // Token invalid, proceed with logout anyway
+                console.log('Token verification failed during logout, proceeding anyway');
+            }
+        }
+
         // Clear the authentication cookie
         clearTokenCookie(res);
 

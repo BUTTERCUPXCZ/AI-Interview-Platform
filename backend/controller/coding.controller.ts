@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url'
 import { v4 as uuidv4 } from 'uuid'
 import { generateCodingQuestion, evaluateCodeSolution } from '../services/geminiService'
 import { prisma } from "../lib/prisma";
+import { CacheService } from '../services/cacheService';
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url)
@@ -154,6 +155,14 @@ export const executeCode = async (req: Request, res: Response) => {
             })
         }
 
+        // Create cache key for identical code executions
+        const cacheKey = `code_exec:${Buffer.from(code + language + JSON.stringify(testCases || [])).toString('base64').slice(0, 50)}`;
+        const cachedResult = await CacheService.get(cacheKey);
+        if (cachedResult) {
+            console.log('📦 Code execution result served from cache');
+            return res.json(cachedResult);
+        }
+
         // Create temporary directory for code execution
         const tempDir = path.join(__dirname, '../../temp', uuidv4())
         await fs.mkdir(tempDir, { recursive: true })
@@ -175,6 +184,12 @@ export const executeCode = async (req: Request, res: Response) => {
                 console.error('AI evaluation failed:', aiError)
                 // Continue without AI evaluation
             }
+        }
+
+        // Cache successful execution results for a short time (5 minutes)
+        if (result.success) {
+            await CacheService.set(cacheKey, result, 300);
+            console.log('💾 Code execution result cached successfully');
         }
 
         res.json(result)
