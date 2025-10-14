@@ -1,6 +1,6 @@
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "")
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 export interface DetailedFeedback {
     overallScore: number
@@ -72,7 +72,7 @@ export interface SkillRating {
 
 export interface Resource {
     title: string
-    type: 'article' | 'course' | 'book' | 'practice' | 'tutorial'
+    type: "article" | "course" | "book" | "practice" | "tutorial"
     url?: string
     description: string
     estimatedTime?: string
@@ -101,22 +101,22 @@ export async function generateComprehensiveFeedback(
     },
     questions: QuestionAnalysis[]
 ): Promise<DetailedFeedback> {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" })
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     // Calculate basic metrics
-    const totalQuestions = questions.length
-    const answeredQuestions = questions.filter(q => q.userAnswer !== null).length
-    const completionRate = (answeredQuestions / totalQuestions) * 100
-    const scores = questions.filter(q => q.score !== null).map(q => q.score!)
-    const averageScore = scores.length > 0 ? scores.reduce((sum, score) => sum + score, 0) / scores.length : 0
+    const totalQuestions = questions.length;
+    const answeredQuestions = questions.filter(q => q.userAnswer !== null).length;
+    const completionRate = (answeredQuestions / totalQuestions) * 100;
+    const scores = questions.filter(q => q.score !== null).map(q => q.score!);
+    const averageScore = scores.length > 0 ? scores.reduce((sum, score) => sum + score, 0) / scores.length : 0;
 
     // Categorize questions for analysis
-    const categorizedQuestions = categorizeQuestions(questions, sessionData.domain, sessionData.interviewType)
+    const categorizedQuestions = categorizeQuestions(questions, sessionData.domain, sessionData.interviewType);
 
     // Generate enhanced performance analysis
-    const categoryBreakdown = generateCategoryBreakdown(categorizedQuestions)
-    const difficultyAnalysis = generateDifficultyAnalysis(questions)
-    const timeManagement = generateTimeAnalysis(categorizedQuestions)
+    const categoryBreakdown = generateCategoryBreakdown(categorizedQuestions);
+    const difficultyAnalysis = generateDifficultyAnalysis(questions);
+    const timeManagement = generateTimeAnalysis(categorizedQuestions);
 
     // Generate AI analysis
     const prompt = createComprehensivePrompt(sessionData, questions, categorizedQuestions, {
@@ -124,11 +124,11 @@ export async function generateComprehensiveFeedback(
         answeredQuestions,
         completionRate,
         averageScore
-    })
+    });
 
     try {
-        const result = await model.generateContent(prompt)
-        const aiAnalysis = JSON.parse(result.response.text())
+        const result = await model.generateContent(prompt);
+        const aiAnalysis = JSON.parse(result.response.text());
 
         // Combine AI analysis with our calculated metrics
         const feedback: DetailedFeedback = {
@@ -164,18 +164,18 @@ export async function generateComprehensiveFeedback(
             },
             benchmarkComparison: calculateBenchmark(averageScore, sessionData.difficulty),
             nextSteps: aiAnalysis.nextSteps || []
-        }
+        };
 
-        return feedback
+        return feedback;
     } catch (error) {
-        console.error('Error generating comprehensive feedback:', error)
+        console.error("Error generating comprehensive feedback:", error);
         // Return fallback feedback
         return generateFallbackFeedback(sessionData, {
             totalQuestions,
             answeredQuestions,
             completionRate,
             averageScore
-        })
+        });
     }
 }
 
@@ -183,19 +183,19 @@ export async function generateComprehensiveFeedback(
  * Generate category-based performance breakdown
  */
 function generateCategoryBreakdown(categorizedQuestions: { [category: string]: QuestionAnalysis[] }): CategoryPerformance[] {
-    const breakdown: CategoryPerformance[] = []
-    const totalQuestions = Object.values(categorizedQuestions).flat().length
+    const breakdown: CategoryPerformance[] = [];
+    const totalQuestions = Object.values(categorizedQuestions).flat().length;
 
     Object.entries(categorizedQuestions).forEach(([category, questions]) => {
-        const answeredQuestions = questions.filter(q => q.score !== null)
+        const answeredQuestions = questions.filter(q => q.score !== null);
         const averageScore = answeredQuestions.length > 0
             ? answeredQuestions.reduce((sum, q) => sum + (q.score || 0), 0) / answeredQuestions.length
-            : 0
+            : 0;
 
         // Generate insights based on category and performance
-        const strongestAreas = generateStrongestAreas(category, averageScore, questions)
-        const weakestAreas = generateWeakestAreas(category, averageScore, questions)
-        const improvement = generateImprovementTips(category, averageScore, questions)
+        const strongestAreas = generateStrongestAreas(category, averageScore, questions);
+        const weakestAreas = generateWeakestAreas(category, averageScore, questions);
+        const improvement = generateImprovementTips(category, averageScore, questions);
 
         breakdown.push({
             category,
@@ -205,10 +205,10 @@ function generateCategoryBreakdown(categorizedQuestions: { [category: string]: Q
             strongestAreas,
             weakestAreas,
             improvement
-        })
-    })
+        });
+    });
 
-    return breakdown.sort((a, b) => b.averageScore - a.averageScore)
+    return breakdown.sort((a, b) => b.averageScore - a.averageScore);
 }
 
 /**
@@ -216,30 +216,30 @@ function generateCategoryBreakdown(categorizedQuestions: { [category: string]: Q
  */
 function generateDifficultyAnalysis(questions: QuestionAnalysis[]): DifficultyBreakdown {
     const difficultyGroups = {
-        beginner: questions.filter(q => q.difficulty.toLowerCase() === 'beginner' || q.difficulty.toLowerCase() === 'easy'),
-        intermediate: questions.filter(q => q.difficulty.toLowerCase() === 'intermediate' || q.difficulty.toLowerCase() === 'medium'),
-        advanced: questions.filter(q => q.difficulty.toLowerCase() === 'advanced' || q.difficulty.toLowerCase() === 'hard')
-    }
+        beginner: questions.filter(q => q.difficulty.toLowerCase() === "beginner" || q.difficulty.toLowerCase() === "easy"),
+        intermediate: questions.filter(q => q.difficulty.toLowerCase() === "intermediate" || q.difficulty.toLowerCase() === "medium"),
+        advanced: questions.filter(q => q.difficulty.toLowerCase() === "advanced" || q.difficulty.toLowerCase() === "hard")
+    };
 
     const analysis: DifficultyBreakdown = {
         beginner: { score: 0, count: 0 },
         intermediate: { score: 0, count: 0 },
         advanced: { score: 0, count: 0 }
-    }
+    };
 
     Object.entries(difficultyGroups).forEach(([level, questions]) => {
-        const answeredQuestions = questions.filter(q => q.score !== null)
+        const answeredQuestions = questions.filter(q => q.score !== null);
         const averageScore = answeredQuestions.length > 0
             ? answeredQuestions.reduce((sum, q) => sum + (q.score || 0), 0) / answeredQuestions.length
-            : 0
+            : 0;
 
         analysis[level as keyof DifficultyBreakdown] = {
             score: Math.round(averageScore * 10) / 10,
             count: questions.length
-        }
-    })
+        };
+    });
 
-    return analysis
+    return analysis;
 }
 
 /**
@@ -247,13 +247,13 @@ function generateDifficultyAnalysis(questions: QuestionAnalysis[]): DifficultyBr
  */
 function generateTimeAnalysis(categorizedQuestions: { [category: string]: QuestionAnalysis[] }): TimeAnalysis {
     // Mock time data - in production, you would track actual response times
-    const avgTimePerQuestion = Math.floor(Math.random() * 180) + 60 // 60-240 seconds
+    const avgTimePerQuestion = Math.floor(Math.random() * 180) + 60; // 60-240 seconds
 
-    const categories = Object.keys(categorizedQuestions)
-    const fastestCategory = categories[Math.floor(Math.random() * categories.length)]
-    let slowestCategory = categories[Math.floor(Math.random() * categories.length)]
+    const categories = Object.keys(categorizedQuestions);
+    const fastestCategory = categories[Math.floor(Math.random() * categories.length)];
+    let slowestCategory = categories[Math.floor(Math.random() * categories.length)];
     while (slowestCategory === fastestCategory && categories.length > 1) {
-        slowestCategory = categories[Math.floor(Math.random() * categories.length)]
+        slowestCategory = categories[Math.floor(Math.random() * categories.length)];
     }
 
     const timeManagementTips = [
@@ -262,98 +262,98 @@ function generateTimeAnalysis(categorizedQuestions: { [category: string]: Questi
         "Plan your approach before writing code",
         "Use the STAR method for behavioral questions",
         "Practice explaining your thought process clearly"
-    ]
+    ];
 
     return {
         averageTimePerQuestion: avgTimePerQuestion,
         fastestCategory,
         slowestCategory,
         timeManagementTips: timeManagementTips.slice(0, 3)
-    }
+    };
 }
 
 /**
  * Generate strongest areas based on category performance
  */
 function generateStrongestAreas(category: string, averageScore: number, questions: QuestionAnalysis[]): string[] {
-    if (averageScore < 6) return []
+    if (averageScore < 6) return [];
 
     const strengths: { [key: string]: string[] } = {
-        'javascript': [
-            'Strong understanding of ES6+ features',
-            'Good grasp of asynchronous programming',
-            'Proficient with array and object manipulation'
+        "javascript": [
+            "Strong understanding of ES6+ features",
+            "Good grasp of asynchronous programming",
+            "Proficient with array and object manipulation"
         ],
-        'react': [
-            'Solid component architecture knowledge',
-            'Good understanding of hooks and state management',
-            'Effective use of React patterns'
+        "react": [
+            "Solid component architecture knowledge",
+            "Good understanding of hooks and state management",
+            "Effective use of React patterns"
         ],
-        'database': [
-            'Strong SQL query optimization skills',
-            'Good database design principles',
-            'Understanding of indexing strategies'
+        "database": [
+            "Strong SQL query optimization skills",
+            "Good database design principles",
+            "Understanding of indexing strategies"
         ],
-        'api-design': [
-            'Good RESTful API design principles',
-            'Understanding of HTTP status codes',
-            'Knowledge of API authentication methods'
+        "api-design": [
+            "Good RESTful API design principles",
+            "Understanding of HTTP status codes",
+            "Knowledge of API authentication methods"
         ],
-        'coding': [
-            'Strong problem-solving approach',
-            'Good algorithm understanding',
-            'Clean and readable code structure'
+        "coding": [
+            "Strong problem-solving approach",
+            "Good algorithm understanding",
+            "Clean and readable code structure"
         ],
-        'system-design': [
-            'Good scalability considerations',
-            'Understanding of distributed systems',
-            'Knowledge of caching strategies'
+        "system-design": [
+            "Good scalability considerations",
+            "Understanding of distributed systems",
+            "Knowledge of caching strategies"
         ]
-    }
+    };
 
-    return strengths[category] || ['Good overall understanding of the topic']
+    return strengths[category] || ["Good overall understanding of the topic"];
 }
 
 /**
  * Generate weakest areas based on category performance
  */
 function generateWeakestAreas(category: string, averageScore: number, questions: QuestionAnalysis[]): string[] {
-    if (averageScore >= 7) return []
+    if (averageScore >= 7) return [];
 
     const weaknesses: { [key: string]: string[] } = {
-        'javascript': [
-            'Need to improve closure understanding',
-            'Struggling with prototype chain concepts',
-            'Difficulty with event loop mechanics'
+        "javascript": [
+            "Need to improve closure understanding",
+            "Struggling with prototype chain concepts",
+            "Difficulty with event loop mechanics"
         ],
-        'react': [
-            'Need better understanding of useEffect',
-            'Struggling with performance optimization',
-            'Difficulty with state management patterns'
+        "react": [
+            "Need better understanding of useEffect",
+            "Struggling with performance optimization",
+            "Difficulty with state management patterns"
         ],
-        'database': [
-            'Need to improve complex query writing',
-            'Struggling with normalization concepts',
-            'Difficulty with transaction management'
+        "database": [
+            "Need to improve complex query writing",
+            "Struggling with normalization concepts",
+            "Difficulty with transaction management"
         ],
-        'api-design': [
-            'Need better error handling strategies',
-            'Struggling with API versioning',
-            'Difficulty with rate limiting concepts'
+        "api-design": [
+            "Need better error handling strategies",
+            "Struggling with API versioning",
+            "Difficulty with rate limiting concepts"
         ],
-        'coding': [
-            'Need to improve time complexity analysis',
-            'Struggling with recursive solutions',
-            'Difficulty with edge case handling'
+        "coding": [
+            "Need to improve time complexity analysis",
+            "Struggling with recursive solutions",
+            "Difficulty with edge case handling"
         ],
-        'system-design': [
-            'Need better understanding of load balancing',
-            'Struggling with database sharding concepts',
-            'Difficulty with microservices architecture'
+        "system-design": [
+            "Need better understanding of load balancing",
+            "Struggling with database sharding concepts",
+            "Difficulty with microservices architecture"
         ]
-    }
+    };
 
-    return weaknesses[category] || ['Need to deepen understanding of fundamental concepts']
+    return weaknesses[category] || ["Need to deepen understanding of fundamental concepts"];
 }
 
 /**
@@ -361,39 +361,39 @@ function generateWeakestAreas(category: string, averageScore: number, questions:
  */
 function generateImprovementTips(category: string, averageScore: number, questions: QuestionAnalysis[]): string[] {
     const tips: { [key: string]: string[] } = {
-        'javascript': [
-            'Practice with MDN JavaScript tutorials',
-            'Complete JavaScript algorithms on HackerRank',
-            'Study "You Don\'t Know JS" book series'
+        "javascript": [
+            "Practice with MDN JavaScript tutorials",
+            "Complete JavaScript algorithms on HackerRank",
+            "Study \"You Don't Know JS\" book series"
         ],
-        'react': [
-            'Build small projects with different React patterns',
-            'Practice with React Testing Library',
-            'Study the official React documentation thoroughly'
+        "react": [
+            "Build small projects with different React patterns",
+            "Practice with React Testing Library",
+            "Study the official React documentation thoroughly"
         ],
-        'database': [
-            'Practice SQL queries on SQLBolt or HackerRank',
-            'Study database design patterns',
-            'Learn about database performance optimization'
+        "database": [
+            "Practice SQL queries on SQLBolt or HackerRank",
+            "Study database design patterns",
+            "Learn about database performance optimization"
         ],
-        'api-design': [
-            'Build RESTful APIs with Express.js',
-            'Study API design best practices',
-            'Practice with Postman for API testing'
+        "api-design": [
+            "Build RESTful APIs with Express.js",
+            "Study API design best practices",
+            "Practice with Postman for API testing"
         ],
-        'coding': [
-            'Solve daily problems on LeetCode',
-            'Practice explaining solutions out loud',
-            'Study common algorithm patterns'
+        "coding": [
+            "Solve daily problems on LeetCode",
+            "Practice explaining solutions out loud",
+            "Study common algorithm patterns"
         ],
-        'system-design': [
-            'Study system design interview resources',
-            'Practice designing simple systems',
-            'Learn about cloud architecture patterns'
+        "system-design": [
+            "Study system design interview resources",
+            "Practice designing simple systems",
+            "Learn about cloud architecture patterns"
         ]
-    }
+    };
 
-    return tips[category] || ['Continue practicing and studying fundamentals']
+    return tips[category] || ["Continue practicing and studying fundamentals"];
 }
 
 /**
@@ -404,82 +404,82 @@ function categorizeQuestions(
     domain: string,
     interviewType: string
 ): { [category: string]: QuestionAnalysis[] } {
-    const categories: { [key: string]: QuestionAnalysis[] } = {}
+    const categories: { [key: string]: QuestionAnalysis[] } = {};
 
     questions.forEach(question => {
-        let category = 'general'
+        let category = "general";
 
         if (question.isCodingQuestion) {
-            category = 'coding'
-        } else if (interviewType === 'technical') {
+            category = "coding";
+        } else if (interviewType === "technical") {
             // Categorize technical questions based on domain
             switch (domain.toLowerCase()) {
-                case 'frontend':
-                    if (question.questionText.toLowerCase().includes('react') ||
-                        question.questionText.toLowerCase().includes('vue') ||
-                        question.questionText.toLowerCase().includes('angular')) {
-                        category = 'frameworks'
-                    } else if (question.questionText.toLowerCase().includes('css') ||
-                        question.questionText.toLowerCase().includes('html')) {
-                        category = 'styling'
-                    } else if (question.questionText.toLowerCase().includes('javascript') ||
-                        question.questionText.toLowerCase().includes('typescript')) {
-                        category = 'javascript'
+                case "frontend":
+                    if (question.questionText.toLowerCase().includes("react") ||
+                        question.questionText.toLowerCase().includes("vue") ||
+                        question.questionText.toLowerCase().includes("angular")) {
+                        category = "frameworks";
+                    } else if (question.questionText.toLowerCase().includes("css") ||
+                        question.questionText.toLowerCase().includes("html")) {
+                        category = "styling";
+                    } else if (question.questionText.toLowerCase().includes("javascript") ||
+                        question.questionText.toLowerCase().includes("typescript")) {
+                        category = "javascript";
                     } else {
-                        category = 'frontend-general'
+                        category = "frontend-general";
                     }
-                    break
-                case 'backend':
-                    if (question.questionText.toLowerCase().includes('database') ||
-                        question.questionText.toLowerCase().includes('sql')) {
-                        category = 'database'
-                    } else if (question.questionText.toLowerCase().includes('api') ||
-                        question.questionText.toLowerCase().includes('rest')) {
-                        category = 'api-design'
-                    } else if (question.questionText.toLowerCase().includes('security')) {
-                        category = 'security'
+                    break;
+                case "backend":
+                    if (question.questionText.toLowerCase().includes("database") ||
+                        question.questionText.toLowerCase().includes("sql")) {
+                        category = "database";
+                    } else if (question.questionText.toLowerCase().includes("api") ||
+                        question.questionText.toLowerCase().includes("rest")) {
+                        category = "api-design";
+                    } else if (question.questionText.toLowerCase().includes("security")) {
+                        category = "security";
                     } else {
-                        category = 'backend-general'
+                        category = "backend-general";
                     }
-                    break
-                case 'fullstack':
-                    category = 'fullstack'
-                    break
-                case 'data-science':
-                    if (question.questionText.toLowerCase().includes('machine learning') ||
-                        question.questionText.toLowerCase().includes('ml')) {
-                        category = 'machine-learning'
-                    } else if (question.questionText.toLowerCase().includes('statistics') ||
-                        question.questionText.toLowerCase().includes('statistical')) {
-                        category = 'statistics'
+                    break;
+                case "fullstack":
+                    category = "fullstack";
+                    break;
+                case "data-science":
+                    if (question.questionText.toLowerCase().includes("machine learning") ||
+                        question.questionText.toLowerCase().includes("ml")) {
+                        category = "machine-learning";
+                    } else if (question.questionText.toLowerCase().includes("statistics") ||
+                        question.questionText.toLowerCase().includes("statistical")) {
+                        category = "statistics";
                     } else {
-                        category = 'data-analysis'
+                        category = "data-analysis";
                     }
-                    break
+                    break;
                 default:
-                    category = 'technical-general'
+                    category = "technical-general";
             }
-        } else if (interviewType === 'behavioral') {
-            if (question.questionText.toLowerCase().includes('leadership') ||
-                question.questionText.toLowerCase().includes('team')) {
-                category = 'leadership'
-            } else if (question.questionText.toLowerCase().includes('conflict') ||
-                question.questionText.toLowerCase().includes('challenge')) {
-                category = 'problem-solving'
+        } else if (interviewType === "behavioral") {
+            if (question.questionText.toLowerCase().includes("leadership") ||
+                question.questionText.toLowerCase().includes("team")) {
+                category = "leadership";
+            } else if (question.questionText.toLowerCase().includes("conflict") ||
+                question.questionText.toLowerCase().includes("challenge")) {
+                category = "problem-solving";
             } else {
-                category = 'behavioral-general'
+                category = "behavioral-general";
             }
-        } else if (interviewType === 'system-design') {
-            category = 'system-design'
+        } else if (interviewType === "system-design") {
+            category = "system-design";
         }
 
         if (!categories[category]) {
-            categories[category] = []
+            categories[category] = [];
         }
-        categories[category].push(question)
-    })
+        categories[category].push(question);
+    });
 
-    return categories
+    return categories;
 }
 
 /**
@@ -506,18 +506,18 @@ Question Categories and Performance:
 ${Object.entries(categorizedQuestions).map(([category, questions]) => `
 ${category}: ${questions.length} questions, Average Score: ${questions.filter(q => q.score !== null).length > 0
             ? (questions.filter(q => q.score !== null).reduce((sum, q) => sum + q.score!, 0) / questions.filter(q => q.score !== null).length).toFixed(1)
-            : 'N/A'
-        }/10`).join('\n')}
+            : "N/A"
+        }/10`).join("\n")}
 
 Questions and Answers:
 ${questions.map((q, i) => `
-Question ${i + 1} (${q.isCodingQuestion ? 'Coding' : 'Text'} - ${q.difficulty}):
+Question ${i + 1} (${q.isCodingQuestion ? "Coding" : "Text"} - ${q.difficulty}):
 ${q.questionText}
 
-User Answer: ${q.userAnswer || 'Not answered'}
-Score: ${q.score || 'Not scored'}/10
-AI Evaluation: ${q.aiEvaluation || 'Not evaluated'}
-`).join('\n')}
+User Answer: ${q.userAnswer || "Not answered"}
+Score: ${q.score || "Not scored"}/10
+AI Evaluation: ${q.aiEvaluation || "Not evaluated"}
+`).join("\n")}
 
 Provide a detailed analysis in JSON format with this structure:
 {
@@ -562,7 +562,7 @@ Focus on:
 3. Actionable improvement recommendations
 4. Personalized learning path based on current level
 5. Industry-relevant skills for ${sessionData.domain} developers
-`
+`;
 }
 
 /**
@@ -573,39 +573,39 @@ function calculateBenchmark(averageScore: number, difficulty: string): {
     comparisonText: string
 } {
     // Mock benchmark calculation - in production, this would use real data
-    let percentileRank: number
-    let comparisonText: string
+    let percentileRank: number;
+    let comparisonText: string;
 
     if (averageScore >= 9) {
-        percentileRank = 95
-        comparisonText = "Exceptional performance! You scored better than 95% of candidates."
+        percentileRank = 95;
+        comparisonText = "Exceptional performance! You scored better than 95% of candidates.";
     } else if (averageScore >= 8) {
-        percentileRank = 85
-        comparisonText = "Excellent performance! You scored better than 85% of candidates."
+        percentileRank = 85;
+        comparisonText = "Excellent performance! You scored better than 85% of candidates.";
     } else if (averageScore >= 7) {
-        percentileRank = 70
-        comparisonText = "Good performance! You scored better than 70% of candidates."
+        percentileRank = 70;
+        comparisonText = "Good performance! You scored better than 70% of candidates.";
     } else if (averageScore >= 6) {
-        percentileRank = 50
-        comparisonText = "Average performance. You scored at the median level."
+        percentileRank = 50;
+        comparisonText = "Average performance. You scored at the median level.";
     } else if (averageScore >= 5) {
-        percentileRank = 30
-        comparisonText = "Below average performance. Focus on improvement areas."
+        percentileRank = 30;
+        comparisonText = "Below average performance. Focus on improvement areas.";
     } else {
-        percentileRank = 15
-        comparisonText = "Significant improvement needed. Consider additional preparation."
+        percentileRank = 15;
+        comparisonText = "Significant improvement needed. Consider additional preparation.";
     }
 
     // Adjust based on difficulty
-    if (difficulty === 'Advanced') {
-        percentileRank = Math.min(percentileRank + 10, 99)
-        comparisonText += " (Adjusted for advanced difficulty level)"
-    } else if (difficulty === 'Beginner') {
-        percentileRank = Math.max(percentileRank - 10, 1)
-        comparisonText += " (Adjusted for beginner difficulty level)"
+    if (difficulty === "Advanced") {
+        percentileRank = Math.min(percentileRank + 10, 99);
+        comparisonText += " (Adjusted for advanced difficulty level)";
+    } else if (difficulty === "Beginner") {
+        percentileRank = Math.max(percentileRank - 10, 1);
+        comparisonText += " (Adjusted for beginner difficulty level)";
     }
 
-    return { percentileRank, comparisonText }
+    return { percentileRank, comparisonText };
 }
 
 /**
@@ -632,9 +632,9 @@ function generateFallbackFeedback(
             },
             timeManagement: {
                 averageTimePerQuestion: 120,
-                fastestCategory: 'general',
-                slowestCategory: 'coding',
-                timeManagementTips: ['Practice time management', 'Read questions carefully']
+                fastestCategory: "general",
+                slowestCategory: "coding",
+                timeManagementTips: ["Practice time management", "Read questions carefully"]
             }
         },
         skillAssessment: {
@@ -657,7 +657,7 @@ function generateFallbackFeedback(
         },
         benchmarkComparison: calculateBenchmark(metrics.averageScore, sessionData.difficulty),
         nextSteps: ["Continue practicing", "Focus on weak areas"]
-    }
+    };
 }
 
 /**
@@ -709,17 +709,17 @@ export async function generateCareerRecommendations(
         communities: string[]
     }
 }> {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" })
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     // Calculate performance metrics
-    const totalQuestions = questions.length
-    const answeredQuestions = questions.filter(q => q.userAnswer !== null).length
-    const completionRate = (answeredQuestions / totalQuestions) * 100
-    const scores = questions.filter(q => q.score !== null).map(q => q.score!)
-    const averageScore = scores.length > 0 ? scores.reduce((sum, score) => sum + score, 0) / scores.length : 0
+    const totalQuestions = questions.length;
+    const answeredQuestions = questions.filter(q => q.userAnswer !== null).length;
+    const completionRate = (answeredQuestions / totalQuestions) * 100;
+    const scores = questions.filter(q => q.score !== null).map(q => q.score!);
+    const averageScore = scores.length > 0 ? scores.reduce((sum, score) => sum + score, 0) / scores.length : 0;
 
     // Categorize questions for better analysis
-    const categorizedQuestions = categorizeQuestions(questions, sessionData.domain, sessionData.interviewType)
+    const categorizedQuestions = categorizeQuestions(questions, sessionData.domain, sessionData.interviewType);
 
     const prompt = `
 As an expert career coach specializing in ${sessionData.domain} development, analyze this interview performance and provide personalized career growth recommendations.
@@ -736,15 +736,15 @@ Question Categories Performance:
 ${Object.entries(categorizedQuestions).map(([category, questions]) => `
 ${category}: ${questions.length} questions, Average Score: ${questions.filter(q => q.score !== null).length > 0
             ? (questions.filter(q => q.score !== null).reduce((sum, q) => sum + q.score!, 0) / questions.filter(q => q.score !== null).length).toFixed(1)
-            : 'N/A'
-        }/10`).join('\n')}
+            : "N/A"
+        }/10`).join("\n")}
 
 Detailed Question Analysis:
 ${questions.slice(0, 5).map((q, i) => `
 Q${i + 1}: ${q.questionText.substring(0, 100)}...
-Answer Quality: ${q.score || 'Not scored'}/10
-Evaluation: ${q.aiEvaluation?.substring(0, 200) || 'Not evaluated'}...
-`).join('\n')}
+Answer Quality: ${q.score || "Not scored"}/10
+Evaluation: ${q.aiEvaluation?.substring(0, 200) || "Not evaluated"}...
+`).join("\n")}
 
 Based on this performance, provide personalized career recommendations in JSON format:
 
@@ -794,18 +794,18 @@ Requirements:
 5. Include relevant, current resources (courses, books, tools)
 6. Consider the ${sessionData.difficulty} difficulty level attempted
 7. Make all advice practical and immediately implementable
-`
+`;
 
     try {
-        const result = await model.generateContent(prompt)
-        const responseText = result.response.text()
+        const result = await model.generateContent(prompt);
+        const responseText = result.response.text();
 
         // Clean the response to ensure it's valid JSON
-        const cleanedResponse = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+        const cleanedResponse = responseText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
 
-        return JSON.parse(cleanedResponse)
+        return JSON.parse(cleanedResponse);
     } catch (error) {
-        console.error('Error generating career recommendations:', error)
+        console.error("Error generating career recommendations:", error);
 
         // Fallback recommendations if AI fails
         return {
@@ -883,6 +883,6 @@ Requirements:
                     "Discord coding communities"
                 ]
             }
-        }
+        };
     }
 }

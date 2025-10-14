@@ -10,14 +10,14 @@ function parseGeminiResponse(text: string) {
     try {
         // Clean the response to remove markdown code blocks
         const cleanedText = text
-            .replace(/```json\s*/g, '')
-            .replace(/```\s*/g, '')
+            .replace(/```json\s*/g, "")
+            .replace(/```\s*/g, "")
             .trim();
 
         return JSON.parse(cleanedText);
     } catch (error: any) {
-        console.error('Failed to parse Gemini response:', text);
-        throw new Error(`Invalid JSON response from Gemini: ${error?.message || 'Unknown error'}`);
+        console.error("Failed to parse Gemini response:", text);
+        throw new Error(`Invalid JSON response from Gemini: ${error?.message || "Unknown error"}`);
     }
 }
 
@@ -74,7 +74,7 @@ export async function analyzeSession(qaList: any[]) {
 
 export async function generateCodingQuestion(domain: string, difficulty: string, language: string) {
     // Import the enhanced function from codingEvaluationService
-    const { generateCodingQuestionWithGemini } = await import('./codingEvaluationService');
+    const { generateCodingQuestionWithGemini } = await import("./codingEvaluationService");
     return generateCodingQuestionWithGemini(domain, difficulty, language);
 }
 
@@ -145,16 +145,16 @@ export async function generateTextInterviewQuestions(domain: string, difficulty:
         const result = await model.generateContent(prompt);
         const text = result.response.text();
 
-        console.log('Generated questions response:', text);
+        console.log("Generated questions response:", text);
         return parseGeminiResponse(text);
     } catch (error: any) {
-        console.error('Error generating text interview questions:', error);
-        console.error('Error details:', {
+        console.error("Error generating text interview questions:", error);
+        console.error("Error details:", {
             message: error?.message,
             status: error?.status,
             statusText: error?.statusText
         });
-        throw new Error(`Failed to generate interview questions: ${error?.message || 'Unknown error'}`);
+        throw new Error(`Failed to generate interview questions: ${error?.message || "Unknown error"}`);
     }
 }
 

@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 import { generateTextInterviewQuestions, evaluateTextAnswer } from "../services/geminiService";
-import { CacheService } from '../services/cacheService';
+import { CacheService } from "../services/cacheService";
 import {
     getInterviewSessionById,
     validateUserSession,
@@ -34,14 +34,14 @@ interface SubmitTextAnswerRequest {
  */
 export const startTextInterview = async (req: Request, res: Response) => {
     try {
-        console.log('Received request body:', req.body);
+        console.log("Received request body:", req.body);
         const { userId, domain, interviewType, difficulty, duration, enableCodingSandbox = false }: StartTextInterviewRequest = req.body;
 
-        console.log('Extracted fields:', { userId, domain, interviewType, difficulty, duration, enableCodingSandbox });
+        console.log("Extracted fields:", { userId, domain, interviewType, difficulty, duration, enableCodingSandbox });
 
         // Validate required fields
         if (!userId || !domain || !interviewType || !difficulty) {
-            console.log('Validation failed - missing fields:', {
+            console.log("Validation failed - missing fields:", {
                 userId: !!userId,
                 domain: !!domain,
                 interviewType: !!interviewType,
@@ -54,7 +54,7 @@ export const startTextInterview = async (req: Request, res: Response) => {
 
         // Helper function to convert frontend values to backend enum values
         const convertToEnum = (value: string): string => {
-            return value.toUpperCase().replace(/-/g, '_');
+            return value.toUpperCase().replace(/-/g, "_");
         };
 
         // Create interview session
@@ -393,7 +393,7 @@ export const getInterviewSummary = async (req: Request, res: Response) => {
             where: { id: parseInt(sessionId) },
             include: {
                 questions: {
-                    orderBy: { id: 'asc' }
+                    orderBy: { id: "asc" }
                 },
                 user: {
                     select: {
@@ -461,7 +461,7 @@ export const getUserInterviewHistory = async (req: Request, res: Response) => {
                 userId: parseInt(userId),
                 format: "TEXT" // Only get text interviews
             },
-            orderBy: { startedAt: 'desc' },
+            orderBy: { startedAt: "desc" },
             take: limit,
             include: {
                 questions: {

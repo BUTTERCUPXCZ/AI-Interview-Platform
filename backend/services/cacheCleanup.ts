@@ -1,4 +1,4 @@
-import { redis } from '../lib/redis';
+import { redis } from "../lib/redis";
 
 /**
  * Cache cleanup utilities for fixing corrupted Redis entries
@@ -12,17 +12,17 @@ export class CacheCleanup {
         let deletedCount = 0;
 
         try {
-            console.log('🧹 Starting cache cleanup for corrupted entries...');
+            console.log("🧹 Starting cache cleanup for corrupted entries...");
 
             // Get all keys matching our cache patterns
             const patterns = [
-                'user_session:*',
-                'interview_state:*',
-                'coding_session:*',
-                'user_progress:*',
-                'dashboard_cache:*',
-                'feedback_cache:*',
-                'profile:*'
+                "user_session:*",
+                "interview_state:*",
+                "coding_session:*",
+                "user_progress:*",
+                "dashboard_cache:*",
+                "feedback_cache:*",
+                "profile:*"
             ];
 
             for (const pattern of patterns) {
@@ -34,8 +34,8 @@ export class CacheCleanup {
                         try {
                             const value = await redis.get(key);
 
-                            if (typeof value === 'string' &&
-                                (value === '[object Object]' || value.startsWith('[object '))) {
+                            if (typeof value === "string" &&
+                                (value === "[object Object]" || value.startsWith("[object "))) {
                                 await redis.del(key);
                                 deletedCount++;
                                 console.log(`🗑️ Deleted corrupted cache key: ${key}`);
@@ -53,7 +53,7 @@ export class CacheCleanup {
             return deletedCount;
 
         } catch (error) {
-            console.error('❌ Cache cleanup failed:', error);
+            console.error("❌ Cache cleanup failed:", error);
             throw error;
         }
     }
@@ -79,7 +79,7 @@ export class CacheCleanup {
                 }
             }
         } catch (error) {
-            console.error('Failed to clear user cache:', error);
+            console.error("Failed to clear user cache:", error);
         }
     }
 
@@ -88,19 +88,19 @@ export class CacheCleanup {
      */
     static async clearAllCache(): Promise<void> {
         try {
-            console.log('🧹 Clearing ALL cache entries...');
+            console.log("🧹 Clearing ALL cache entries...");
 
             // For Upstash Redis, we'll delete known patterns
             const patterns = [
-                'user_session:*',
-                'interview_state:*',
-                'coding_session:*',
-                'user_progress:*',
-                'dashboard_cache:*',
-                'feedback_cache:*',
-                'profile:*',
-                'rate_limit:*',
-                'code_exec:*'
+                "user_session:*",
+                "interview_state:*",
+                "coding_session:*",
+                "user_progress:*",
+                "dashboard_cache:*",
+                "feedback_cache:*",
+                "profile:*",
+                "rate_limit:*",
+                "code_exec:*"
             ];
 
             let totalDeleted = 0;
@@ -119,7 +119,7 @@ export class CacheCleanup {
 
             console.log(`✅ Cleared ${totalDeleted} cache entries`);
         } catch (error) {
-            console.error('Failed to clear all cache:', error);
+            console.error("Failed to clear all cache:", error);
         }
     }
 
@@ -139,14 +139,14 @@ export class CacheCleanup {
 
         try {
             const patterns = [
-                'user_session:*',
-                'interview_state:*',
-                'coding_session:*',
-                'user_progress:*',
-                'dashboard_cache:*',
-                'feedback_cache:*',
-                'profile:*',
-                'rate_limit:*'
+                "user_session:*",
+                "interview_state:*",
+                "coding_session:*",
+                "user_progress:*",
+                "dashboard_cache:*",
+                "feedback_cache:*",
+                "profile:*",
+                "rate_limit:*"
             ];
 
             for (const pattern of patterns) {
@@ -159,8 +159,8 @@ export class CacheCleanup {
                     for (const key of keys) {
                         try {
                             const value = await redis.get(key);
-                            if (typeof value === 'string' &&
-                                (value === '[object Object]' || value.startsWith('[object '))) {
+                            if (typeof value === "string" &&
+                                (value === "[object Object]" || value.startsWith("[object "))) {
                                 stats.corruptedKeys++;
                             }
                         } catch (error) {
@@ -173,7 +173,7 @@ export class CacheCleanup {
                 }
             }
         } catch (error) {
-            console.error('Failed to get cache stats:', error);
+            console.error("Failed to get cache stats:", error);
         }
 
         return stats;

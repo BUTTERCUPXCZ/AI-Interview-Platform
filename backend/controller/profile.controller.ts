@@ -1,7 +1,7 @@
-import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcrypt';
-import { CacheService } from '../services/cacheService';
+import { Request, Response } from "express";
+import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcrypt";
+import { CacheService } from "../services/cacheService";
 
 const prisma = new PrismaClient();
 
@@ -33,7 +33,7 @@ export interface UpdateProfileRequest {
     firstName?: string;
     lastName?: string;
     bio?: string;
-    experienceLevel?: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'EXPERT';
+    experienceLevel?: "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | "EXPERT";
     phoneNumber?: string;
     location?: string;
     linkedinProfile?: string;
@@ -65,14 +65,14 @@ export const getUserProfile = async (req: Request, res: Response) => {
         const userId = parseInt(req.params.userId);
 
         if (!userId) {
-            return res.status(400).json({ error: 'User ID is required' });
+            return res.status(400).json({ error: "User ID is required" });
         }
 
         // Try to get cached profile data first
         const cacheKey = `profile:${userId}`;
         const cachedProfile = await CacheService.get(cacheKey);
         if (cachedProfile) {
-            console.log('📦 Profile data served from cache');
+            console.log("📦 Profile data served from cache");
             return res.json(cachedProfile);
         }
 
@@ -88,7 +88,7 @@ export const getUserProfile = async (req: Request, res: Response) => {
         });
 
         if (!user) {
-            return res.status(404).json({ error: 'User not found' });
+            return res.status(404).json({ error: "User not found" });
         }
 
         const profileData: UserProfileData = {
@@ -104,7 +104,7 @@ export const getUserProfile = async (req: Request, res: Response) => {
             linkedinProfile: user.linkedinProfile || undefined,
             githubProfile: user.githubProfile || undefined,
             portfolioWebsite: user.portfolioWebsite || undefined,
-            timezone: user.timezone || 'UTC',
+            timezone: user.timezone || "UTC",
             emailNotifications: user.emailNotifications,
             pushNotifications: user.pushNotifications,
             interviewReminders: user.interviewReminders,
@@ -117,15 +117,15 @@ export const getUserProfile = async (req: Request, res: Response) => {
 
         // Cache the profile data for future requests
         await CacheService.set(cacheKey, profileData, 1800); // 30 minutes cache
-        console.log('💾 Profile data cached successfully');
+        console.log("💾 Profile data cached successfully");
 
         res.json(profileData);
 
     } catch (error) {
-        console.error('Error fetching user profile:', error);
+        console.error("Error fetching user profile:", error);
         res.status(500).json({
-            error: 'Failed to fetch user profile',
-            details: error instanceof Error ? error.message : 'Unknown error'
+            error: "Failed to fetch user profile",
+            details: error instanceof Error ? error.message : "Unknown error"
         });
     }
 };
@@ -137,12 +137,12 @@ export const updateUserProfile = async (req: Request, res: Response) => {
         const updateData: UpdateProfileRequest = req.body;
 
         if (!userId) {
-            return res.status(400).json({ error: 'User ID is required' });
+            return res.status(400).json({ error: "User ID is required" });
         }
 
         // Validate experience level if provided
-        if (updateData.experienceLevel && !['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'EXPERT'].includes(updateData.experienceLevel)) {
-            return res.status(400).json({ error: 'Invalid experience level' });
+        if (updateData.experienceLevel && !["BEGINNER", "INTERMEDIATE", "ADVANCED", "EXPERT"].includes(updateData.experienceLevel)) {
+            return res.status(400).json({ error: "Invalid experience level" });
         }
 
         // Update user profile
@@ -167,10 +167,10 @@ export const updateUserProfile = async (req: Request, res: Response) => {
         const cacheKey = `profile:${userId}`;
         await CacheService.delete(cacheKey);
         await CacheService.invalidateDashboardCache(userId.toString());
-        console.log('🗑️ Profile cache invalidated after update');
+        console.log("🗑️ Profile cache invalidated after update");
 
         res.json({
-            message: 'Profile updated successfully',
+            message: "Profile updated successfully",
             user: {
                 id: updatedUser.id,
                 firstName: updatedUser.Firstname,
@@ -182,10 +182,10 @@ export const updateUserProfile = async (req: Request, res: Response) => {
         });
 
     } catch (error) {
-        console.error('Error updating user profile:', error);
+        console.error("Error updating user profile:", error);
         res.status(500).json({
-            error: 'Failed to update user profile',
-            details: error instanceof Error ? error.message : 'Unknown error'
+            error: "Failed to update user profile",
+            details: error instanceof Error ? error.message : "Unknown error"
         });
     }
 };
@@ -197,7 +197,7 @@ export const updateNotificationSettings = async (req: Request, res: Response) =>
         const notificationData: UpdateNotificationRequest = req.body;
 
         if (!userId) {
-            return res.status(400).json({ error: 'User ID is required' });
+            return res.status(400).json({ error: "User ID is required" });
         }
 
         const updatedUser = await prisma.user.update({
@@ -215,10 +215,10 @@ export const updateNotificationSettings = async (req: Request, res: Response) =>
         // Invalidate cached profile data after notification update
         const cacheKey = `profile:${userId}`;
         await CacheService.delete(cacheKey);
-        console.log('🗑️ Profile cache invalidated after notification update');
+        console.log("🗑️ Profile cache invalidated after notification update");
 
         res.json({
-            message: 'Notification settings updated successfully',
+            message: "Notification settings updated successfully",
             notifications: {
                 emailNotifications: updatedUser.emailNotifications,
                 pushNotifications: updatedUser.pushNotifications,
@@ -229,10 +229,10 @@ export const updateNotificationSettings = async (req: Request, res: Response) =>
         });
 
     } catch (error) {
-        console.error('Error updating notification settings:', error);
+        console.error("Error updating notification settings:", error);
         res.status(500).json({
-            error: 'Failed to update notification settings',
-            details: error instanceof Error ? error.message : 'Unknown error'
+            error: "Failed to update notification settings",
+            details: error instanceof Error ? error.message : "Unknown error"
         });
     }
 };
@@ -244,15 +244,15 @@ export const changePassword = async (req: Request, res: Response) => {
         const { currentPassword, newPassword }: ChangePasswordRequest = req.body;
 
         if (!userId) {
-            return res.status(400).json({ error: 'User ID is required' });
+            return res.status(400).json({ error: "User ID is required" });
         }
 
         if (!currentPassword || !newPassword) {
-            return res.status(400).json({ error: 'Current password and new password are required' });
+            return res.status(400).json({ error: "Current password and new password are required" });
         }
 
         if (newPassword.length < 6) {
-            return res.status(400).json({ error: 'New password must be at least 6 characters long' });
+            return res.status(400).json({ error: "New password must be at least 6 characters long" });
         }
 
         // Get current user
@@ -261,13 +261,13 @@ export const changePassword = async (req: Request, res: Response) => {
         });
 
         if (!user) {
-            return res.status(404).json({ error: 'User not found' });
+            return res.status(404).json({ error: "User not found" });
         }
 
         // Verify current password
         const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
         if (!isCurrentPasswordValid) {
-            return res.status(400).json({ error: 'Current password is incorrect' });
+            return res.status(400).json({ error: "Current password is incorrect" });
         }
 
         // Hash new password
@@ -282,13 +282,13 @@ export const changePassword = async (req: Request, res: Response) => {
             }
         });
 
-        res.json({ message: 'Password changed successfully' });
+        res.json({ message: "Password changed successfully" });
 
     } catch (error) {
-        console.error('Error changing password:', error);
+        console.error("Error changing password:", error);
         res.status(500).json({
-            error: 'Failed to change password',
-            details: error instanceof Error ? error.message : 'Unknown error'
+            error: "Failed to change password",
+            details: error instanceof Error ? error.message : "Unknown error"
         });
     }
 };
@@ -300,11 +300,11 @@ export const updateUserSkills = async (req: Request, res: Response) => {
         const { skillTags }: UpdateSkillsRequest = req.body;
 
         if (!userId) {
-            return res.status(400).json({ error: 'User ID is required' });
+            return res.status(400).json({ error: "User ID is required" });
         }
 
         if (!Array.isArray(skillTags)) {
-            return res.status(400).json({ error: 'skillTags must be an array' });
+            return res.status(400).json({ error: "skillTags must be an array" });
         }
 
         // Remove all existing user skills
@@ -338,18 +338,18 @@ export const updateUserSkills = async (req: Request, res: Response) => {
         const cacheKey = `profile:${userId}`;
         await CacheService.delete(cacheKey);
         await CacheService.invalidateDashboardCache(userId.toString());
-        console.log('🗑️ Profile and dashboard cache invalidated after skills update');
+        console.log("🗑️ Profile and dashboard cache invalidated after skills update");
 
         res.json({
-            message: 'Skills updated successfully',
+            message: "Skills updated successfully",
             skillTags
         });
 
     } catch (error) {
-        console.error('Error updating user skills:', error);
+        console.error("Error updating user skills:", error);
         res.status(500).json({
-            error: 'Failed to update user skills',
-            details: error instanceof Error ? error.message : 'Unknown error'
+            error: "Failed to update user skills",
+            details: error instanceof Error ? error.message : "Unknown error"
         });
     }
 };
@@ -362,15 +362,15 @@ export const uploadAvatar = async (req: Request, res: Response) => {
         // For now, we'll just return a placeholder response
 
         res.json({
-            message: 'Avatar upload endpoint - implement file upload logic',
+            message: "Avatar upload endpoint - implement file upload logic",
             userId
         });
 
     } catch (error) {
-        console.error('Error uploading avatar:', error);
+        console.error("Error uploading avatar:", error);
         res.status(500).json({
-            error: 'Failed to upload avatar',
-            details: error instanceof Error ? error.message : 'Unknown error'
+            error: "Failed to upload avatar",
+            details: error instanceof Error ? error.message : "Unknown error"
         });
     }
 };
@@ -381,7 +381,7 @@ export const deleteAccount = async (req: Request, res: Response) => {
         const userId = parseInt(req.params.userId);
 
         if (!userId) {
-            return res.status(400).json({ error: 'User ID is required' });
+            return res.status(400).json({ error: "User ID is required" });
         }
 
         // In a real application, you might want to soft delete instead
@@ -394,13 +394,13 @@ export const deleteAccount = async (req: Request, res: Response) => {
             }
         });
 
-        res.json({ message: 'Account deactivated successfully' });
+        res.json({ message: "Account deactivated successfully" });
 
     } catch (error) {
-        console.error('Error deleting account:', error);
+        console.error("Error deleting account:", error);
         res.status(500).json({
-            error: 'Failed to delete account',
-            details: error instanceof Error ? error.message : 'Unknown error'
+            error: "Failed to delete account",
+            details: error instanceof Error ? error.message : "Unknown error"
         });
     }
 };

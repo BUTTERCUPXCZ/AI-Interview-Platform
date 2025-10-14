@@ -22,7 +22,7 @@ interface SubmitTextAnswerRequest {
  */
 export const startTextInterviewOptimized = async (req: Request, res: Response) => {
     try {
-        console.log('Received request body:', req.body);
+        console.log("Received request body:", req.body);
         const { userId, domain, interviewType, difficulty, duration, enableCodingSandbox = false }: StartTextInterviewRequest = req.body;
 
         // Validate required fields
@@ -34,7 +34,7 @@ export const startTextInterviewOptimized = async (req: Request, res: Response) =
 
         // Helper function to convert frontend values to backend enum values
         const convertToEnum = (value: string): string => {
-            return value.toUpperCase().replace(/-/g, '_');
+            return value.toUpperCase().replace(/-/g, "_");
         };
 
         // Create interview session
@@ -84,7 +84,7 @@ export const startTextInterviewOptimized = async (req: Request, res: Response) =
             }
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Error starting text interview:", error);
         res.status(500).json({ error: "Failed to start text interview session" });
     }
@@ -104,7 +104,7 @@ export const getNextQuestionOptimized = async (req: Request, res: Response) => {
 
         const session = await prisma.interviewSession.findUnique({
             where: { id: parseInt(sessionId) },
-            include: { questions: { orderBy: { id: 'asc' } } }
+            include: { questions: { orderBy: { id: "asc" } } }
         });
 
         if (!session) {
@@ -161,7 +161,7 @@ export const getNextQuestionOptimized = async (req: Request, res: Response) => {
             completed: false
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Error getting next question:", error);
         res.status(500).json({ error: "Failed to get next question" });
     }
@@ -212,7 +212,7 @@ export const submitTextAnswerOptimized = async (req: Request, res: Response) => 
         // Perform AI evaluation in background (don't await)
         evaluateAnswerInBackground(questionId, question.questionText, answer, question.session);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Error submitting text answer:", error);
         res.status(500).json({ error: "Failed to submit answer" });
     }
@@ -258,7 +258,7 @@ async function evaluateAnswerInBackground(questionId: number, questionText: stri
         });
 
         console.log(`Background evaluation completed for question ${questionId}`);
-    } catch (error) {
+    } catch (error: unknown) {
         console.error(`Background evaluation failed for question ${questionId}:`, error);
 
         // Update with error state

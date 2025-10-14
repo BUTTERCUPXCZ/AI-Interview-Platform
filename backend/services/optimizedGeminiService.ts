@@ -19,7 +19,7 @@ export async function generateTextInterviewQuestionsOptimized(domain: string, di
 
     // Return cached questions if available and not expired
     if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
-        console.log('Returning cached questions for:', cacheKey);
+        console.log("Returning cached questions for:", cacheKey);
         return cached.questions;
     }
 
@@ -50,7 +50,7 @@ export async function generateTextInterviewQuestionsOptimized(domain: string, di
 
         return questions;
     } catch (error) {
-        console.error('Error generating questions:', error);
+        console.error("Error generating questions:", error);
 
         // Return fallback questions instead of failing
         return getFallbackQuestions(domain, difficulty, interviewType);
@@ -77,7 +77,7 @@ export async function generateSingleTextQuestion(domain: string, difficulty: str
 
         return { question: questionText };
     } catch (error) {
-        console.error('Error generating single question:', error);
+        console.error("Error generating single question:", error);
 
         // Return fallback question
         const fallbackQuestions = getFallbackQuestions(domain, difficulty, interviewType);
@@ -112,7 +112,7 @@ export async function evaluateTextAnswerOptimized(question: string, answer: stri
             feedback: evaluation.feedback || "Your answer has been recorded."
         };
     } catch (error) {
-        console.error('Error evaluating answer:', error);
+        console.error("Error evaluating answer:", error);
 
         // Return default evaluation instead of failing
         return {
@@ -152,13 +152,13 @@ export async function batchEvaluateAnswers(questionAnswerPairs: Array<{ id: numb
 function parseGeminiResponse(text: string) {
     try {
         const cleanedText = text
-            .replace(/```json\s*/g, '')
-            .replace(/```\s*/g, '')
+            .replace(/```json\s*/g, "")
+            .replace(/```\s*/g, "")
             .trim();
         return JSON.parse(cleanedText);
     } catch (error) {
-        console.error('Failed to parse Gemini response:', text);
-        throw new Error('Invalid JSON response from Gemini');
+        console.error("Failed to parse Gemini response:", text);
+        throw new Error("Invalid JSON response from Gemini");
     }
 }
 
@@ -194,7 +194,7 @@ function getFallbackQuestions(domain: string, difficulty: string, interviewType:
     const categoryQuestions = fallbackData[interviewType as keyof typeof fallbackData];
     if (categoryQuestions) {
         const domainQuestions = categoryQuestions[domain as keyof typeof categoryQuestions] ||
-            categoryQuestions['general' as keyof typeof categoryQuestions] ||
+            categoryQuestions["general" as keyof typeof categoryQuestions] ||
             Object.values(categoryQuestions)[0];
         return domainQuestions;
     }
@@ -209,20 +209,20 @@ function getFallbackQuestions(domain: string, difficulty: string, interviewType:
 // Clear cache function (for maintenance)
 export function clearQuestionCache() {
     questionCache.clear();
-    console.log('Question cache cleared');
+    console.log("Question cache cleared");
 }
 
 // Pre-warm cache with common question combinations
 export async function preWarmCache() {
     const commonCombinations = [
-        ['frontend', 'intermediate', 'technical'],
-        ['backend', 'intermediate', 'technical'],
-        ['fullstack', 'intermediate', 'technical'],
-        ['frontend', 'beginner', 'technical'],
-        ['backend', 'beginner', 'technical'],
+        ["frontend", "intermediate", "technical"],
+        ["backend", "intermediate", "technical"],
+        ["fullstack", "intermediate", "technical"],
+        ["frontend", "beginner", "technical"],
+        ["backend", "beginner", "technical"],
     ];
 
-    console.log('Pre-warming question cache...');
+    console.log("Pre-warming question cache...");
 
     const promises = commonCombinations.map(([domain, difficulty, type]) =>
         generateTextInterviewQuestionsOptimized(domain, difficulty, type)
@@ -230,5 +230,5 @@ export async function preWarmCache() {
     );
 
     await Promise.allSettled(promises);
-    console.log('Cache pre-warming completed');
+    console.log("Cache pre-warming completed");
 }

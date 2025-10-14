@@ -1,9 +1,9 @@
-import { Redis } from '@upstash/redis';
+import { Redis } from "@upstash/redis";
 
 // Redis configuration using environment variables for security
 const redis = new Redis({
-    url: process.env.UPSTASH_REDIS_REST_URL || 'https://exciting-clam-23022.upstash.io',
-    token: process.env.UPSTASH_REDIS_REST_TOKEN || 'AVnuAAIncDIyZjNiYTVkMWNhZjU0MjYyYTMxODAwZWQzZjUwYTFiZXAyMjMwMjI',
+    url: process.env.UPSTASH_REDIS_REST_URL || "https://exciting-clam-23022.upstash.io",
+    token: process.env.UPSTASH_REDIS_REST_TOKEN || "AVnuAAIncDIyZjNiYTVkMWNhZjU0MjYyYTMxODAwZWQzZjUwYTFiZXAyMjMwMjI",
 });
 
 // Connection test function
@@ -11,9 +11,9 @@ export const connectRedis = async (): Promise<void> => {
     try {
         // Test the connection
         await redis.ping();
-        console.log('✅ Redis connected successfully');
+        console.log("✅ Redis connected successfully");
     } catch (error) {
-        console.error('❌ Redis connection failed:', error);
+        console.error("❌ Redis connection failed:", error);
         throw error;
     }
 };
@@ -49,7 +49,7 @@ export const redisOperations = {
             if (!value) return null;
 
             // Check if the value is already a valid JSON string
-            if (typeof value !== 'string') {
+            if (typeof value !== "string") {
                 console.warn(`Redis key ${key} contains non-string value:`, typeof value);
                 return null;
             }

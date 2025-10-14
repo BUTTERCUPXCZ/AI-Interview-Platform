@@ -1,14 +1,14 @@
-import { redisOperations } from '../lib/redis';
+import { redisOperations } from "../lib/redis";
 
 // Cache keys constants
 export const CACHE_KEYS = {
-    USER_SESSION: 'user_session:',
-    INTERVIEW_STATE: 'interview_state:',
-    CODING_SESSION: 'coding_session:',
-    USER_PROGRESS: 'user_progress:',
-    RATE_LIMIT: 'rate_limit:',
-    FEEDBACK_CACHE: 'feedback_cache:',
-    DASHBOARD_CACHE: 'dashboard_cache:'
+    USER_SESSION: "user_session:",
+    INTERVIEW_STATE: "interview_state:",
+    CODING_SESSION: "coding_session:",
+    USER_PROGRESS: "user_progress:",
+    RATE_LIMIT: "rate_limit:",
+    FEEDBACK_CACHE: "feedback_cache:",
+    DASHBOARD_CACHE: "dashboard_cache:"
 } as const;
 
 // Cache TTL constants (in seconds)

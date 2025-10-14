@@ -1,6 +1,6 @@
-import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
-import { CacheService } from '../services/cacheService';
+import { Request, Response } from "express";
+import { PrismaClient } from "@prisma/client";
+import { CacheService } from "../services/cacheService";
 
 const prisma = new PrismaClient();
 
@@ -57,7 +57,7 @@ export const getDashboardData = async (req: Request, res: Response) => {
         const userId = parseInt(req.params.userId);
 
         if (!userId) {
-            return res.status(400).json({ error: 'User ID is required' });
+            return res.status(400).json({ error: "User ID is required" });
         }
 
         // Try to get cached dashboard data first
@@ -65,11 +65,11 @@ export const getDashboardData = async (req: Request, res: Response) => {
         try {
             cachedData = await CacheService.getDashboardCache(userId.toString());
             if (cachedData) {
-                console.log('📦 Dashboard data served from cache');
+                console.log("📦 Dashboard data served from cache");
                 return res.json(cachedData);
             }
         } catch (cacheError) {
-            console.warn('Cache retrieval failed, proceeding with database query:', cacheError);
+            console.warn("Cache retrieval failed, proceeding with database query:", cacheError);
             // Continue with database query if cache fails
         }
 
@@ -86,20 +86,20 @@ export const getDashboardData = async (req: Request, res: Response) => {
         });
 
         if (!user) {
-            return res.status(404).json({ error: 'User not found' });
+            return res.status(404).json({ error: "User not found" });
         }
 
         // Get user sessions with questions
         const sessions = await prisma.interviewSession.findMany({
             where: {
                 userId: userId,
-                status: 'COMPLETED'
+                status: "COMPLETED"
             },
             include: {
                 questions: true
             },
             orderBy: {
-                endedAt: 'desc'
+                endedAt: "desc"
             },
             take: 10 // Get last 10 sessions
         });
@@ -136,46 +136,57 @@ export const getDashboardData = async (req: Request, res: Response) => {
         // Cache the dashboard data for future requests
         try {
             await CacheService.setDashboardCache(userId.toString(), dashboardData);
-            console.log('💾 Dashboard data cached successfully');
+            console.log("💾 Dashboard data cached successfully");
         } catch (cacheError) {
-            console.warn('Failed to cache dashboard data:', cacheError);
+            console.warn("Failed to cache dashboard data:", cacheError);
             // Continue serving the response even if caching fails
         }
 
         res.json(dashboardData);
 
     } catch (error) {
-        console.error('Error fetching dashboard data:', error);
+        console.error("Error fetching dashboard data:", error);
         res.status(500).json({
-            error: 'Failed to fetch dashboard data',
-            details: error instanceof Error ? error.message : 'Unknown error'
+            error: "Failed to fetch dashboard data",
+            details: error instanceof Error ? error.message : "Unknown error"
         });
     }
 };
 
 // Calculate comprehensive dashboard statistics
-function calculateDashboardStats(sessions: any[]): DashboardStats {
+type SessionWithQuestions = {
+    id: number;
+    domain: string;
+    totalScore: number | null;
+    questions: Array<{ userAnswer: string | null } & Record<string, any>>;
+    startedAt?: Date | string | null;
+    endedAt?: Date | string | null;
+    duration?: number | string | null;
+    status?: string | null;
+};
+
+function calculateDashboardStats(sessions: SessionWithQuestions[]): DashboardStats {
     if (sessions.length === 0) {
         return {
             averageScore: 0,
             totalSessions: 0,
-            strongestSkill: 'No data',
-            improvementArea: 'No data',
+            strongestSkill: "No data",
+            improvementArea: "No data",
             completionRate: 0,
             totalQuestionsAnswered: 0
         };
     }
 
     // Calculate average score
-    const scoresWithValues = sessions.filter(s => s.totalScore !== null);
+    const scoresWithValues = sessions.filter(s => s.totalScore !== null) as Array<SessionWithQuestions & { totalScore: number }>;
     const averageScore = scoresWithValues.length > 0
-        ? scoresWithValues.reduce((sum, s) => sum + s.totalScore, 0) / scoresWithValues.length
+        ? scoresWithValues.reduce((sum, s) => sum + (s.totalScore as number), 0) / scoresWithValues.length
         : 0;
 
     // Calculate completion rate
-    const totalQuestions = sessions.reduce((sum, s) => sum + s.questions.length, 0);
+    const totalQuestions = sessions.reduce((sum, s) => sum + (s.questions?.length || 0), 0);
     const answeredQuestions = sessions.reduce((sum, s) =>
-        sum + s.questions.filter((q: any) => q.userAnswer !== null).length, 0);
+        sum + (s.questions.filter((q: { userAnswer: string | null }) => q.userAnswer !== null).length || 0), 0);
     const completionRate = totalQuestions > 0 ? (answeredQuestions / totalQuestions) * 100 : 0;
 
     // Find strongest and weakest domains
@@ -199,11 +210,11 @@ function calculateDashboardStats(sessions: any[]): DashboardStats {
 
     const strongestSkill = domainAverages.length > 0
         ? domainAverages.reduce((max, curr) => max.average > curr.average ? max : curr).domain
-        : 'No data';
+        : "No data";
 
     const improvementArea = domainAverages.length > 0
         ? domainAverages.reduce((min, curr) => min.average < curr.average ? min : curr).domain
-        : 'No data';
+        : "No data";
 
     return {
         averageScore: Math.round(averageScore * 10) / 10,
@@ -216,10 +227,10 @@ function calculateDashboardStats(sessions: any[]): DashboardStats {
 }
 
 // Format recent sessions data
-function formatRecentSessions(sessions: any[]): RecentSession[] {
+function formatRecentSessions(sessions: SessionWithQuestions[]): RecentSession[] {
     return sessions.map(session => {
         const duration = session.endedAt && session.startedAt
-            ? Math.round((new Date(session.endedAt).getTime() - new Date(session.startedAt).getTime()) / (1000 * 60))
+            ? Math.round((new Date(session.endedAt as string).getTime() - new Date(session.startedAt as string).getTime()) / (1000 * 60))
             : session.duration || 0;
 
         return {
@@ -229,13 +240,13 @@ function formatRecentSessions(sessions: any[]): RecentSession[] {
             score: session.totalScore ? Math.round(session.totalScore) : 0,
             duration: `${duration} min`,
             questions: session.questions.length,
-            status: session.status
+            status: session.status || "UNKNOWN"
         };
     });
 }
 
 // Calculate skill scores by domain
-function calculateSkillScores(sessions: any[]): SkillScore {
+function calculateSkillScores(sessions: SessionWithQuestions[]): SkillScore {
     const skillScores: SkillScore = {};
     const domainCounts: { [key: string]: number } = {};
 
@@ -265,21 +276,21 @@ function generateRecommendedTopics(sessions: any[], skillScores: SkillScore): Re
 
     // Find areas that need improvement (scores < 70)
     const improvementAreas = Object.entries(skillScores)
-        .filter(([_, score]) => score < 70)
+        .filter(([, score]) => score < 70)
         .sort(([_, a], [__, b]) => a - b);
 
     // Add recommendations for improvement areas
-    improvementAreas.forEach(([domain, score]) => {
-        const topics = getRecommendationsForDomain(domain, score);
+    improvementAreas.forEach(([domain, _score]) => {
+        const topics = getRecommendationsForDomain(domain, _score as number);
         recommendations.push(...topics);
     });
 
     // Add advanced topics for strong areas (scores > 85)
     const strongAreas = Object.entries(skillScores)
-        .filter(([_, score]) => score > 85)
+        .filter(([, score]) => score > 85)
         .sort(([_, a], [__, b]) => b - a);
 
-    strongAreas.slice(0, 2).forEach(([domain, score]) => {
+    strongAreas.slice(0, 2).forEach(([domain, _score]) => {
         const advancedTopics = getAdvancedTopicsForDomain(domain);
         recommendations.push(...advancedTopics);
     });
@@ -289,48 +300,48 @@ function generateRecommendedTopics(sessions: any[], skillScores: SkillScore): Re
 
 // Get recommendations for specific domain
 function getRecommendationsForDomain(domain: string, score: number): RecommendedTopic[] {
-    const level = score < 50 ? 'Beginner' : score < 70 ? 'Intermediate' : 'Advanced';
+    const level = score < 50 ? "Beginner" : score < 70 ? "Intermediate" : "Advanced";
 
     const domainRecommendations: { [key: string]: RecommendedTopic[] } = {
-        'Frontend': [
+        "Frontend": [
             {
-                title: 'React Fundamentals',
-                description: 'Master component lifecycle, state management, and hooks',
+                title: "React Fundamentals",
+                description: "Master component lifecycle, state management, and hooks",
                 difficulty: level,
-                estimatedTime: '3 hours',
-                domain: 'Frontend'
+                estimatedTime: "3 hours",
+                domain: "Frontend"
             },
             {
-                title: 'CSS Grid & Flexbox',
-                description: 'Modern layout techniques for responsive design',
+                title: "CSS Grid & Flexbox",
+                description: "Modern layout techniques for responsive design",
                 difficulty: level,
-                estimatedTime: '2 hours',
-                domain: 'Frontend'
+                estimatedTime: "2 hours",
+                domain: "Frontend"
             }
         ],
-        'Backend': [
+        "Backend": [
             {
-                title: 'RESTful API Design',
-                description: 'Learn to design scalable and maintainable APIs',
+                title: "RESTful API Design",
+                description: "Learn to design scalable and maintainable APIs",
                 difficulty: level,
-                estimatedTime: '4 hours',
-                domain: 'Backend'
+                estimatedTime: "4 hours",
+                domain: "Backend"
             },
             {
-                title: 'Database Optimization',
-                description: 'Indexing strategies and query optimization',
+                title: "Database Optimization",
+                description: "Indexing strategies and query optimization",
                 difficulty: level,
-                estimatedTime: '3 hours',
-                domain: 'Backend'
+                estimatedTime: "3 hours",
+                domain: "Backend"
             }
         ],
-        'System Design': [
+        "System Design": [
             {
-                title: 'Microservices Architecture',
-                description: 'Understanding distributed systems and service communication',
+                title: "Microservices Architecture",
+                description: "Understanding distributed systems and service communication",
                 difficulty: level,
-                estimatedTime: '5 hours',
-                domain: 'System Design'
+                estimatedTime: "5 hours",
+                domain: "System Design"
             }
         ]
     };
@@ -341,22 +352,22 @@ function getRecommendationsForDomain(domain: string, score: number): Recommended
 // Get advanced topics for strong domains
 function getAdvancedTopicsForDomain(domain: string): RecommendedTopic[] {
     const advancedTopics: { [key: string]: RecommendedTopic[] } = {
-        'Frontend': [
+        "Frontend": [
             {
-                title: 'Advanced React Patterns',
-                description: 'Render props, compound components, and performance optimization',
-                difficulty: 'Advanced',
-                estimatedTime: '4 hours',
-                domain: 'Frontend'
+                title: "Advanced React Patterns",
+                description: "Render props, compound components, and performance optimization",
+                difficulty: "Advanced",
+                estimatedTime: "4 hours",
+                domain: "Frontend"
             }
         ],
-        'Backend': [
+        "Backend": [
             {
-                title: 'Advanced System Architecture',
-                description: 'Event sourcing, CQRS, and distributed system patterns',
-                difficulty: 'Advanced',
-                estimatedTime: '6 hours',
-                domain: 'Backend'
+                title: "Advanced System Architecture",
+                description: "Event sourcing, CQRS, and distributed system patterns",
+                difficulty: "Advanced",
+                estimatedTime: "6 hours",
+                domain: "Backend"
             }
         ]
     };
@@ -367,27 +378,28 @@ function getAdvancedTopicsForDomain(domain: string): RecommendedTopic[] {
 // Helper functions
 function formatDomainName(domain: string): string {
     const domainMap: { [key: string]: string } = {
-        'FRONTEND': 'Frontend',
-        'BACKEND': 'Backend',
-        'FULLSTACK': 'Full Stack',
-        'DATA_SCIENCE': 'Data Science',
-        'MOBILE': 'Mobile',
-        'DEVOPS': 'DevOps',
-        'TECHNICAL': 'Technical',
-        'BEHAVIORAL': 'Behavioral',
-        'SYSTEM_DESIGN': 'System Design'
+        "FRONTEND": "Frontend",
+        "BACKEND": "Backend",
+        "FULLSTACK": "Full Stack",
+        "DATA_SCIENCE": "Data Science",
+        "MOBILE": "Mobile",
+        "DEVOPS": "DevOps",
+        "TECHNICAL": "Technical",
+        "BEHAVIORAL": "Behavioral",
+        "SYSTEM_DESIGN": "System Design"
     };
 
     return domainMap[domain] || domain;
 }
 
 function determineExperienceLevel(averageScore: number): string {
-    if (averageScore >= 85) return 'Senior';
-    if (averageScore >= 70) return 'Mid-level';
-    if (averageScore >= 50) return 'Junior';
-    return 'Beginner';
+    if (averageScore >= 85) return "Senior";
+    if (averageScore >= 70) return "Mid-level";
+    if (averageScore >= 50) return "Junior";
+    return "Beginner";
 }
 
-function formatDate(date: Date | string): string {
-    return new Date(date).toISOString().split('T')[0];
+function formatDate(date?: Date | string | null): string {
+    const d = date ? new Date(date) : new Date();
+    return d.toISOString().split("T")[0];
 }

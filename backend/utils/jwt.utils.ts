@@ -1,10 +1,10 @@
-import jwt, { SignOptions, Secret } from 'jsonwebtoken';
-import { Response } from 'express';
+import jwt, { SignOptions, Secret } from "jsonwebtoken";
+import { Response } from "express";
 
 // JWT Configuration Constants
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key';
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '3h';
-const COOKIE_NAME = 'auth_token';
+const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-jwt-key";
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "3h";
+const COOKIE_NAME = "auth_token";
 const COOKIE_MAX_AGE = 3 * 60 * 60 * 1000; // 3 hours in milliseconds
 
 // User payload interface for JWT
@@ -29,7 +29,7 @@ export const generateToken = (payload: JwtPayload): string => {
         (payload as unknown) as Record<string, unknown>,
         // secret can be string or Buffer (Secret alias)
         JWT_SECRET as Secret,
-        { expiresIn: JWT_EXPIRES_IN as SignOptions['expiresIn'] }
+        { expiresIn: JWT_EXPIRES_IN as SignOptions["expiresIn"] }
     );
 };
 
@@ -55,8 +55,8 @@ export const verifyToken = (token: string): JwtPayload | null => {
 export const setTokenCookie = (res: Response, token: string): void => {
     res.cookie(COOKIE_NAME, token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-        sameSite: 'strict',
+        secure: process.env.NODE_ENV === "production", // HTTPS only in production
+        sameSite: "strict",
         maxAge: COOKIE_MAX_AGE,
     });
 };
@@ -68,8 +68,8 @@ export const setTokenCookie = (res: Response, token: string): void => {
 export const clearTokenCookie = (res: Response): void => {
     res.clearCookie(COOKIE_NAME, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
     });
 };
 

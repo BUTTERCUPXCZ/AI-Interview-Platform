@@ -56,7 +56,7 @@ export const validateUserSession = async (sessionId: number, userId: number): Pr
 
         return session !== null;
     } catch (error) {
-        console.error(`Error validating user session:`, error);
+        console.error("Error validating user session:", error);
         return false;
     }
 };
@@ -68,7 +68,7 @@ export const getSessionQuestions = async (sessionId: number): Promise<QuestionDa
     try {
         const questions = await prisma.interviewQuestion.findMany({
             where: { sessionId },
-            orderBy: { id: 'asc' }
+            orderBy: { id: "asc" }
         });
 
         return questions;
@@ -91,7 +91,7 @@ export const getCurrentQuestionIndex = async (sessionId: number): Promise<number
         // If all questions are answered, return the last index + 1 (completed)
         return unansweredIndex === -1 ? questions.length : unansweredIndex;
     } catch (error) {
-        console.error(`Error getting current question index:`, error);
+        console.error("Error getting current question index:", error);
         return 0;
     }
 };
@@ -110,7 +110,7 @@ export const isInterviewCompleted = async (sessionId: number): Promise<boolean> 
 
         return allAnswered;
     } catch (error) {
-        console.error(`Error checking if interview is completed:`, error);
+        console.error("Error checking if interview is completed:", error);
         return false;
     }
 };
@@ -143,7 +143,7 @@ export const calculateSessionStats = async (sessionId: number) => {
             isCompleted: answeredQuestions === totalQuestions && totalQuestions > 0
         };
     } catch (error) {
-        console.error(`Error calculating session stats:`, error);
+        console.error("Error calculating session stats:", error);
         return {
             totalQuestions: 0,
             answeredQuestions: 0,
@@ -173,7 +173,7 @@ export const updateSessionStatus = async (sessionId: number, status: SessionStat
             status
         };
 
-        if (status === 'COMPLETED') {
+        if (status === "COMPLETED") {
             updateData.endedAt = new Date();
             if (totalScore !== undefined) {
                 updateData.totalScore = totalScore;
@@ -187,7 +187,7 @@ export const updateSessionStatus = async (sessionId: number, status: SessionStat
 
         return updatedSession;
     } catch (error) {
-        console.error(`Error updating session status:`, error);
+        console.error("Error updating session status:", error);
         throw error;
     }
 };
@@ -196,7 +196,7 @@ export const updateSessionStatus = async (sessionId: number, status: SessionStat
  * Check if session has expired based on duration
  */
 export const isSessionExpired = (session: InterviewSessionData): boolean => {
-    if (session.status === 'COMPLETED' || session.status === 'CANCELED') {
+    if (session.status === "COMPLETED" || session.status === "CANCELED") {
         return false;
     }
 
@@ -211,7 +211,7 @@ export const isSessionExpired = (session: InterviewSessionData): boolean => {
  * Get remaining time for session in minutes
  */
 export const getRemainingTime = (session: InterviewSessionData): number => {
-    if (session.status === 'COMPLETED' || session.status === 'CANCELED') {
+    if (session.status === "COMPLETED" || session.status === "CANCELED") {
         return 0;
     }
 
@@ -230,7 +230,7 @@ export const getUserRecentSessions = async (userId: number, limit: number = 10) 
     try {
         const sessions = await prisma.interviewSession.findMany({
             where: { userId },
-            orderBy: { startedAt: 'desc' },
+            orderBy: { startedAt: "desc" },
             take: limit,
             include: {
                 questions: {
@@ -260,7 +260,7 @@ export const getUserRecentSessions = async (userId: number, limit: number = 10) 
             };
         });
     } catch (error) {
-        console.error(`Error fetching user recent sessions:`, error);
+        console.error("Error fetching user recent sessions:", error);
         return [];
     }
 };

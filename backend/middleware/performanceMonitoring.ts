@@ -1,5 +1,5 @@
-import { Request, Response, NextFunction } from 'express';
-import { CacheService } from '../services/cacheService';
+import { Request, Response, NextFunction } from "express";
+import { CacheService } from "../services/cacheService";
 
 interface PerformanceMetrics {
     endpoint: string;
@@ -22,14 +22,14 @@ export const performanceMonitoring = (req: Request, res: Response, next: NextFun
     const originalJson = res.json;
     res.json = function (data: any) {
         // Check if this was served from cache (based on console logs or custom headers)
-        cacheHit = res.getHeaders()['x-cache-hit'] === 'true' ||
-            (typeof data === 'object' && data._cacheHit === true);
+        cacheHit = res.getHeaders()["x-cache-hit"] === "true" ||
+            (typeof data === "object" && data._cacheHit === true);
 
         return originalJson.call(this, data);
     };
 
     // Capture response metrics when request finishes
-    res.on('finish', async () => {
+    res.on("finish", async () => {
         const endTime = Date.now();
         const responseTime = endTime - startTime;
 
@@ -45,7 +45,7 @@ export const performanceMonitoring = (req: Request, res: Response, next: NextFun
 
         // Store metrics in Redis for analysis (with 24h TTL)
         try {
-            const metricsKey = `metrics:${new Date().toISOString().split('T')[0]}:${req.path}:${req.method}`;
+            const metricsKey = `metrics:${new Date().toISOString().split("T")[0]}:${req.path}:${req.method}`;
 
             // Get existing metrics for this endpoint today
             const existingMetrics = await CacheService.get(metricsKey) || [];
@@ -69,7 +69,7 @@ export const performanceMonitoring = (req: Request, res: Response, next: NextFun
             }
 
         } catch (error) {
-            console.error('Failed to store performance metrics:', error);
+            console.error("Failed to store performance metrics:", error);
         }
     });
 
@@ -93,7 +93,7 @@ export const getEndpointAnalytics = async (endpoint: string, method: string, day
         for (let i = 0; i < days; i++) {
             const date = new Date();
             date.setDate(date.getDate() - i);
-            const dateKey = date.toISOString().split('T')[0];
+            const dateKey = date.toISOString().split("T")[0];
 
             const metricsKey = `metrics:${dateKey}:${endpoint}:${method}`;
             const dayMetrics: PerformanceMetrics[] = await CacheService.get(metricsKey) || [];
@@ -128,7 +128,7 @@ export const getEndpointAnalytics = async (endpoint: string, method: string, day
         }
 
     } catch (error) {
-        console.error('Failed to get endpoint analytics:', error);
+        console.error("Failed to get endpoint analytics:", error);
     }
 
     return analytics;
@@ -139,8 +139,8 @@ export const getEndpointAnalytics = async (endpoint: string, method: string, day
  */
 export const cacheHealthCheck = async (req: Request, res: Response) => {
     try {
-        const health = await CacheService.exists('health_check');
-        const testKey = 'health_test:' + Date.now();
+        const health = await CacheService.exists("health_check");
+        const testKey = "health_test:" + Date.now();
 
         // Test write, read, delete operations
         const startTime = Date.now();
@@ -150,15 +150,15 @@ export const cacheHealthCheck = async (req: Request, res: Response) => {
         const latency = Date.now() - startTime;
 
         const healthStatus = {
-            status: testData ? 'healthy' : 'degraded',
-            latency: latency + 'ms',
+            status: testData ? "healthy" : "degraded",
+            latency: latency + "ms",
             timestamp: new Date(),
             redis: {
                 connected: true,
                 operations: {
-                    write: 'ok',
-                    read: testData ? 'ok' : 'failed',
-                    delete: 'ok'
+                    write: "ok",
+                    read: testData ? "ok" : "failed",
+                    delete: "ok"
                 }
             }
         };
@@ -166,8 +166,8 @@ export const cacheHealthCheck = async (req: Request, res: Response) => {
         res.json(healthStatus);
     } catch (error) {
         res.status(500).json({
-            status: 'unhealthy',
-            error: error instanceof Error ? error.message : 'Unknown error',
+            status: "unhealthy",
+            error: error instanceof Error ? error.message : "Unknown error",
             timestamp: new Date(),
             redis: {
                 connected: false

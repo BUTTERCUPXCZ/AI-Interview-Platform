@@ -1,27 +1,27 @@
-import { CacheService } from '../services/cacheService';
+import { CacheService } from "../services/cacheService";
 
 // Extended cache keys for different operations
 export const EXTENDED_CACHE_KEYS = {
     // Profile related
-    USER_PROFILE: 'profile:',
-    USER_SKILLS: 'skills:',
-    USER_SETTINGS: 'settings:',
+    USER_PROFILE: "profile:",
+    USER_SKILLS: "skills:",
+    USER_SETTINGS: "settings:",
 
     // Question related
-    GENERATED_QUESTIONS: 'questions:',
-    QUESTION_POOL: 'pool:',
+    GENERATED_QUESTIONS: "questions:",
+    QUESTION_POOL: "pool:",
 
     // AI Analysis
-    AI_EVALUATION: 'ai_eval:',
-    AI_FEEDBACK: 'ai_feedback:',
+    AI_EVALUATION: "ai_eval:",
+    AI_FEEDBACK: "ai_feedback:",
 
     // Performance metrics
-    PERFORMANCE_STATS: 'perf_stats:',
-    LEADERBOARD: 'leaderboard:',
+    PERFORMANCE_STATS: "perf_stats:",
+    LEADERBOARD: "leaderboard:",
 
     // System cache
-    RUNTIME_INFO: 'runtime:',
-    LANGUAGE_SUPPORT: 'lang_support:'
+    RUNTIME_INFO: "runtime:",
+    LANGUAGE_SUPPORT: "lang_support:"
 } as const;
 
 // Extended TTL configurations (in seconds)
@@ -46,11 +46,11 @@ export const EXTENDED_CACHE_TTL = {
 export class EnhancedCacheService extends CacheService {
 
     // Cache AI-generated content with longer TTL
-    static async cacheAIContent(key: string, content: any, type: 'question' | 'evaluation' | 'feedback' = 'evaluation') {
+    static async cacheAIContent(key: string, content: any, type: "question" | "evaluation" | "feedback" = "evaluation") {
         const ttl = {
-            'question': EXTENDED_CACHE_TTL.DAILY,        // Questions can be reused
-            'evaluation': EXTENDED_CACHE_TTL.LONG,       // Evaluations are session-specific
-            'feedback': EXTENDED_CACHE_TTL.VERY_LONG     // Feedback is valuable for longer
+            "question": EXTENDED_CACHE_TTL.DAILY,        // Questions can be reused
+            "evaluation": EXTENDED_CACHE_TTL.LONG,       // Evaluations are session-specific
+            "feedback": EXTENDED_CACHE_TTL.VERY_LONG     // Feedback is valuable for longer
         };
 
         return await this.set(`${EXTENDED_CACHE_KEYS.AI_EVALUATION}${key}`, content, ttl[type]);
@@ -113,7 +113,7 @@ export class EnhancedCacheService extends CacheService {
         const startTime = Date.now();
 
         try {
-            const testKey = 'health_check:test';
+            const testKey = "health_check:test";
             const testValue = { timestamp: Date.now() };
 
             // Test write
@@ -128,16 +128,16 @@ export class EnhancedCacheService extends CacheService {
             const latency = Date.now() - startTime;
 
             if (result && result.timestamp === testValue.timestamp) {
-                return { status: 'healthy', latency };
+                return { status: "healthy", latency };
             } else {
-                return { status: 'degraded', latency, error: 'Data integrity issue' };
+                return { status: "degraded", latency, error: "Data integrity issue" };
             }
         } catch (error) {
             const latency = Date.now() - startTime;
             return {
-                status: 'unhealthy',
+                status: "unhealthy",
                 latency,
-                error: error instanceof Error ? error.message : 'Unknown error'
+                error: error instanceof Error ? error.message : "Unknown error"
             };
         }
     }

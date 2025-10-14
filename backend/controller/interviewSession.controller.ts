@@ -21,7 +21,7 @@ export const submitAnswer = async (req: Request, res: Response) => {
         });
 
         res.json(updatedQuestion);
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error(error);
         res.status(500).json({ error: "Error submitting answer" });
     }

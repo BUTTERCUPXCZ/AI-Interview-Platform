@@ -38,7 +38,7 @@ export const createInterviewSession = async (req: Request, res: Response) => {
         }
 
         return res.status(201).json({ session, questions: savedQuestions });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error(error);
         res.status(500).json({ error: "Failed to create interview session" });
     }

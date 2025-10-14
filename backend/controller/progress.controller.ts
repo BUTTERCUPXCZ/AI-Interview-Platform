@@ -1,6 +1,6 @@
-import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
-import { CacheService } from '../services/cacheService';
+import { Request, Response } from "express";
+import { PrismaClient } from "@prisma/client";
+import { CacheService } from "../services/cacheService";
 
 const prisma = new PrismaClient();
 
@@ -68,13 +68,13 @@ export const getProgressAnalytics = async (req: Request, res: Response) => {
         const userId = parseInt(req.params.userId);
 
         if (!userId) {
-            return res.status(400).json({ error: 'User ID is required' });
+            return res.status(400).json({ error: "User ID is required" });
         }
 
         // Try to get cached progress data first
         const cachedProgress = await CacheService.getUserProgress(userId.toString());
         if (cachedProgress) {
-            console.log('📦 Progress data served from cache');
+            console.log("📦 Progress data served from cache");
             return res.json(cachedProgress);
         }
 
@@ -82,7 +82,7 @@ export const getProgressAnalytics = async (req: Request, res: Response) => {
         const sessions = await prisma.interviewSession.findMany({
             where: {
                 userId: userId,
-                status: 'COMPLETED'
+                status: "COMPLETED"
             },
             include: {
                 questions: {
@@ -94,7 +94,7 @@ export const getProgressAnalytics = async (req: Request, res: Response) => {
                 }
             },
             orderBy: {
-                startedAt: 'asc'
+                startedAt: "asc"
             }
         });
 
@@ -105,9 +105,9 @@ export const getProgressAnalytics = async (req: Request, res: Response) => {
                     overallImprovement: 0,
                     totalSessions: 0,
                     sessionGrowth: 0,
-                    strongestSkill: 'No data yet',
+                    strongestSkill: "No data yet",
                     strongestSkillScore: 0,
-                    improvementArea: 'Complete your first interview'
+                    improvementArea: "Complete your first interview"
                 },
                 skillTrends: [],
                 radarData: [],
@@ -146,15 +146,15 @@ export const getProgressAnalytics = async (req: Request, res: Response) => {
 
         // Cache the progress data for future requests
         await CacheService.setUserProgress(userId.toString(), progressData);
-        console.log('💾 Progress data cached successfully');
+        console.log("💾 Progress data cached successfully");
 
         res.json(progressData);
 
     } catch (error) {
-        console.error('Error fetching progress analytics:', error);
+        console.error("Error fetching progress analytics:", error);
         res.status(500).json({
-            error: 'Failed to fetch progress analytics',
-            details: error instanceof Error ? error.message : 'Unknown error'
+            error: "Failed to fetch progress analytics",
+            details: error instanceof Error ? error.message : "Unknown error"
         });
     }
 };
@@ -169,9 +169,9 @@ function calculateProgressStats(sessions: any[]): ProgressStats {
             overallImprovement: 0,
             totalSessions: sessions.length,
             sessionGrowth: 0,
-            strongestSkill: 'No data',
+            strongestSkill: "No data",
             strongestSkillScore: 0,
-            improvementArea: 'No data'
+            improvementArea: "No data"
         };
     }
 
@@ -221,11 +221,11 @@ function calculateProgressStats(sessions: any[]): ProgressStats {
 
     const strongest = domainAverages.length > 0
         ? domainAverages.reduce((max, curr) => max.average > curr.average ? max : curr)
-        : { domain: 'No data', average: 0 };
+        : { domain: "No data", average: 0 };
 
     const weakest = domainAverages.length > 0
         ? domainAverages.reduce((min, curr) => min.average < curr.average ? min : curr)
-        : { domain: 'No data', average: 0 };
+        : { domain: "No data", average: 0 };
 
     return {
         overallScore: Math.round(overallScore * 10) / 10,
@@ -250,7 +250,7 @@ function generateSkillTrends(sessions: any[]): SkillTrendData[] {
 
     sessionsWithScores.forEach(session => {
         const date = new Date(session.startedAt);
-        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
         const domain = formatDomainName(session.domain);
 
         if (!monthlyData[monthKey]) {
@@ -354,7 +354,7 @@ function formatSessionHistory(sessions: any[]): SessionHistoryData[] {
             id: session.id,
             date: formatDate(session.startedAt),
             domain: formatDomainName(session.domain),
-            type: formatInterviewType(session.interviewType || 'Technical'),
+            type: formatInterviewType(session.interviewType || "Technical"),
             score: Math.round(session.totalScore),
             duration: `${duration} min`,
             questions: session.questions.length,
@@ -462,48 +462,48 @@ function generateProgressRecommendations(sessions: any[], stats: ProgressStats):
 
 // Get recommendations for specific domain
 function getDomainRecommendations(domain: string, score: number): RecommendationData[] {
-    const priority = score < 50 ? 'High' : score < 70 ? 'Medium' : 'Low';
-    const difficulty = score < 50 ? 'Beginner' : score < 70 ? 'Intermediate' : 'Advanced';
+    const priority = score < 50 ? "High" : score < 70 ? "Medium" : "Low";
+    const difficulty = score < 50 ? "Beginner" : score < 70 ? "Intermediate" : "Advanced";
 
     const recommendations: { [key: string]: RecommendationData[] } = {
-        'Frontend': [
+        "Frontend": [
             {
-                title: 'React Fundamentals',
-                description: 'Master component lifecycle, state management, and hooks',
+                title: "React Fundamentals",
+                description: "Master component lifecycle, state management, and hooks",
                 difficulty,
-                estimatedTime: '2-3 hours',
+                estimatedTime: "2-3 hours",
                 priority,
-                category: 'Frontend'
+                category: "Frontend"
             }
         ],
-        'Backend': [
+        "Backend": [
             {
-                title: 'API Design Patterns',
-                description: 'Learn RESTful design and best practices',
+                title: "API Design Patterns",
+                description: "Learn RESTful design and best practices",
                 difficulty,
-                estimatedTime: '1.5-2 hours',
+                estimatedTime: "1.5-2 hours",
                 priority,
-                category: 'Backend'
+                category: "Backend"
             }
         ],
-        'System Design': [
+        "System Design": [
             {
-                title: 'Scalability Fundamentals',
-                description: 'Understanding load balancing and caching strategies',
+                title: "Scalability Fundamentals",
+                description: "Understanding load balancing and caching strategies",
                 difficulty,
-                estimatedTime: '3-4 hours',
+                estimatedTime: "3-4 hours",
                 priority,
-                category: 'System Design'
+                category: "System Design"
             }
         ],
-        'Data Structures': [
+        "Data Structures": [
             {
-                title: 'Advanced Data Structures',
-                description: 'Trees, graphs, and their applications',
+                title: "Advanced Data Structures",
+                description: "Trees, graphs, and their applications",
                 difficulty,
-                estimatedTime: '2-3 hours',
+                estimatedTime: "2-3 hours",
                 priority,
-                category: 'Data Structures'
+                category: "Data Structures"
             }
         ]
     };
@@ -514,24 +514,24 @@ function getDomainRecommendations(domain: string, score: number): Recommendation
 // Get advanced recommendations for strong domains
 function getAdvancedRecommendations(domain: string): RecommendationData[] {
     const advanced: { [key: string]: RecommendationData[] } = {
-        'Frontend': [
+        "Frontend": [
             {
-                title: 'Advanced React Patterns',
-                description: 'Render props, compound components, and performance optimization',
-                difficulty: 'Advanced',
-                estimatedTime: '3-4 hours',
-                priority: 'Medium',
-                category: 'Frontend'
+                title: "Advanced React Patterns",
+                description: "Render props, compound components, and performance optimization",
+                difficulty: "Advanced",
+                estimatedTime: "3-4 hours",
+                priority: "Medium",
+                category: "Frontend"
             }
         ],
-        'Backend': [
+        "Backend": [
             {
-                title: 'Microservices Architecture',
-                description: 'Design patterns for distributed systems',
-                difficulty: 'Advanced',
-                estimatedTime: '4-5 hours',
-                priority: 'Medium',
-                category: 'Backend'
+                title: "Microservices Architecture",
+                description: "Design patterns for distributed systems",
+                difficulty: "Advanced",
+                estimatedTime: "4-5 hours",
+                priority: "Medium",
+                category: "Backend"
             }
         ]
     };
@@ -542,18 +542,18 @@ function getAdvancedRecommendations(domain: string): RecommendationData[] {
 // Helper functions
 function formatDomainName(domain: string): string {
     const domainMap: { [key: string]: string } = {
-        'FRONTEND': 'Frontend',
-        'BACKEND': 'Backend',
-        'FULLSTACK': 'Full Stack',
-        'DATA_SCIENCE': 'Data Science',
-        'MOBILE': 'Mobile',
-        'DEVOPS': 'DevOps',
-        'frontend': 'Frontend',
-        'backend': 'Backend',
-        'fullstack': 'Full Stack',
-        'data-science': 'Data Science',
-        'mobile': 'Mobile',
-        'devops': 'DevOps'
+        "FRONTEND": "Frontend",
+        "BACKEND": "Backend",
+        "FULLSTACK": "Full Stack",
+        "DATA_SCIENCE": "Data Science",
+        "MOBILE": "Mobile",
+        "DEVOPS": "DevOps",
+        "frontend": "Frontend",
+        "backend": "Backend",
+        "fullstack": "Full Stack",
+        "data-science": "Data Science",
+        "mobile": "Mobile",
+        "devops": "DevOps"
     };
 
     return domainMap[domain] || domain;
@@ -561,17 +561,17 @@ function formatDomainName(domain: string): string {
 
 function formatInterviewType(type: string): string {
     const typeMap: { [key: string]: string } = {
-        'TECHNICAL': 'Technical',
-        'BEHAVIORAL': 'Behavioral',
-        'SYSTEM_DESIGN': 'System Design',
-        'technical': 'Technical',
-        'behavioral': 'Behavioral',
-        'system-design': 'System Design'
+        "TECHNICAL": "Technical",
+        "BEHAVIORAL": "Behavioral",
+        "SYSTEM_DESIGN": "System Design",
+        "technical": "Technical",
+        "behavioral": "Behavioral",
+        "system-design": "System Design"
     };
 
     return typeMap[type] || type;
 }
 
 function formatDate(date: Date | string): string {
-    return new Date(date).toISOString().split('T')[0];
+    return new Date(date).toISOString().split("T")[0];
 }

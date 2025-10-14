@@ -137,7 +137,7 @@ export const logoutUser = async (req: Request, res: Response) => {
                 await CacheService.clearUserCaches(decoded.id.toString());
             } catch (error) {
                 // Token invalid, proceed with logout anyway
-                console.log('Token verification failed during logout, proceeding anyway');
+                console.log("Token verification failed during logout, proceeding anyway");
             }
         }
 
