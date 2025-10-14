@@ -15,9 +15,11 @@ function parseGeminiResponse(text: string) {
             .trim();
 
         return JSON.parse(cleanedText);
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Failed to parse Gemini response:", text);
-        throw new Error(`Invalid JSON response from Gemini: ${error?.message || "Unknown error"}`);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const err = error as any;
+        throw new Error(`Invalid JSON response from Gemini: ${err?.message || "Unknown error"}`);
     }
 }
 
@@ -53,7 +55,7 @@ export async function evaluateAnswer(question: string, answer: string) {
     return parseGeminiResponse(result.response.text());
 }
 
-export async function analyzeSession(qaList: any[]) {
+export async function analyzeSession(qaList: unknown[]) {
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
     const prompt = `
         Analyze this interview session:
@@ -78,11 +80,13 @@ export async function generateCodingQuestion(domain: string, difficulty: string,
     return generateCodingQuestionWithGemini(domain, difficulty, language);
 }
 
-export async function evaluateCodeSolution(question: string, code: string, language: string, executionResults: any) {
+export async function evaluateCodeSolution(question: string, code: string, language: string, executionResults: Record<string, unknown>) {
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
 
     const { passedTests, totalTests, results, executionTime } = executionResults;
-    const passRate = totalTests > 0 ? (passedTests / totalTests) * 100 : 0;
+    const passRate = (typeof totalTests === "number" && totalTests > 0 && typeof passedTests === "number")
+        ? (passedTests / totalTests) * 100
+        : 0;
 
     const prompt = `
         Evaluate this coding solution for an interview question.
@@ -147,14 +151,16 @@ export async function generateTextInterviewQuestions(domain: string, difficulty:
 
         console.log("Generated questions response:", text);
         return parseGeminiResponse(text);
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Error generating text interview questions:", error);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const err = error as any;
         console.error("Error details:", {
-            message: error?.message,
-            status: error?.status,
-            statusText: error?.statusText
+            message: err?.message,
+            status: err?.status,
+            statusText: err?.statusText
         });
-        throw new Error(`Failed to generate interview questions: ${error?.message || "Unknown error"}`);
+        throw new Error(`Failed to generate interview questions: ${err?.message || "Unknown error"}`);
     }
 }
 

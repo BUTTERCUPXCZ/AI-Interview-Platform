@@ -46,7 +46,7 @@ export const EXTENDED_CACHE_TTL = {
 export class EnhancedCacheService extends CacheService {
 
     // Cache AI-generated content with longer TTL
-    static async cacheAIContent(key: string, content: any, type: "question" | "evaluation" | "feedback" = "evaluation") {
+    static async cacheAIContent(key: string, content: unknown, type: "question" | "evaluation" | "feedback" = "evaluation") {
         const ttl = {
             "question": EXTENDED_CACHE_TTL.DAILY,        // Questions can be reused
             "evaluation": EXTENDED_CACHE_TTL.LONG,       // Evaluations are session-specific
@@ -57,13 +57,13 @@ export class EnhancedCacheService extends CacheService {
     }
 
     // Cache user performance metrics
-    static async cachePerformanceStats(userId: string, stats: any) {
+    static async cachePerformanceStats(userId: string, stats: unknown) {
         const key = `${EXTENDED_CACHE_KEYS.PERFORMANCE_STATS}${userId}`;
         return await this.set(key, stats, EXTENDED_CACHE_TTL.MEDIUM);
     }
 
     // Cache question pools for faster retrieval
-    static async cacheQuestionPool(domain: string, difficulty: string, type: string, questions: any[]) {
+    static async cacheQuestionPool(domain: string, difficulty: string, type: string, questions: unknown[]) {
         const key = `${EXTENDED_CACHE_KEYS.QUESTION_POOL}${domain}:${difficulty}:${type}`;
         return await this.set(key, questions, EXTENDED_CACHE_TTL.DAILY);
     }
@@ -74,7 +74,7 @@ export class EnhancedCacheService extends CacheService {
     }
 
     // Cache system runtime information (language support, etc.)
-    static async cacheRuntimeInfo(language: string, info: any) {
+    static async cacheRuntimeInfo(language: string, info: unknown) {
         const key = `${EXTENDED_CACHE_KEYS.RUNTIME_INFO}${language}`;
         return await this.set(key, info, EXTENDED_CACHE_TTL.WEEKLY);
     }
@@ -98,7 +98,7 @@ export class EnhancedCacheService extends CacheService {
     }
 
     // Cache warming functions for frequently accessed data
-    static async warmUserCache(userId: string, userData: any) {
+    static async warmUserCache(userId: string, userData: Record<string, unknown>) {
         const promises = [
             this.setUserSession(userId, userData.session),
             this.setUserProgress(userId, userData.progress),

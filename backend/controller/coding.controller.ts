@@ -4,7 +4,7 @@ import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
 import { v4 as uuidv4 } from "uuid";
-import { generateCodingQuestion, evaluateCodeSolution } from "../services/geminiService";
+// generateCodingQuestion/evaluateCodeSolution are kept in history but unused here; remove to satisfy lint
 import type { ProgrammingLanguage } from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import { CacheService } from "../services/cacheService";
@@ -175,7 +175,7 @@ export const executeCode = async (req: Request, res: Response) => {
         // Get AI evaluation if execution was successful
         if (result.success && result.output) {
             try {
-                const aiEvaluation = await getAIEvaluation(code, language, result.output);
+                const aiEvaluation = await getAIEvaluation();
                 result.aiEvaluation = aiEvaluation;
             } catch (aiError) {
                 console.error("AI evaluation failed:", aiError);
@@ -202,7 +202,7 @@ export const executeCode = async (req: Request, res: Response) => {
 // Get AI evaluation for code
 export const evaluateCode = async (req: Request, res: Response) => {
     try {
-        const { code, language, questionContext, expectedOutput } = req.body;
+        const { code, language } = req.body;
 
         if (!code || !language) {
             return res.status(400).json({
@@ -210,7 +210,7 @@ export const evaluateCode = async (req: Request, res: Response) => {
             });
         }
 
-        const evaluation = await getAIEvaluation(code, language, expectedOutput, questionContext);
+        const evaluation = await getAIEvaluation();
         res.json(evaluation);
     } catch (error) {
         console.error("AI evaluation error:", error);
@@ -405,7 +405,7 @@ console.log(JSON.stringify(result));
                             // For numbers and other primitives, do direct comparison
                             passed = actualParsed === expectedParsed;
                         }
-                    } catch (_parseError) {
+                    } catch {
                         // If JSON parsing fails, try string/numeric comparison
                         const actualTrimmed = actualOutput.trim();
                         const expectedTrimmed = expectedOutput.trim();
@@ -690,12 +690,7 @@ async function simulateCSSValidation(
 }
 
 // Legacy AI evaluation function (deprecated - use Gemini service instead)
-async function getAIEvaluation(
-    _code: string,
-    _language: string,
-    _output?: string,
-    _questionContext?: string
-): Promise<AIEvaluationResult> {
+async function getAIEvaluation(): Promise<AIEvaluationResult> {
     // Simple fallback evaluation
     return {
         overallScore: 75,

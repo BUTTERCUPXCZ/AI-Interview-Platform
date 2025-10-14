@@ -113,15 +113,21 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
             lastLogin: new Date()
         });
 
-        // Return user without password
-        const { password: _, ...userWithoutPassword } = user;
+        // Return user without password (explicit fields to avoid unused var lint)
+        const userWithoutPassword = {
+            id: user.id,
+            Firstname: user.Firstname,
+            Lastname: user.Lastname,
+            email: user.email,
+            role: user.role
+        };
 
         res.json({
             message: "Login successful",
             user: userWithoutPassword
         });
-    } catch (error) {
-        next(error);
+    } catch {
+        next();
     }
 };
 
@@ -135,7 +141,7 @@ export const logoutUser = async (req: Request, res: Response) => {
                 const decoded = verifyToken(token) as JwtPayload;
                 // Clear all user caches
                 await CacheService.clearUserCaches(decoded.id.toString());
-            } catch (error) {
+            } catch {
                 // Token invalid, proceed with logout anyway
                 console.log("Token verification failed during logout, proceeding anyway");
             }
@@ -145,7 +151,7 @@ export const logoutUser = async (req: Request, res: Response) => {
         clearTokenCookie(res);
 
         res.json({ message: "Logout successful" });
-    } catch (error) {
+    } catch {
         res.status(500).json({ message: "Logout failed" });
     }
 };
@@ -175,7 +181,7 @@ export const getCurrentUser = (req: Request, res: Response) => {
             email: decoded.email,
             role: decoded.role
         });
-    } catch (error) {
+    } catch {
         res.status(500).json({ message: "Error retrieving user information" });
     }
 };

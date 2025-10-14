@@ -11,100 +11,6 @@ const __dirname = path.dirname(__filename);
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
-// Utility: Check if a command exists on the system
-async function commandExists(command: string): Promise<boolean> {
-    try {
-        if (process.platform === "win32") {
-            await executeCommand("where", [command], process.cwd(), 2000);
-        } else {
-            await executeCommand("which", [command], process.cwd(), 2000);
-        }
-        return true;
-    } catch {
-        return false;
-    }
-}
-
-// Utility: Get language runtime information
-async function getLanguageRuntime(language: string): Promise<{
-    available: boolean;
-    command?: string;
-    args?: string[];
-    compileCommand?: string;
-    compileArgs?: string[];
-    extension: string;
-    className?: string;
-    errorMessage?: string;
-}> {
-    const lang = language.toLowerCase();
-
-    switch (lang) {
-        case "javascript":
-            return {
-                available: await commandExists("node"),
-                command: "node",
-                args: ["solution.js"],
-                extension: ".js",
-                errorMessage: "Node.js is not installed. Please install Node.js to run JavaScript code."
-            };
-
-        case "python": {
-            const pythonAvailable = await commandExists("python") || await commandExists("python3");
-            return {
-                available: pythonAvailable,
-                command: await commandExists("python") ? "python" : "python3",
-                args: ["solution.py"],
-                extension: ".py",
-                errorMessage: "Python is not installed. Please install Python to run Python code."
-            };
-        }
-
-        case "java": {
-            const javacAvailable = await commandExists("javac");
-            const javaAvailable = await commandExists("java");
-            return {
-                available: javacAvailable && javaAvailable,
-                command: "java",
-                args: ["Solution"],
-                compileCommand: "javac",
-                compileArgs: ["Solution.java"],
-                extension: ".java",
-                className: "Solution",
-                errorMessage: "Java JDK is not installed. Please install Java JDK to compile and run Java code."
-            };
-        }
-
-        case "cpp":
-        case "c++":
-            return {
-                available: await commandExists("g++"),
-                command: process.platform === "win32" ? "solution.exe" : "./solution",
-                args: [],
-                compileCommand: "g++",
-                compileArgs: ["-o", "solution", "solution.cpp"],
-                extension: ".cpp",
-                errorMessage: "G++ compiler is not installed. Please install a C++ compiler to run C++ code."
-            };
-
-        case "csharp":
-        case "c#":
-            return {
-                available: await commandExists("dotnet"),
-                command: "dotnet",
-                args: ["run"],
-                extension: ".cs",
-                errorMessage: ".NET is not installed. Please install .NET SDK to run C# code."
-            };
-
-        default:
-            return {
-                available: false,
-                extension: ".txt",
-                errorMessage: `Language '${language}' is not supported.`
-            };
-    }
-}
-
 // Utility: Execute code with timeout
 function executeCommand(command: string, args: string[], cwd: string, timeout = 5000): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -439,9 +345,11 @@ export async function evaluateCodingAnswerService({
     code: string;
     language: string;
     question: string;
-    testCases: any[];
+    testCases: unknown[];
 }) {
-    const executionResults = await executeCodeService(code, language, testCases);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const executionResults = await executeCodeService(code, language, testCases as any[]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const passedTests = executionResults.results.filter((t: any) => t.passed).length;
     const totalTests = testCases.length;
     const passRate = (passedTests / totalTests) * 100;
@@ -460,9 +368,11 @@ export async function evaluateCodingAnswerService({
   TEST RESULTS: ${passedTests}/${totalTests} passed (${passRate.toFixed(1)}%)
   
   DETAILED TEST OUTCOMES:
-  ${executionResults.results.map((result: any, index: number) =>
-        `Test ${index + 1}: ${result.passed ? "PASSED" : "FAILED"} - Input: ${result.input}, Expected: ${result.expectedOutput}, Actual: ${result.actualOutput || "N/A"}`
-    ).join("\n  ")}
+  ${
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        executionResults.results.map((result: any, index: number) =>
+            `Test ${index + 1}: ${result.passed ? "PASSED" : "FAILED"} - Input: ${result.input}, Expected: ${result.expectedOutput}, Actual: ${result.actualOutput || "N/A"}`
+        ).join("\n  ")}
 
   Provide a comprehensive evaluation as a JSON object with the following structure:
 
@@ -522,7 +432,8 @@ export async function evaluateCodingAnswerService({
   `;
 
     const result = await model.generateContent(prompt);
-    const aiFeedback = JSON.parse(result.response.text());
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const aiFeedback = JSON.parse(result.response.text()) as any;
 
     return {
         passRate,

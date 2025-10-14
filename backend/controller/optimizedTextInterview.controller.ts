@@ -39,10 +39,14 @@ export const startTextInterviewOptimized = async (req: Request, res: Response) =
 
         // Create interview session
         const session = await prisma.interviewSession.create({
+            // using casts to match Prisma enum types
             data: {
                 userId,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 domain: convertToEnum(domain) as any,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 interviewType: convertToEnum(interviewType) as any,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 difficulty: difficulty.toUpperCase() as any,
                 duration: duration || 30,
                 format: "TEXT",
@@ -238,14 +242,16 @@ async function generateSingleTextQuestion(domain: string, difficulty: string, in
 }
 
 // Background evaluation function
-async function evaluateAnswerInBackground(questionId: number, questionText: string, answer: string, session: any) {
+type InterviewSessionLite = { id: number; domain: string; difficulty?: string | null; interviewType?: string | null };
+
+async function evaluateAnswerInBackground(questionId: number, questionText: string, answer: string, session: InterviewSessionLite) {
     try {
         const evaluation = await evaluateTextAnswer(
             questionText,
             answer,
             session.domain,
-            session.difficulty,
-            session.interviewType
+            session.difficulty ?? "intermediate",
+            session.interviewType ?? "technical"
         );
 
         // Update the question with evaluation results

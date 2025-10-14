@@ -24,7 +24,7 @@ export const CACHE_TTL = {
 
 export class CacheService {
     // User session management
-    static async setUserSession(userId: string, sessionData: any) {
+    static async setUserSession(userId: string, sessionData: unknown) {
         const key = `${CACHE_KEYS.USER_SESSION}${userId}`;
         return await redisOperations.set(key, sessionData, CACHE_TTL.USER_SESSION);
     }
@@ -40,7 +40,7 @@ export class CacheService {
     }
 
     // Interview state management
-    static async setInterviewState(sessionId: string, state: any) {
+    static async setInterviewState(sessionId: string, state: unknown) {
         const key = `${CACHE_KEYS.INTERVIEW_STATE}${sessionId}`;
         return await redisOperations.set(key, state, CACHE_TTL.INTERVIEW_STATE);
     }
@@ -56,7 +56,7 @@ export class CacheService {
     }
 
     // Coding session management
-    static async setCodingSession(sessionId: string, sessionData: any) {
+    static async setCodingSession(sessionId: string, sessionData: unknown) {
         const key = `${CACHE_KEYS.CODING_SESSION}${sessionId}`;
         return await redisOperations.set(key, sessionData, CACHE_TTL.CODING_SESSION);
     }
@@ -72,7 +72,7 @@ export class CacheService {
     }
 
     // User progress caching
-    static async setUserProgress(userId: string, progressData: any) {
+    static async setUserProgress(userId: string, progressData: unknown) {
         const key = `${CACHE_KEYS.USER_PROGRESS}${userId}`;
         return await redisOperations.set(key, progressData, CACHE_TTL.USER_PROGRESS);
     }
@@ -105,7 +105,7 @@ export class CacheService {
     }
 
     // Dashboard data caching
-    static async setDashboardCache(userId: string, dashboardData: any) {
+    static async setDashboardCache(userId: string, dashboardData: unknown) {
         const key = `${CACHE_KEYS.DASHBOARD_CACHE}${userId}`;
         return await redisOperations.set(key, dashboardData, CACHE_TTL.DASHBOARD_CACHE);
     }
@@ -121,7 +121,7 @@ export class CacheService {
     }
 
     // Feedback caching
-    static async setFeedbackCache(sessionId: string, feedback: any) {
+    static async setFeedbackCache(sessionId: string, feedback: unknown) {
         const key = `${CACHE_KEYS.FEEDBACK_CACHE}${sessionId}`;
         return await redisOperations.set(key, feedback, CACHE_TTL.FEEDBACK_CACHE);
     }
@@ -132,7 +132,7 @@ export class CacheService {
     }
 
     // Generic cache operations
-    static async set(key: string, value: any, ttl?: number) {
+    static async set(key: string, value: unknown, ttl?: number) {
         return await redisOperations.set(key, value, ttl);
     }
 

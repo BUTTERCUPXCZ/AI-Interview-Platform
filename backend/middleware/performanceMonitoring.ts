@@ -20,10 +20,19 @@ export const performanceMonitoring = (req: Request, res: Response, next: NextFun
 
     // Override res.json to detect cache hits
     const originalJson = res.json;
-    res.json = function (data: any) {
-        // Check if this was served from cache (based on console logs or custom headers)
-        cacheHit = res.getHeaders()["x-cache-hit"] === "true" ||
-            (typeof data === "object" && data._cacheHit === true);
+    res.json = function (data: unknown) {
+        // Check if this was served from cache (based on custom header or response payload)
+        try {
+            const headerHit = res.getHeaders()["x-cache-hit"] === "true";
+            let payloadHit = false;
+            if (data !== null && typeof data === "object" && "_cacheHit" in data) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                payloadHit = (data as any)._cacheHit === true;
+            }
+            cacheHit = headerHit || payloadHit;
+        } catch {
+            // ignore header inspection errors
+        }
 
         return originalJson.call(this, data);
     };
@@ -40,6 +49,7 @@ export const performanceMonitoring = (req: Request, res: Response, next: NextFun
             statusCode: res.statusCode,
             timestamp: new Date(),
             cacheHit,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             userId: (req as any).user?.id?.toString()
         };
 
@@ -80,13 +90,22 @@ export const performanceMonitoring = (req: Request, res: Response, next: NextFun
  * Get performance analytics for a specific endpoint
  */
 export const getEndpointAnalytics = async (endpoint: string, method: string, days: number = 7) => {
+    type DailyBreakdownEntry = {
+        date: string;
+        requests: number;
+        averageResponseTime: number;
+        cacheHitRate: number;
+        errorRate: number;
+        slowRequests: number;
+    };
+
     const analytics = {
         averageResponseTime: 0,
         totalRequests: 0,
         cacheHitRate: 0,
         errorRate: 0,
         slowRequests: 0,
-        dailyBreakdown: [] as any[]
+        dailyBreakdown: [] as DailyBreakdownEntry[]
     };
 
     try {
@@ -96,7 +115,7 @@ export const getEndpointAnalytics = async (endpoint: string, method: string, day
             const dateKey = date.toISOString().split("T")[0];
 
             const metricsKey = `metrics:${dateKey}:${endpoint}:${method}`;
-            const dayMetrics: PerformanceMetrics[] = await CacheService.get(metricsKey) || [];
+            const dayMetrics: PerformanceMetrics[] = (await CacheService.get(metricsKey)) || [];
 
             if (dayMetrics.length > 0) {
                 const avgResponseTime = dayMetrics.reduce((sum, m) => sum + m.responseTime, 0) / dayMetrics.length;
@@ -127,7 +146,7 @@ export const getEndpointAnalytics = async (endpoint: string, method: string, day
                 sum + (day.errorRate * day.requests), 0) / analytics.totalRequests));
         }
 
-    } catch (error) {
+    } catch (error: unknown) {
         console.error("Failed to get endpoint analytics:", error);
     }
 
@@ -139,7 +158,6 @@ export const getEndpointAnalytics = async (endpoint: string, method: string, day
  */
 export const cacheHealthCheck = async (req: Request, res: Response) => {
     try {
-        const health = await CacheService.exists("health_check");
         const testKey = "health_test:" + Date.now();
 
         // Test write, read, delete operations

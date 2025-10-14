@@ -51,10 +51,13 @@ const gracefulShutdown = async () => {
 export const safeQuery = async <T>(queryFunction: () => Promise<T>): Promise<T> => {
     try {
         return await queryFunction();
-    } catch (error: any) {
+    } catch (error: unknown) {
         // Check if it's a prepared statement conflict
-        if (error?.code === "P2024" ||
-            (error?.message && error.message.includes("prepared statement") && error.message.includes("already exists"))) {
+        // Narrow unknown to any for property checks (safe here because it's runtime error handling)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const err: any = error;
+        if (err?.code === "P2024" ||
+            (err?.message && err.message.includes("prepared statement") && err.message.includes("already exists"))) {
             console.log("🔄 Detected prepared statement conflict, reconnecting...");
 
             // Disconnect and reconnect

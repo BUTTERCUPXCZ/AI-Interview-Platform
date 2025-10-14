@@ -8,7 +8,7 @@ const questionCache = new Map<string, CachedQuestions>();
 const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
 
 interface CachedQuestions {
-    questions: any[];
+    questions: unknown[];
     timestamp: number;
 }
 
@@ -156,7 +156,7 @@ function parseGeminiResponse(text: string) {
             .replace(/```\s*/g, "")
             .trim();
         return JSON.parse(cleanedText);
-    } catch (error) {
+    } catch {
         console.error("Failed to parse Gemini response:", text);
         throw new Error("Invalid JSON response from Gemini");
     }

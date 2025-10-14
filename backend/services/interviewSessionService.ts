@@ -169,7 +169,7 @@ export const getSessionDuration = (startedAt: Date, endedAt?: Date): number => {
  */
 export const updateSessionStatus = async (sessionId: number, status: SessionStatus, totalScore?: number) => {
     try {
-        const updateData: any = {
+        const updateData: { status: SessionStatus; endedAt?: Date; totalScore?: number } = {
             status
         };
 

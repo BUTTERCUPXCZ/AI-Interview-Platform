@@ -1,7 +1,7 @@
 import express from "express";
 import { createInterviewSession } from "../controller/interviewSetup.controller";
 import { submitAnswer } from "../controller/interviewSession.controller";
-import { generateAIFeedback, getFeedback, getUnifiedSessionFeedback, generateComprehensiveSessionFeedback, analyzeInterviewerBehavior, generateAICareerRecommendations } from "../controller/feedback.controller";
+import { generateAIFeedback, getUnifiedSessionFeedback, generateComprehensiveSessionFeedback, analyzeInterviewerBehavior, generateAICareerRecommendations } from "../controller/feedback.controller";
 
 const router = express.Router();
 

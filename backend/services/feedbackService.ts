@@ -193,9 +193,9 @@ function generateCategoryBreakdown(categorizedQuestions: { [category: string]: Q
             : 0;
 
         // Generate insights based on category and performance
-        const strongestAreas = generateStrongestAreas(category, averageScore, questions);
-        const weakestAreas = generateWeakestAreas(category, averageScore, questions);
-        const improvement = generateImprovementTips(category, averageScore, questions);
+        const strongestAreas = generateStrongestAreas(category, averageScore);
+        const weakestAreas = generateWeakestAreas(category, averageScore);
+        const improvement = generateImprovementTips(category);
 
         breakdown.push({
             category,
@@ -275,7 +275,7 @@ function generateTimeAnalysis(categorizedQuestions: { [category: string]: Questi
 /**
  * Generate strongest areas based on category performance
  */
-function generateStrongestAreas(category: string, averageScore: number, questions: QuestionAnalysis[]): string[] {
+function generateStrongestAreas(category: string, averageScore: number): string[] {
     if (averageScore < 6) return [];
 
     const strengths: { [key: string]: string[] } = {
@@ -317,7 +317,7 @@ function generateStrongestAreas(category: string, averageScore: number, question
 /**
  * Generate weakest areas based on category performance
  */
-function generateWeakestAreas(category: string, averageScore: number, questions: QuestionAnalysis[]): string[] {
+function generateWeakestAreas(category: string, averageScore: number): string[] {
     if (averageScore >= 7) return [];
 
     const weaknesses: { [key: string]: string[] } = {
@@ -359,7 +359,7 @@ function generateWeakestAreas(category: string, averageScore: number, questions:
 /**
  * Generate improvement tips based on category and performance
  */
-function generateImprovementTips(category: string, averageScore: number, questions: QuestionAnalysis[]): string[] {
+function generateImprovementTips(category: string): string[] {
     const tips: { [key: string]: string[] } = {
         "javascript": [
             "Practice with MDN JavaScript tutorials",
@@ -486,10 +486,10 @@ function categorizeQuestions(
  * Create a comprehensive prompt for AI analysis
  */
 function createComprehensivePrompt(
-    sessionData: any,
+    sessionData: Record<string, unknown>,
     questions: QuestionAnalysis[],
     categorizedQuestions: { [category: string]: QuestionAnalysis[] },
-    metrics: any
+    metrics: Record<string, unknown>
 ): string {
     return `
 As an expert interview evaluator, analyze this ${sessionData.domain} ${sessionData.interviewType} interview performance and provide comprehensive feedback.
@@ -611,10 +611,8 @@ function calculateBenchmark(averageScore: number, difficulty: string): {
 /**
  * Generate fallback feedback when AI analysis fails
  */
-function generateFallbackFeedback(
-    sessionData: any,
-    metrics: any
-): DetailedFeedback {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function generateFallbackFeedback(sessionData: any, metrics: any): DetailedFeedback {
     return {
         overallScore: metrics.averageScore,
         performanceAnalysis: {

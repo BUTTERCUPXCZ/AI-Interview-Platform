@@ -9,7 +9,8 @@
     "strict": true,
     "skipLibCheck": true,
     "types": [
-      "node"
+      "node",
+      "jest"
     ],
     "lib": [
       "ES2020"
@@ -25,6 +26,7 @@
     "models/**/*",
     "lib/**/*",
     "utils/**/*",
-    "src/generated/**/*"
+    "src/generated/**/*",
+    "__tests__/**/*"
   ]
 }

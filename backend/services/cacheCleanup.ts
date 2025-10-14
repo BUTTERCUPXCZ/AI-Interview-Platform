@@ -163,7 +163,7 @@ export class CacheCleanup {
                                 (value === "[object Object]" || value.startsWith("[object "))) {
                                 stats.corruptedKeys++;
                             }
-                        } catch (error) {
+                        } catch {
                             // Parsing error means corrupted data
                             stats.corruptedKeys++;
                         }
@@ -182,7 +182,8 @@ export class CacheCleanup {
     /**
      * Helper method to get keys for a pattern (Upstash compatible)
      */
-    private static async getKeysForPattern(pattern: string): Promise<string[]> {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private static async getKeysForPattern(_pattern: string): Promise<string[]> {
         // Since Upstash might not support SCAN, we'll return empty array
         // In a real Redis setup, you'd use SCAN here
         // For now, we'll track keys manually or use a different approach

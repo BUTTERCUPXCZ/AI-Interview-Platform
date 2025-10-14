@@ -21,15 +21,15 @@ export const connectRedis = async (): Promise<void> => {
 // Utility functions for common Redis operations
 export const redisOperations = {
     // Set a key-value pair with optional expiration
-    set: async (key: string, value: any, expireInSeconds?: number) => {
+    set: async (key: string, value: unknown, expireInSeconds?: number) => {
         try {
             // Ensure we can serialize the value before storing
             let serializedValue: string;
             try {
                 serializedValue = JSON.stringify(value);
-            } catch (serializationError) {
+            } catch (serializationError: unknown) {
                 console.error(`Error serializing data for Redis key ${key}:`, serializationError);
-                throw new Error(`Cannot serialize data for key ${key}: ${serializationError}`);
+                throw new Error(`Cannot serialize data for key ${key}`);
             }
 
             if (expireInSeconds) {
@@ -62,7 +62,7 @@ export const redisOperations = {
             }
 
             return JSON.parse(value);
-        } catch (error) {
+        } catch (error: unknown) {
             console.error(`Error getting Redis key ${key}:`, error);
             // If JSON parsing fails, delete the corrupted key and return null
             if (error instanceof SyntaxError) {

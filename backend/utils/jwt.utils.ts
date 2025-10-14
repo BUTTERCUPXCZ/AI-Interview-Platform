@@ -42,7 +42,7 @@ export const verifyToken = (token: string): JwtPayload | null => {
     try {
         const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
         return decoded;
-    } catch (error) {
+    } catch {
         return null;
     }
 };
@@ -78,6 +78,6 @@ export const clearTokenCookie = (res: Response): void => {
  * @param cookies - Request cookies object
  * @returns JWT token string or null if not found
  */
-export const getTokenFromCookies = (cookies: any): string | null => {
+export const getTokenFromCookies = (cookies: Record<string, string>): string | null => {
     return cookies[COOKIE_NAME] || null;
 };

@@ -158,7 +158,7 @@ type SessionWithQuestions = {
     id: number;
     domain: string;
     totalScore: number | null;
-    questions: Array<{ userAnswer: string | null } & Record<string, any>>;
+    questions: Array<{ userAnswer: string | null } & Record<string, unknown>>;
     startedAt?: Date | string | null;
     endedAt?: Date | string | null;
     duration?: number | string | null;
@@ -271,26 +271,26 @@ function calculateSkillScores(sessions: SessionWithQuestions[]): SkillScore {
 }
 
 // Generate recommended topics based on performance
-function generateRecommendedTopics(sessions: any[], skillScores: SkillScore): RecommendedTopic[] {
+function generateRecommendedTopics(sessions: SessionWithQuestions[], skillScores: SkillScore): RecommendedTopic[] {
     const recommendations: RecommendedTopic[] = [];
 
     // Find areas that need improvement (scores < 70)
     const improvementAreas = Object.entries(skillScores)
         .filter(([, score]) => score < 70)
-        .sort(([_, a], [__, b]) => a - b);
+        .sort(([, a], [, b]) => a - b);
 
     // Add recommendations for improvement areas
-    improvementAreas.forEach(([domain, _score]) => {
-        const topics = getRecommendationsForDomain(domain, _score as number);
+    improvementAreas.forEach(([domain, score]) => {
+        const topics = getRecommendationsForDomain(domain, score as number);
         recommendations.push(...topics);
     });
 
     // Add advanced topics for strong areas (scores > 85)
     const strongAreas = Object.entries(skillScores)
         .filter(([, score]) => score > 85)
-        .sort(([_, a], [__, b]) => b - a);
+        .sort(([, a], [, b]) => b - a);
 
-    strongAreas.slice(0, 2).forEach(([domain, _score]) => {
+    strongAreas.slice(0, 2).forEach(([domain]) => {
         const advancedTopics = getAdvancedTopicsForDomain(domain);
         recommendations.push(...advancedTopics);
     });

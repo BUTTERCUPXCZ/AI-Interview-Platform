@@ -389,7 +389,7 @@ export const analyzeInterviewerBehavior = async (req: Request, res: Response) =>
         const interviewerAnalysis = await generateGeminiInterviewerAnalysis(session);
 
         res.json({ interviewerAnalysis });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Error analyzing interviewer behavior:", error);
         res.status(500).json({ error: "Failed to analyze interviewer behavior" });
     }
@@ -407,6 +407,8 @@ async function generateGeminiInterviewerAnalysis(session: InterviewSessionShort)
     const completionRate = (answerableQuestions.length / totalQuestions) * 100;
 
     // Prepare context for Gemini
+    type MappedQuestion = { number: number; question: string; answered: boolean; score: number; isCoding: boolean };
+
     const sessionContext = {
         domain: session.domain,
         interviewType: session.interviewType,
@@ -421,7 +423,7 @@ async function generateGeminiInterviewerAnalysis(session: InterviewSessionShort)
             answered: q.userAnswer !== null && q.userAnswer !== undefined,
             score: q.score || 0,
             isCoding: q.isCodingQuestion || false
-        }))
+        })) as MappedQuestion[]
     };
 
     const prompt = `
@@ -436,7 +438,7 @@ async function generateGeminiInterviewerAnalysis(session: InterviewSessionShort)
     - Completion Rate: ${sessionContext.completionRate}%
     
     Questions and Responses:
-    ${sessionContext.questions.map((q: any) => `
+    ${sessionContext.questions.map((q: MappedQuestion) => `
     Question ${q.number}: ${q.question}
     - Answered: ${q.answered ? "Yes" : "No"}
     - Score: ${q.score}/10
@@ -493,7 +495,7 @@ async function generateGeminiInterviewerAnalysis(session: InterviewSessionShort)
             .trim();
 
         return JSON.parse(cleanedText);
-    } catch (error) {
+    } catch (error: unknown) {
         console.error("Gemini analysis failed:", error);
         throw new Error("Failed to generate AI analysis. Please ensure Gemini API is properly configured and try again.");
     }
@@ -553,7 +555,7 @@ export const generateAICareerRecommendations = async (req: Request, res: Respons
             recommendations
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Error generating AI career recommendations:", error);
         res.status(500).json({ error: "Failed to generate career recommendations" });
     }

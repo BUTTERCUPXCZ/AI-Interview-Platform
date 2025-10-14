@@ -4,9 +4,9 @@ import { generateTextInterviewQuestions, evaluateTextAnswer } from "../services/
 import { CacheService } from "../services/cacheService";
 import {
     getInterviewSessionById,
-    validateUserSession,
+    // validateUserSession,
     getSessionQuestions,
-    getCurrentQuestionIndex,
+    // getCurrentQuestionIndex,
     isInterviewCompleted,
     calculateSessionStats,
     updateSessionStatus,
@@ -60,10 +60,13 @@ export const startTextInterview = async (req: Request, res: Response) => {
         // Create interview session
         const session = await prisma.interviewSession.create({
             data: {
-                userId,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 domain: convertToEnum(domain) as any,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 interviewType: convertToEnum(interviewType) as any,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 difficulty: difficulty.toUpperCase() as any,
+                userId,
                 duration: duration || 30,
                 format: "TEXT",
                 role: "Software Developer",
@@ -76,9 +79,10 @@ export const startTextInterview = async (req: Request, res: Response) => {
         const questions = await generateTextInterviewQuestions(domain, difficulty, interviewType);
 
         // Save questions to database sequentially to avoid prepared statement conflicts
+        type GeneratedQuestion = { question: string };
         const savedQuestions = [];
         for (let i = 0; i < questions.length; i++) {
-            const q = questions[i];
+            const q = questions[i] as GeneratedQuestion;
             const savedQuestion = await prisma.interviewQuestion.create({
                 data: {
                     sessionId: session.id,
@@ -125,7 +129,7 @@ export const startTextInterview = async (req: Request, res: Response) => {
             }
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Error starting text interview:", error);
         res.status(500).json({ error: "Failed to start text interview session" });
     }
@@ -173,7 +177,7 @@ export const getNextQuestion = async (req: Request, res: Response) => {
                 currentQuestionIndex: 0,
                 totalQuestions: sessionQuestions.length,
                 startedAt: session.startedAt,
-                questions: sessionQuestions.map((q: any) => ({ id: q.id, questionText: q.questionText }))
+                questions: sessionQuestions.map((q: { id: number; questionText: string }) => ({ id: q.id, questionText: q.questionText }))
             });
         }
 
@@ -185,7 +189,7 @@ export const getNextQuestion = async (req: Request, res: Response) => {
         }
 
         // Find current question index
-        const currentIndex = questions.findIndex((q: any) => q.id === currentQuestionId);
+        const currentIndex = questions.findIndex((q: { id: number }) => q.id === currentQuestionId);
 
         if (currentIndex === -1) {
             return res.status(404).json({ error: "Current question not found" });
@@ -224,7 +228,7 @@ export const getNextQuestion = async (req: Request, res: Response) => {
             completed: false
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Error getting next question:", error);
         res.status(500).json({ error: "Failed to get next question" });
     }
@@ -284,7 +288,7 @@ export const submitTextAnswer = async (req: Request, res: Response) => {
             feedback: evaluation.feedback || null
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Error submitting text answer:", error);
         res.status(500).json({ error: "Failed to submit answer" });
     }
@@ -324,7 +328,7 @@ export const getInterviewProgress = async (req: Request, res: Response) => {
             isCompleted: stats.isCompleted
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Error getting interview progress:", error);
         res.status(500).json({ error: "Failed to get interview progress" });
     }
@@ -376,7 +380,7 @@ export const completeTextInterview = async (req: Request, res: Response) => {
             message: "Interview completed successfully!"
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Error completing text interview:", error);
         res.status(500).json({ error: "Failed to complete interview" });
     }
@@ -442,7 +446,7 @@ export const getInterviewSummary = async (req: Request, res: Response) => {
             }))
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Error getting interview summary:", error);
         res.status(500).json({ error: "Failed to get interview summary" });
     }
@@ -507,7 +511,7 @@ export const getUserInterviewHistory = async (req: Request, res: Response) => {
             sessions: history
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Error getting user interview history:", error);
         res.status(500).json({ error: "Failed to get interview history" });
     }

@@ -133,7 +133,7 @@ export const getProgressAnalytics = async (req: Request, res: Response) => {
         const domainComparison = calculateDomainComparison(sessions);
 
         // Generate AI recommendations based on performance
-        const recommendations = generateProgressRecommendations(sessions, stats);
+        const recommendations = generateProgressRecommendations(sessions);
 
         const progressData: ProgressData = {
             stats,
@@ -159,9 +159,22 @@ export const getProgressAnalytics = async (req: Request, res: Response) => {
     }
 };
 
+// Lightweight session shape used by these analytics helpers
+type AnalyticsSession = {
+    id: number;
+    userId?: number;
+    domain: string;
+    interviewType?: string;
+    startedAt: string | Date;
+    endedAt?: string | Date | null;
+    duration?: number | null;
+    totalScore?: number | null;
+    questions?: { id: number; score?: number | null }[];
+};
+
 // Calculate overall progress statistics
-function calculateProgressStats(sessions: any[]): ProgressStats {
-    const sessionsWithScores = sessions.filter(s => s.totalScore !== null);
+function calculateProgressStats(sessions: AnalyticsSession[]): ProgressStats {
+    const sessionsWithScores = sessions.filter(s => s.totalScore != null) as AnalyticsSession[];
 
     if (sessionsWithScores.length === 0) {
         return {
@@ -176,7 +189,7 @@ function calculateProgressStats(sessions: any[]): ProgressStats {
     }
 
     // Calculate overall score
-    const overallScore = sessionsWithScores.reduce((sum, s) => sum + s.totalScore, 0) / sessionsWithScores.length;
+    const overallScore = sessionsWithScores.reduce((sum, s) => sum + (s.totalScore ?? 0), 0) / sessionsWithScores.length;
 
     // Calculate improvement (compare last month vs previous month)
     const now = new Date();
@@ -191,10 +204,10 @@ function calculateProgressStats(sessions: any[]): ProgressStats {
     );
 
     const lastMonthAvg = lastMonthSessions.length > 0
-        ? lastMonthSessions.reduce((sum, s) => sum + s.totalScore, 0) / lastMonthSessions.length
+        ? lastMonthSessions.reduce((sum, s) => sum + (s.totalScore ?? 0), 0) / lastMonthSessions.length
         : overallScore;
     const previousMonthAvg = previousMonthSessions.length > 0
-        ? previousMonthSessions.reduce((sum, s) => sum + s.totalScore, 0) / previousMonthSessions.length
+        ? previousMonthSessions.reduce((sum, s) => sum + (s.totalScore ?? 0), 0) / previousMonthSessions.length
         : overallScore;
 
     const overallImprovement = lastMonthAvg - previousMonthAvg;
@@ -210,7 +223,7 @@ function calculateProgressStats(sessions: any[]): ProgressStats {
         if (!domainScores[domain]) {
             domainScores[domain] = { total: 0, count: 0 };
         }
-        domainScores[domain].total += session.totalScore;
+        domainScores[domain].total += (session.totalScore ?? 0);
         domainScores[domain].count += 1;
     });
 
@@ -239,7 +252,7 @@ function calculateProgressStats(sessions: any[]): ProgressStats {
 }
 
 // Generate skill trends data for charts
-function generateSkillTrends(sessions: any[]): SkillTrendData[] {
+function generateSkillTrends(sessions: AnalyticsSession[]): SkillTrendData[] {
     const trends: SkillTrendData[] = [];
     const sessionsWithScores = sessions.filter(s => s.totalScore !== null);
 
@@ -259,7 +272,7 @@ function generateSkillTrends(sessions: any[]): SkillTrendData[] {
         if (!monthlyData[monthKey][domain]) {
             monthlyData[monthKey][domain] = [];
         }
-        monthlyData[monthKey][domain].push(session.totalScore);
+        monthlyData[monthKey][domain].push(session.totalScore ?? 0);
     });
 
     // Convert to chart format
@@ -278,7 +291,7 @@ function generateSkillTrends(sessions: any[]): SkillTrendData[] {
 }
 
 // Generate radar chart data
-function generateRadarData(sessions: any[]): RadarSkillData[] {
+function generateRadarData(sessions: AnalyticsSession[]): RadarSkillData[] {
     const radarData: RadarSkillData[] = [];
     const sessionsWithScores = sessions.filter(s => s.totalScore !== null);
 
@@ -297,7 +310,7 @@ function generateRadarData(sessions: any[]): RadarSkillData[] {
         if (!domainScores[domain]) {
             domainScores[domain] = { current: [], previous: [] };
         }
-        domainScores[domain].current.push(session.totalScore);
+        domainScores[domain].current.push(session.totalScore ?? 0);
     });
 
     previousSessions.forEach(session => {
@@ -305,7 +318,7 @@ function generateRadarData(sessions: any[]): RadarSkillData[] {
         if (!domainScores[domain]) {
             domainScores[domain] = { current: [], previous: [] };
         }
-        domainScores[domain].previous.push(session.totalScore);
+        domainScores[domain].previous.push(session.totalScore ?? 0);
     });
 
     // Convert to radar format
@@ -329,7 +342,7 @@ function generateRadarData(sessions: any[]): RadarSkillData[] {
 }
 
 // Format session history with improvement calculations
-function formatSessionHistory(sessions: any[]): SessionHistoryData[] {
+function formatSessionHistory(sessions: AnalyticsSession[]): SessionHistoryData[] {
     const history: SessionHistoryData[] = [];
     const sessionsWithScores = sessions.filter(s => s.totalScore !== null);
 
@@ -341,7 +354,7 @@ function formatSessionHistory(sessions: any[]): SessionHistoryData[] {
         // Find previous session in same domain
         for (let i = index - 1; i >= 0; i--) {
             if (sessionsWithScores[i].domain === domain && sessionsWithScores[i].totalScore !== null) {
-                improvement = session.totalScore - sessionsWithScores[i].totalScore;
+                improvement = (session.totalScore ?? 0) - (sessionsWithScores[i].totalScore ?? 0);
                 break;
             }
         }
@@ -355,9 +368,9 @@ function formatSessionHistory(sessions: any[]): SessionHistoryData[] {
             date: formatDate(session.startedAt),
             domain: formatDomainName(session.domain),
             type: formatInterviewType(session.interviewType || "Technical"),
-            score: Math.round(session.totalScore),
+            score: Math.round(session.totalScore ?? 0),
             duration: `${duration} min`,
-            questions: session.questions.length,
+            questions: (session.questions || []).length,
             improvement: Math.round(improvement)
         });
     });
@@ -366,7 +379,7 @@ function formatSessionHistory(sessions: any[]): SessionHistoryData[] {
 }
 
 // Calculate domain comparison data
-function calculateDomainComparison(sessions: any[]): ComparisonData[] {
+function calculateDomainComparison(sessions: AnalyticsSession[]): ComparisonData[] {
     const comparison: ComparisonData[] = [];
     const sessionsWithScores = sessions.filter(s => s.totalScore !== null);
 
@@ -385,7 +398,7 @@ function calculateDomainComparison(sessions: any[]): ComparisonData[] {
         if (!domainData[domain]) {
             domainData[domain] = { current: [], previous: [], total: 0 };
         }
-        domainData[domain].current.push(session.totalScore);
+        domainData[domain].current.push(session.totalScore ?? 0);
         domainData[domain].total++;
     });
 
@@ -394,7 +407,7 @@ function calculateDomainComparison(sessions: any[]): ComparisonData[] {
         if (!domainData[domain]) {
             domainData[domain] = { current: [], previous: [], total: 0 };
         }
-        domainData[domain].previous.push(session.totalScore);
+        domainData[domain].previous.push(session.totalScore ?? 0);
         domainData[domain].total++;
     });
 
@@ -419,7 +432,7 @@ function calculateDomainComparison(sessions: any[]): ComparisonData[] {
 }
 
 // Generate progress recommendations
-function generateProgressRecommendations(sessions: any[], stats: ProgressStats): RecommendationData[] {
+function generateProgressRecommendations(sessions: AnalyticsSession[]): RecommendationData[] {
     const recommendations: RecommendationData[] = [];
 
     // Get domain performance
@@ -431,7 +444,7 @@ function generateProgressRecommendations(sessions: any[], stats: ProgressStats):
         if (!domainScores[domain]) {
             domainScores[domain] = [];
         }
-        domainScores[domain].push(session.totalScore);
+        domainScores[domain].push(session.totalScore ?? 0);
     });
 
     // Calculate domain averages
