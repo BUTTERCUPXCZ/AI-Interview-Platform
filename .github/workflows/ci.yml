@@ -1,64 +1,58 @@
 name: Integrations pipeline
 
 on: 
-    push: 
-        branches: [ main]
-    pull_request:
-        branches: [ main]
+  push: 
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs: 
-    frontend:
-        name: Build frontend
-        runs-on: ubuntu-latest
-        defaults:
-            run:
-                working-directory: frontend
+  frontend:
+    name: Build frontend
+    runs-on: ubuntu-latest
 
-        steps: 
-          - name: Checkout repo
-            uses: actions/checkout@v3
+    steps: 
+      - name: Checkout repo
+        uses: actions/checkout@v3
 
-          - name: Setup Node.js
-            uses: actions/setup-node@v3
-            with:
-                 node-version: 20
-         
-          - name: Install dependencies
-            run: npm install
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+       
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm install
 
-          - name: Run build
-            run: npm run build
+      - name: Run build
+        working-directory: ./frontend
+        run: npm run build
 
-        
-    backend:
-        name: Build backend
-        runs-on: ubuntu-latest
-        defaults:
-            run:
-                working-directory: backend
-        
-        steps:
-          - name: Checkout repo
-            uses: actions/checkout@v3
+  backend:
+    name: Build backend
+    runs-on: ubuntu-latest
 
-          - name: Setup Node.js
-            uses: actions/setup-node@v3
-            with: 
-                node-version: 20
-         
-          - name: Install dependencies
-            run: npm install
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
 
-          - name: Generate Prisma client
-            run: npx prisma generate
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with: 
+          node-version: 20
+       
+      - name: Install dependencies
+        working-directory: ./backend
+        run: npm install
 
-          - name: Run lint
-            run: npm run lint
+      - name: Generate Prisma client
+        working-directory: ./backend
+        run: npx prisma generate
 
-          - name: Run tests
-            run: npm test
+      - name: Run lint
+        working-directory: ./backend
+        run: npm run lint
 
-          
-
-            
-
+      - name: Run tests
+        working-directory: ./backend
+        run: npm test
