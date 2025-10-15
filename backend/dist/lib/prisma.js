@@ -1,10 +1,10 @@
 // prismaClient.ts
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 // Create a new Prisma client with proper configuration for PostgreSQL
 const createPrismaClient = () => {
     return new PrismaClient({
-        log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
-        errorFormat: 'pretty',
+        log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
+        errorFormat: "pretty",
         datasources: {
             db: {
                 url: process.env.DATABASE_URL,
@@ -14,7 +14,7 @@ const createPrismaClient = () => {
 };
 // Simple singleton pattern that works reliably
 export const prisma = globalThis.__prisma ?? createPrismaClient();
-if (process.env.NODE_ENV !== 'production') {
+if (process.env.NODE_ENV !== "production") {
     globalThis.__prisma = prisma;
 }
 // Simplified connection helper
@@ -22,10 +22,10 @@ export const connectPrisma = async () => {
     try {
         // Just connect without any prepared statement testing
         await prisma.$connect();
-        console.log('✅ Prisma connected successfully');
+        console.log("✅ Prisma connected successfully");
     }
     catch (error) {
-        console.error('❌ Failed to connect to Prisma:', error);
+        console.error("❌ Failed to connect to Prisma:", error);
         throw error;
     }
 };
@@ -33,10 +33,10 @@ export const connectPrisma = async () => {
 const gracefulShutdown = async () => {
     try {
         await prisma.$disconnect();
-        console.log('✅ Prisma disconnected gracefully');
+        console.log("✅ Prisma disconnected gracefully");
     }
     catch (error) {
-        console.error('❌ Error during Prisma disconnect:', error);
+        console.error("❌ Error during Prisma disconnect:", error);
     }
 };
 // Wrapper function to handle prepared statement conflicts
@@ -46,9 +46,12 @@ export const safeQuery = async (queryFunction) => {
     }
     catch (error) {
         // Check if it's a prepared statement conflict
-        if (error?.code === 'P2024' ||
-            (error?.message && error.message.includes('prepared statement') && error.message.includes('already exists'))) {
-            console.log('🔄 Detected prepared statement conflict, reconnecting...');
+        // Narrow unknown to any for property checks (safe here because it's runtime error handling)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const err = error;
+        if (err?.code === "P2024" ||
+            (err?.message && err.message.includes("prepared statement") && err.message.includes("already exists"))) {
+            console.log("🔄 Detected prepared statement conflict, reconnecting...");
             // Disconnect and reconnect
             await prisma.$disconnect();
             await prisma.$connect();
@@ -58,20 +61,20 @@ export const safeQuery = async (queryFunction) => {
         throw error;
     }
 };
-if (process.env.NODE_ENV === 'development') {
+if (process.env.NODE_ENV === "development") {
     // Handle hot reloads and process termination
-    process.on('beforeExit', gracefulShutdown);
-    process.on('SIGTERM', async () => {
+    process.on("beforeExit", gracefulShutdown);
+    process.on("SIGTERM", async () => {
         await gracefulShutdown();
         process.exit(0);
     });
-    process.on('SIGINT', async () => {
+    process.on("SIGINT", async () => {
         await gracefulShutdown();
         process.exit(0);
     });
-    process.on('SIGUSR2', async () => {
+    process.on("SIGUSR2", async () => {
         // Handle nodemon restarts
         await gracefulShutdown();
-        process.kill(process.pid, 'SIGUSR2');
+        process.kill(process.pid, "SIGUSR2");
     });
 }

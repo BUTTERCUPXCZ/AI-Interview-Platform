@@ -1,109 +1,32 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { spawn } from 'child_process';
-import fs from 'fs/promises';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { v4 as uuidv4 } from 'uuid';
+import { spawn } from "child_process";
+import fs from "fs/promises";
+import path from "path";
+import { fileURLToPath } from "url";
+import { v4 as uuidv4 } from "uuid";
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-// Utility: Check if a command exists on the system
-async function commandExists(command) {
-    try {
-        if (process.platform === 'win32') {
-            await executeCommand('where', [command], process.cwd(), 2000);
-        }
-        else {
-            await executeCommand('which', [command], process.cwd(), 2000);
-        }
-        return true;
-    }
-    catch {
-        return false;
-    }
-}
-// Utility: Get language runtime information
-async function getLanguageRuntime(language) {
-    const lang = language.toLowerCase();
-    switch (lang) {
-        case 'javascript':
-            return {
-                available: await commandExists('node'),
-                command: 'node',
-                args: ['solution.js'],
-                extension: '.js',
-                errorMessage: 'Node.js is not installed. Please install Node.js to run JavaScript code.'
-            };
-        case 'python':
-            const pythonAvailable = await commandExists('python') || await commandExists('python3');
-            return {
-                available: pythonAvailable,
-                command: await commandExists('python') ? 'python' : 'python3',
-                args: ['solution.py'],
-                extension: '.py',
-                errorMessage: 'Python is not installed. Please install Python to run Python code.'
-            };
-        case 'java':
-            const javacAvailable = await commandExists('javac');
-            const javaAvailable = await commandExists('java');
-            return {
-                available: javacAvailable && javaAvailable,
-                command: 'java',
-                args: ['Solution'],
-                compileCommand: 'javac',
-                compileArgs: ['Solution.java'],
-                extension: '.java',
-                className: 'Solution',
-                errorMessage: 'Java JDK is not installed. Please install Java JDK to compile and run Java code.'
-            };
-        case 'cpp':
-        case 'c++':
-            return {
-                available: await commandExists('g++'),
-                command: process.platform === 'win32' ? 'solution.exe' : './solution',
-                args: [],
-                compileCommand: 'g++',
-                compileArgs: ['-o', 'solution', 'solution.cpp'],
-                extension: '.cpp',
-                errorMessage: 'G++ compiler is not installed. Please install a C++ compiler to run C++ code.'
-            };
-        case 'csharp':
-        case 'c#':
-            return {
-                available: await commandExists('dotnet'),
-                command: 'dotnet',
-                args: ['run'],
-                extension: '.cs',
-                errorMessage: '.NET is not installed. Please install .NET SDK to run C# code.'
-            };
-        default:
-            return {
-                available: false,
-                extension: '.txt',
-                errorMessage: `Language '${language}' is not supported.`
-            };
-    }
-}
 // Utility: Execute code with timeout
 function executeCommand(command, args, cwd, timeout = 5000) {
     return new Promise((resolve, reject) => {
         const child = spawn(command, args, { cwd });
-        let stdout = '';
-        let stderr = '';
-        child.stdout?.on('data', (data) => { stdout += data.toString(); });
-        child.stderr?.on('data', (data) => { stderr += data.toString(); });
-        child.on('close', (code) => {
+        let stdout = "";
+        let stderr = "";
+        child.stdout?.on("data", (data) => { stdout += data.toString(); });
+        child.stderr?.on("data", (data) => { stderr += data.toString(); });
+        child.on("close", (code) => {
             if (code === 0)
                 resolve(stdout);
             else
                 reject(new Error(stderr || `Process exited with code ${code}`));
         });
-        child.on('error', (error) => reject(error));
+        child.on("error", (error) => reject(error));
         // Timeout safeguard
         setTimeout(() => {
             child.kill();
-            reject(new Error('Execution timeout'));
+            reject(new Error("Execution timeout"));
         }, timeout);
     });
 }
@@ -179,18 +102,18 @@ export async function generateCodingQuestionWithGemini(domain, difficulty, langu
         const responseText = result.response.text().trim();
         // Clean the response to ensure it's valid JSON
         const cleanedResponse = responseText
-            .replace(/```json\n?/g, '')
-            .replace(/```\n?/g, '')
-            .replace(/^\s*[\r\n]/gm, ''); // Remove empty lines
+            .replace(/```json\n?/g, "")
+            .replace(/```\n?/g, "")
+            .replace(/^\s*[\r\n]/gm, ""); // Remove empty lines
         const questionData = JSON.parse(cleanedResponse);
         // Validate the response structure
         if (!questionData.title || !questionData.description || !questionData.starterCode || !questionData.testCases) {
-            throw new Error('Invalid question structure returned from Gemini');
+            throw new Error("Invalid question structure returned from Gemini");
         }
         return questionData;
     }
     catch (error) {
-        console.error('Error generating coding question with Gemini:', error);
+        console.error("Error generating coding question with Gemini:", error);
         // Fallback to a basic question if Gemini fails
         return getFallbackQuestion(domain, difficulty, language);
     }
@@ -290,26 +213,26 @@ function getStarterCodeForLanguage(language, problemType) {
 // Run code against test cases
 async function executeCodeService(code, language, testCases) {
     const startTime = Date.now();
-    const tempDir = path.join(__dirname, '../../temp', uuidv4());
+    const tempDir = path.join(__dirname, "../../temp", uuidv4());
     await fs.mkdir(tempDir, { recursive: true });
     try {
         let fileName;
         let command;
         let args;
         switch (language.toLowerCase()) {
-            case 'javascript':
-                fileName = 'solution.js';
-                command = 'node';
+            case "javascript":
+                fileName = "solution.js";
+                command = "node";
                 args = [fileName];
                 break;
-            case 'python':
-                fileName = 'solution.py';
-                command = 'python';
+            case "python":
+                fileName = "solution.py";
+                command = "python";
                 args = [fileName];
                 break;
-            case 'java':
-                fileName = 'Solution.java';
-                command = 'javac';
+            case "java":
+                fileName = "Solution.java";
+                command = "javac";
                 args = [fileName];
                 break;
             default:
@@ -317,10 +240,10 @@ async function executeCodeService(code, language, testCases) {
         }
         const filePath = path.join(tempDir, fileName);
         await fs.writeFile(filePath, code);
-        if (language.toLowerCase() === 'java') {
-            await executeCommand('javac', [fileName], tempDir);
-            command = 'java';
-            args = ['Solution'];
+        if (language.toLowerCase() === "java") {
+            await executeCommand("javac", [fileName], tempDir);
+            command = "java";
+            args = ["Solution"];
         }
         const results = [];
         for (const testCase of testCases) {
@@ -340,7 +263,7 @@ async function executeCodeService(code, language, testCases) {
                     passed: false,
                     input: testCase.input,
                     expectedOutput: testCase.expectedOutput,
-                    error: error instanceof Error ? error.message : 'Execution failed',
+                    error: error instanceof Error ? error.message : "Execution failed",
                 });
             }
         }
@@ -351,13 +274,13 @@ async function executeCodeService(code, language, testCases) {
         const executionTime = Date.now() - startTime;
         return {
             success: false,
-            error: error instanceof Error ? error.message : 'Execution failed',
+            error: error instanceof Error ? error.message : "Execution failed",
             executionTime,
             results: testCases.map(tc => ({
                 passed: false,
                 input: tc.input,
                 expectedOutput: tc.expectedOutput,
-                error: error instanceof Error ? error.message : 'Execution failed',
+                error: error instanceof Error ? error.message : "Execution failed",
             })),
         };
     }
@@ -366,7 +289,9 @@ async function executeCodeService(code, language, testCases) {
     }
 }
 export async function evaluateCodingAnswerService({ code, language, question, testCases, }) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const executionResults = await executeCodeService(code, language, testCases);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const passedTests = executionResults.results.filter((t) => t.passed).length;
     const totalTests = testCases.length;
     const passRate = (passedTests / totalTests) * 100;
@@ -384,7 +309,9 @@ export async function evaluateCodingAnswerService({ code, language, question, te
   TEST RESULTS: ${passedTests}/${totalTests} passed (${passRate.toFixed(1)}%)
   
   DETAILED TEST OUTCOMES:
-  ${executionResults.results.map((result, index) => `Test ${index + 1}: ${result.passed ? 'PASSED' : 'FAILED'} - Input: ${result.input}, Expected: ${result.expectedOutput}, Actual: ${result.actualOutput || 'N/A'}`).join('\n  ')}
+  ${
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    executionResults.results.map((result, index) => `Test ${index + 1}: ${result.passed ? "PASSED" : "FAILED"} - Input: ${result.input}, Expected: ${result.expectedOutput}, Actual: ${result.actualOutput || "N/A"}`).join("\n  ")}
 
   Provide a comprehensive evaluation as a JSON object with the following structure:
 
@@ -443,6 +370,7 @@ export async function evaluateCodingAnswerService({ code, language, question, te
   Be honest but constructive. Focus on actionable feedback that helps the candidate improve for tech industry interviews.
   `;
     const result = await model.generateContent(prompt);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const aiFeedback = JSON.parse(result.response.text());
     return {
         passRate,
@@ -457,9 +385,9 @@ export async function evaluateCodingAnswerService({ code, language, question, te
 // =====================
 export async function generateQuestions(domain, difficulty, interviewType) {
     // Use the enhanced Gemini question generation for coding questions
-    if (interviewType === 'technical') {
+    if (interviewType === "technical") {
         try {
-            const codingQuestion = await generateCodingQuestionWithGemini(domain, difficulty, 'javascript');
+            const codingQuestion = await generateCodingQuestionWithGemini(domain, difficulty, "javascript");
             return [{
                     question: codingQuestion.description,
                     isCodingQuestion: true,
@@ -470,7 +398,7 @@ export async function generateQuestions(domain, difficulty, interviewType) {
                 }];
         }
         catch (error) {
-            console.error('Error generating enhanced coding question:', error);
+            console.error("Error generating enhanced coding question:", error);
             // Fallback to simple text questions
         }
     }
@@ -486,9 +414,9 @@ export async function generateQuestions(domain, difficulty, interviewType) {
     const responseText = result.response.text().trim();
     // Clean the response to ensure it's valid JSON
     const cleanedResponse = responseText
-        .replace(/```json\n?/g, '')
-        .replace(/```\n?/g, '')
-        .replace(/^\s*[\r\n]/gm, '');
+        .replace(/```json\n?/g, "")
+        .replace(/```\n?/g, "")
+        .replace(/^\s*[\r\n]/gm, "");
     return JSON.parse(cleanedResponse);
 }
 export async function evaluateAnswer(question, answer) {

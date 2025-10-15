@@ -1,20 +1,21 @@
-import { spawn } from 'child_process';
-import fs from 'fs/promises';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { v4 as uuidv4 } from 'uuid';
+import { spawn } from "child_process";
+import fs from "fs/promises";
+import path from "path";
+import { fileURLToPath } from "url";
+import { v4 as uuidv4 } from "uuid";
 import { prisma } from "../lib/prisma";
+import { CacheService } from "../services/cacheService";
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 // Utility: Check if a command exists on the system
 async function commandExists(command) {
     try {
-        if (process.platform === 'win32') {
-            await executeCommand('where', [command], process.cwd(), 2000);
+        if (process.platform === "win32") {
+            await executeCommand("where", [command], process.cwd(), 2000);
         }
         else {
-            await executeCommand('which', [command], process.cwd(), 2000);
+            await executeCommand("which", [command], process.cwd(), 2000);
         }
         return true;
     }
@@ -26,59 +27,62 @@ async function commandExists(command) {
 async function getLanguageRuntime(language) {
     const lang = language.toLowerCase();
     switch (lang) {
-        case 'javascript':
+        case "javascript":
             return {
-                available: await commandExists('node'),
-                command: 'node',
-                args: ['solution.js'],
-                extension: '.js',
-                errorMessage: 'Node.js is not installed. Please install Node.js to run JavaScript code.'
+                available: await commandExists("node"),
+                command: "node",
+                args: ["solution.js"],
+                extension: ".js",
+                errorMessage: "Node.js is not installed. Please install Node.js to run JavaScript code."
             };
-        case 'python':
-            const pythonAvailable = await commandExists('python') || await commandExists('python3');
+        case "python": {
+            const pythonAvailable = await commandExists("python") || await commandExists("python3");
             return {
                 available: pythonAvailable,
-                command: await commandExists('python') ? 'python' : 'python3',
-                args: ['solution.py'],
-                extension: '.py',
-                errorMessage: 'Python is not installed. Please install Python to run Python code.'
+                command: await commandExists("python") ? "python" : "python3",
+                args: ["solution.py"],
+                extension: ".py",
+                errorMessage: "Python is not installed. Please install Python to run Python code."
             };
-        case 'java':
-            const javacAvailable = await commandExists('javac');
-            const javaAvailable = await commandExists('java');
+        }
+        case "java": {
+            const javacAvailable = await commandExists("javac");
+            const javaAvailable = await commandExists("java");
             return {
                 available: javacAvailable && javaAvailable,
-                command: 'java',
-                args: ['Solution'],
-                compileCommand: 'javac',
-                compileArgs: ['Solution.java'],
-                extension: '.java',
-                errorMessage: 'Java JDK is not installed. Please install Java JDK to compile and run Java code.'
+                command: "java",
+                args: ["Solution"],
+                compileCommand: "javac",
+                compileArgs: ["Solution.java"],
+                extension: ".java",
+                errorMessage: "Java JDK is not installed. Please install Java JDK to compile and run Java code."
             };
-        case 'cpp':
-        case 'c++':
+        }
+        case "cpp":
+        case "c++":
             return {
-                available: await commandExists('g++'),
-                command: process.platform === 'win32' ? 'solution.exe' : './solution',
+                available: await commandExists("g++"),
+                command: process.platform === "win32" ? "solution.exe" : "./solution",
                 args: [],
-                compileCommand: 'g++',
-                compileArgs: ['-o', 'solution', 'solution.cpp'],
-                extension: '.cpp',
-                errorMessage: 'G++ compiler is not installed. Please install a C++ compiler to run C++ code.'
+                compileCommand: "g++",
+                compileArgs: ["-o", "solution", "solution.cpp"],
+                extension: ".cpp",
+                errorMessage: "G++ compiler is not installed. Please install a C++ compiler to run C++ code."
             };
-        case 'typescript':
-            const tsNodeAvailable = await commandExists('npx') && await commandExists('node');
+        case "typescript": {
+            const tsNodeAvailable = await commandExists("npx") && await commandExists("node");
             return {
                 available: tsNodeAvailable,
-                command: 'npx',
-                args: ['ts-node', 'solution.ts'],
-                extension: '.ts',
-                errorMessage: 'TypeScript or ts-node is not installed. Please install Node.js and TypeScript to run TypeScript code.'
+                command: "npx",
+                args: ["ts-node", "solution.ts"],
+                extension: ".ts",
+                errorMessage: "TypeScript or ts-node is not installed. Please install Node.js and TypeScript to run TypeScript code."
             };
+        }
         default:
             return {
                 available: false,
-                extension: '.txt',
+                extension: ".txt",
                 errorMessage: `Language '${language}' is not supported.`
             };
     }
@@ -90,11 +94,18 @@ export const executeCode = async (req, res) => {
         if (!code || !language) {
             return res.status(400).json({
                 success: false,
-                error: 'Code and language are required'
+                error: "Code and language are required"
             });
         }
+        // Create cache key for identical code executions
+        const cacheKey = `code_exec:${Buffer.from(code + language + JSON.stringify(testCases || [])).toString("base64").slice(0, 50)}`;
+        const cachedResult = await CacheService.get(cacheKey);
+        if (cachedResult) {
+            console.log("📦 Code execution result served from cache");
+            return res.json(cachedResult);
+        }
         // Create temporary directory for code execution
-        const tempDir = path.join(__dirname, '../../temp', uuidv4());
+        const tempDir = path.join(__dirname, "../../temp", uuidv4());
         await fs.mkdir(tempDir, { recursive: true });
         let result;
         try {
@@ -107,40 +118,45 @@ export const executeCode = async (req, res) => {
         // Get AI evaluation if execution was successful
         if (result.success && result.output) {
             try {
-                const aiEvaluation = await getAIEvaluation(code, language, result.output);
+                const aiEvaluation = await getAIEvaluation();
                 result.aiEvaluation = aiEvaluation;
             }
             catch (aiError) {
-                console.error('AI evaluation failed:', aiError);
+                console.error("AI evaluation failed:", aiError);
                 // Continue without AI evaluation
             }
+        }
+        // Cache successful execution results for a short time (5 minutes)
+        if (result.success) {
+            await CacheService.set(cacheKey, result, 300);
+            console.log("💾 Code execution result cached successfully");
         }
         res.json(result);
     }
     catch (error) {
-        console.error('Code execution error:', error);
+        console.error("Code execution error:", error);
         res.status(500).json({
             success: false,
-            error: 'Internal server error during code execution'
+            error: "Internal server error during code execution"
         });
     }
 };
 // Get AI evaluation for code
 export const evaluateCode = async (req, res) => {
     try {
-        const { code, language, questionContext, expectedOutput } = req.body;
+        const { code, language } = req.body;
         if (!code || !language) {
             return res.status(400).json({
-                error: 'Code and language are required'
+                error: "Code and language are required"
             });
         }
-        const evaluation = await getAIEvaluation(code, language, expectedOutput, questionContext);
+        const evaluation = await getAIEvaluation();
         res.json(evaluation);
     }
     catch (error) {
-        console.error('AI evaluation error:', error);
+        console.error("AI evaluation error:", error);
         res.status(500).json({
-            error: 'Internal server error during AI evaluation'
+            error: "Internal server error during AI evaluation"
         });
     }
 };
@@ -149,13 +165,13 @@ async function executeCodeInSandbox(code, language, tempDir, testCases) {
     const startTime = Date.now();
     // Handle framework/markup languages separately
     const lang = language.toLowerCase();
-    if (['jsx', 'tsx', 'vue', 'angular', 'svelte'].includes(lang)) {
+    if (["jsx", "tsx", "vue", "angular", "svelte"].includes(lang)) {
         return await simulateFrameworkExecution(code, `${language} Framework`, tempDir, startTime);
     }
-    if (['html'].includes(lang)) {
+    if (["html"].includes(lang)) {
         return await simulateHTMLValidation(code, tempDir, startTime);
     }
-    if (['css', 'scss'].includes(lang)) {
+    if (["css", "scss"].includes(lang)) {
         return await simulateCSSValidation(code, language, tempDir, startTime);
     }
     // Check if language runtime is available
@@ -188,13 +204,13 @@ async function executeCodeInSandbox(code, language, tempDir, testCases) {
                 const executionTime = Date.now() - startTime;
                 return {
                     success: false,
-                    error: `Compilation failed: ${compileError instanceof Error ? compileError.message : 'Unknown compilation error'}`,
+                    error: `Compilation failed: ${compileError instanceof Error ? compileError.message : "Unknown compilation error"}`,
                     executionTime,
                     testResults: testCases?.map(tc => ({
                         passed: false,
                         input: tc.input,
                         expectedOutput: tc.expectedOutput,
-                        error: `Compilation failed: ${compileError instanceof Error ? compileError.message : 'Unknown compilation error'}`
+                        error: `Compilation failed: ${compileError instanceof Error ? compileError.message : "Unknown compilation error"}`
                     }))
                 };
             }
@@ -209,14 +225,14 @@ async function executeCodeInSandbox(code, language, tempDir, testCases) {
             for (const testCase of testCases) {
                 try {
                     let actualOutput;
-                    if (language.toLowerCase() === 'javascript') {
+                    if (language.toLowerCase() === "javascript") {
                         // For JavaScript, we need to execute the function with test inputs
                         try {
                             // Extract function name from the code
                             const functionMatch = code.match(/function\s+(\w+)\s*\(/);
                             const functionName = functionMatch ? functionMatch[1] : null;
                             if (!functionName) {
-                                actualOutput = 'Error: Could not find function definition in code';
+                                actualOutput = "Error: Could not find function definition in code";
                             }
                             else {
                                 let functionCallScript;
@@ -248,12 +264,12 @@ console.log(JSON.stringify(result));
                                 const testFilePath = path.join(tempDir, testFileName);
                                 await fs.writeFile(testFilePath, functionCallScript);
                                 // Execute the test script
-                                const testOutput = await executeCommand('node', [testFileName], tempDir, 10000);
+                                const testOutput = await executeCommand("node", [testFileName], tempDir, 10000);
                                 actualOutput = testOutput.trim();
                             }
                         }
                         catch (testError) {
-                            actualOutput = `Error: ${testError instanceof Error ? testError.message : 'Test execution failed'}`;
+                            actualOutput = `Error: ${testError instanceof Error ? testError.message : "Test execution failed"}`;
                         }
                     }
                     else {
@@ -261,7 +277,7 @@ console.log(JSON.stringify(result));
                         actualOutput = output.trim();
                     }
                     // Handle expectedOutput - it might be a string or number
-                    const expectedOutput = typeof testCase.expectedOutput === 'string'
+                    const expectedOutput = typeof testCase.expectedOutput === "string"
                         ? testCase.expectedOutput.trim()
                         : String(testCase.expectedOutput);
                     // Compare the results
@@ -271,7 +287,7 @@ console.log(JSON.stringify(result));
                         const actualParsed = JSON.parse(actualOutput);
                         let expectedParsed;
                         // Handle expected output - might be already a number/object
-                        if (typeof testCase.expectedOutput === 'string') {
+                        if (typeof testCase.expectedOutput === "string") {
                             expectedParsed = JSON.parse(expectedOutput);
                         }
                         else {
@@ -296,7 +312,7 @@ console.log(JSON.stringify(result));
                             passed = actualParsed === expectedParsed;
                         }
                     }
-                    catch (parseError) {
+                    catch {
                         // If JSON parsing fails, try string/numeric comparison
                         const actualTrimmed = actualOutput.trim();
                         const expectedTrimmed = expectedOutput.trim();
@@ -323,7 +339,7 @@ console.log(JSON.stringify(result));
                         passed: false,
                         input: testCase.input,
                         expectedOutput: testCase.expectedOutput,
-                        error: error instanceof Error ? error.message : 'Test execution failed'
+                        error: error instanceof Error ? error.message : "Test execution failed"
                     });
                 }
             }
@@ -339,13 +355,13 @@ console.log(JSON.stringify(result));
         const executionTime = Date.now() - startTime;
         return {
             success: false,
-            error: error instanceof Error ? error.message : 'Execution failed',
+            error: error instanceof Error ? error.message : "Execution failed",
             executionTime,
             testResults: testCases?.map(tc => ({
                 passed: false,
                 input: tc.input,
                 expectedOutput: tc.expectedOutput,
-                error: error instanceof Error ? error.message : 'Execution failed'
+                error: error instanceof Error ? error.message : "Execution failed"
             }))
         };
     }
@@ -354,15 +370,15 @@ console.log(JSON.stringify(result));
 function executeCommand(command, args, cwd, timeout = 5000) {
     return new Promise((resolve, reject) => {
         const child = spawn(command, args, { cwd, timeout });
-        let stdout = '';
-        let stderr = '';
-        child.stdout?.on('data', (data) => {
+        let stdout = "";
+        let stderr = "";
+        child.stdout?.on("data", (data) => {
             stdout += data.toString();
         });
-        child.stderr?.on('data', (data) => {
+        child.stderr?.on("data", (data) => {
             stderr += data.toString();
         });
-        child.on('close', (code) => {
+        child.on("close", (code) => {
             if (code === 0) {
                 resolve(stdout);
             }
@@ -370,13 +386,13 @@ function executeCommand(command, args, cwd, timeout = 5000) {
                 reject(new Error(stderr || `Process exited with code ${code}`));
             }
         });
-        child.on('error', (error) => {
+        child.on("error", (error) => {
             reject(error);
         });
         // Set timeout
         setTimeout(() => {
             child.kill();
-            reject(new Error('Execution timeout'));
+            reject(new Error("Execution timeout"));
         }, timeout);
     });
 }
@@ -386,24 +402,24 @@ async function simulateFrameworkExecution(code, framework, tempDir, startTime) {
     const executionTime = Date.now() - startTime;
     // Basic syntax validation
     const syntaxChecks = {
-        'React JSX': {
-            required: ['function', 'return', '<'],
-            invalid: ['class extends Component'], // Prefer functional components
+        "React JSX": {
+            required: ["function", "return", "<"],
+            invalid: ["class extends Component"], // Prefer functional components
         },
-        'React TSX': {
-            required: ['function', 'return', '<', 'React'],
+        "React TSX": {
+            required: ["function", "return", "<", "React"],
             invalid: [],
         },
-        'Vue SFC': {
-            required: ['<template>', '<script>', 'export default'],
+        "Vue SFC": {
+            required: ["<template>", "<script>", "export default"],
             invalid: [],
         },
-        'Angular': {
-            required: ['@Component', 'export class'],
+        "Angular": {
+            required: ["@Component", "export class"],
             invalid: [],
         },
-        'Svelte': {
-            required: ['<script>', 'let '],
+        "Svelte": {
+            required: ["<script>", "let "],
             invalid: [],
         }
     };
@@ -413,7 +429,7 @@ async function simulateFrameworkExecution(code, framework, tempDir, startTime) {
     if (missingRequired.length > 0) {
         return {
             success: false,
-            error: `${framework} Error: Missing required patterns: ${missingRequired.join(', ')}`,
+            error: `${framework} Error: Missing required patterns: ${missingRequired.join(", ")}`,
             executionTime
         };
     }
@@ -422,47 +438,47 @@ async function simulateFrameworkExecution(code, framework, tempDir, startTime) {
     if (foundInvalid.length > 0) {
         return {
             success: false,
-            error: `${framework} Warning: Consider avoiding: ${foundInvalid.join(', ')}`,
+            error: `${framework} Warning: Consider avoiding: ${foundInvalid.join(", ")}`,
             executionTime
         };
     }
     // Generate framework-specific output
     let output = `✅ ${framework} component compiled successfully!\n`;
-    if (framework.includes('React')) {
-        if (code.includes('useState'))
-            output += '✅ State management detected\n';
-        if (code.includes('useEffect'))
-            output += '✅ Side effects handled\n';
-        if (code.includes('Props') || code.includes('interface'))
-            output += '✅ TypeScript props defined\n';
-        output += '✅ Component ready for rendering';
+    if (framework.includes("React")) {
+        if (code.includes("useState"))
+            output += "✅ State management detected\n";
+        if (code.includes("useEffect"))
+            output += "✅ Side effects handled\n";
+        if (code.includes("Props") || code.includes("interface"))
+            output += "✅ TypeScript props defined\n";
+        output += "✅ Component ready for rendering";
     }
-    else if (framework === 'Vue SFC') {
-        if (code.includes('ref(') || code.includes('reactive('))
-            output += '✅ Vue 3 Composition API detected\n';
-        if (code.includes('v-model') || code.includes('@click'))
-            output += '✅ Vue directives found\n';
-        if (code.includes('<style scoped>'))
-            output += '✅ Scoped styles applied\n';
-        output += '✅ Single File Component ready';
+    else if (framework === "Vue SFC") {
+        if (code.includes("ref(") || code.includes("reactive("))
+            output += "✅ Vue 3 Composition API detected\n";
+        if (code.includes("v-model") || code.includes("@click"))
+            output += "✅ Vue directives found\n";
+        if (code.includes("<style scoped>"))
+            output += "✅ Scoped styles applied\n";
+        output += "✅ Single File Component ready";
     }
-    else if (framework === 'Angular') {
-        if (code.includes('@Input') || code.includes('@Output'))
-            output += '✅ Component communication set up\n';
-        if (code.includes('OnInit') || code.includes('OnDestroy'))
-            output += '✅ Lifecycle hooks implemented\n';
-        if (code.includes('Observable'))
-            output += '✅ RxJS reactive patterns detected\n';
-        output += '✅ Angular component ready for module';
+    else if (framework === "Angular") {
+        if (code.includes("@Input") || code.includes("@Output"))
+            output += "✅ Component communication set up\n";
+        if (code.includes("OnInit") || code.includes("OnDestroy"))
+            output += "✅ Lifecycle hooks implemented\n";
+        if (code.includes("Observable"))
+            output += "✅ RxJS reactive patterns detected\n";
+        output += "✅ Angular component ready for module";
     }
-    else if (framework === 'Svelte') {
-        if (code.includes('$:'))
-            output += '✅ Reactive statements found\n';
-        if (code.includes('onMount'))
-            output += '✅ Lifecycle hooks detected\n';
-        if (code.includes('{#if') || code.includes('{#each'))
-            output += '✅ Template logic implemented\n';
-        output += '✅ Svelte component compiled and optimized';
+    else if (framework === "Svelte") {
+        if (code.includes("$:"))
+            output += "✅ Reactive statements found\n";
+        if (code.includes("onMount"))
+            output += "✅ Lifecycle hooks detected\n";
+        if (code.includes("{#if") || code.includes("{#each"))
+            output += "✅ Template logic implemented\n";
+        output += "✅ Svelte component compiled and optimized";
     }
     return {
         success: true,
@@ -475,27 +491,27 @@ async function simulateHTMLValidation(code, tempDir, startTime) {
     await new Promise(resolve => setTimeout(resolve, 500));
     const executionTime = Date.now() - startTime;
     // Basic HTML validation
-    if (!code.includes('<html') && !code.includes('<!DOCTYPE')) {
+    if (!code.includes("<html") && !code.includes("<!DOCTYPE")) {
         return {
             success: false,
-            error: 'HTML Error: Missing document structure (DOCTYPE or html tag)',
+            error: "HTML Error: Missing document structure (DOCTYPE or html tag)",
             executionTime
         };
     }
-    let output = '✅ HTML document structure validated\n';
-    if (code.includes('<!DOCTYPE html>'))
-        output += '✅ HTML5 DOCTYPE declared\n';
-    if (code.includes('<meta charset'))
-        output += '✅ Character encoding specified\n';
-    if (code.includes('<meta name="viewport"'))
-        output += '✅ Responsive viewport meta tag found\n';
-    if (code.includes('alt='))
-        output += '✅ Image accessibility attributes detected\n';
-    if (code.includes('aria-'))
-        output += '✅ ARIA accessibility attributes found\n';
-    if (code.includes('<main>') || code.includes('<section>'))
-        output += '✅ Semantic HTML elements used\n';
-    output += '✅ HTML document ready for browser rendering';
+    let output = "✅ HTML document structure validated\n";
+    if (code.includes("<!DOCTYPE html>"))
+        output += "✅ HTML5 DOCTYPE declared\n";
+    if (code.includes("<meta charset"))
+        output += "✅ Character encoding specified\n";
+    if (code.includes("<meta name=\"viewport\""))
+        output += "✅ Responsive viewport meta tag found\n";
+    if (code.includes("alt="))
+        output += "✅ Image accessibility attributes detected\n";
+    if (code.includes("aria-"))
+        output += "✅ ARIA accessibility attributes found\n";
+    if (code.includes("<main>") || code.includes("<section>"))
+        output += "✅ Semantic HTML elements used\n";
+    output += "✅ HTML document ready for browser rendering";
     return {
         success: true,
         output,
@@ -517,25 +533,25 @@ async function simulateCSSValidation(code, language, tempDir, startTime) {
         };
     }
     let output = `✅ ${language.toUpperCase()} syntax validation passed\n`;
-    if (code.includes('display: flex') || code.includes('display: grid')) {
-        output += '✅ Modern layout techniques detected\n';
+    if (code.includes("display: flex") || code.includes("display: grid")) {
+        output += "✅ Modern layout techniques detected\n";
     }
-    if (code.includes('@media')) {
-        output += '✅ Responsive design media queries found\n';
+    if (code.includes("@media")) {
+        output += "✅ Responsive design media queries found\n";
     }
-    if (code.includes('transition') || code.includes('animation')) {
-        output += '✅ CSS animations/transitions implemented\n';
+    if (code.includes("transition") || code.includes("animation")) {
+        output += "✅ CSS animations/transitions implemented\n";
     }
-    if (language === 'scss') {
-        if (code.includes('$'))
-            output += '✅ SCSS variables detected\n';
-        if (code.includes('@mixin') || code.includes('@include'))
-            output += '✅ SCSS mixins found\n';
-        if (code.includes('@import') || code.includes('@use'))
-            output += '✅ SCSS imports detected\n';
+    if (language === "scss") {
+        if (code.includes("$"))
+            output += "✅ SCSS variables detected\n";
+        if (code.includes("@mixin") || code.includes("@include"))
+            output += "✅ SCSS mixins found\n";
+        if (code.includes("@import") || code.includes("@use"))
+            output += "✅ SCSS imports detected\n";
     }
-    if (code.includes(':hover') || code.includes(':focus')) {
-        output += '✅ Interactive pseudo-classes implemented\n';
+    if (code.includes(":hover") || code.includes(":focus")) {
+        output += "✅ Interactive pseudo-classes implemented\n";
     }
     output += `✅ ${language.toUpperCase()} styles ready for application`;
     return {
@@ -545,7 +561,7 @@ async function simulateCSSValidation(code, language, tempDir, startTime) {
     };
 }
 // Legacy AI evaluation function (deprecated - use Gemini service instead)
-async function getAIEvaluation(code, language, output, questionContext) {
+async function getAIEvaluation() {
     // Simple fallback evaluation
     return {
         overallScore: 75,
@@ -570,7 +586,7 @@ export const submitAnswer = async (req, res) => {
         const { questionId, answer, answerType, language, executionResult } = req.body;
         if (!questionId || !answer || !answerType) {
             return res.status(400).json({
-                error: 'Question ID, answer, and answer type are required'
+                error: "Question ID, answer, and answer type are required"
             });
         }
         // Here you would typically save to database
@@ -583,19 +599,20 @@ export const submitAnswer = async (req, res) => {
             language,
             executionResult,
             timestamp: new Date().toISOString(),
-            userId: req.user?.id // Assuming you have user authentication
+            // Access user id safely from request if available
+            userId: req.user?.id
         };
         // TODO: Save to database
-        console.log('Answer submitted:', submissionData);
+        console.log("Answer submitted:", submissionData);
         res.json({
             success: true,
             submissionId: submissionData.id
         });
     }
     catch (error) {
-        console.error('Submit answer error:', error);
+        console.error("Submit answer error:", error);
         res.status(500).json({
-            error: 'Internal server error'
+            error: "Internal server error"
         });
     }
 };
@@ -605,11 +622,11 @@ export const getCodingQuestion = async (req, res) => {
         const { domain, difficulty, language, sessionId } = req.query;
         if (!domain || !difficulty || !language) {
             return res.status(400).json({
-                error: 'Domain, difficulty, and language are required'
+                error: "Domain, difficulty, and language are required"
             });
         }
         // Use the enhanced Gemini question generation
-        const { generateCodingQuestionWithGemini } = await import('../services/codingEvaluationService');
+        const { generateCodingQuestionWithGemini } = await import("../services/codingEvaluationService");
         const questionData = await generateCodingQuestionWithGemini(domain, difficulty, language);
         // If sessionId is provided, save the question to the database
         if (sessionId) {
@@ -618,7 +635,8 @@ export const getCodingQuestion = async (req, res) => {
                     sessionId: parseInt(sessionId),
                     questionText: questionData.description,
                     isCodingQuestion: true,
-                    codingLanguage: language.toUpperCase(), // Cast to bypass enum check
+                    // store language as string for portability
+                    codingLanguage: String(language).toUpperCase(),
                     expectedOutput: JSON.stringify(questionData.testCases),
                     starterCode: questionData.starterCode,
                 }
@@ -630,7 +648,7 @@ export const getCodingQuestion = async (req, res) => {
                         questionId: savedQuestion.id,
                         input: String(testCase.input),
                         expectedOutput: String(testCase.expectedOutput),
-                        description: testCase.description || '',
+                        description: testCase.description || "",
                     }
                 })));
             }
@@ -652,9 +670,9 @@ export const getCodingQuestion = async (req, res) => {
         res.json(questionData);
     }
     catch (error) {
-        console.error('Get coding question error:', error);
+        console.error("Get coding question error:", error);
         res.status(500).json({
-            error: 'Failed to generate coding question'
+            error: "Failed to generate coding question"
         });
     }
 };
@@ -664,11 +682,11 @@ export const runCodeWithEvaluation = async (req, res) => {
         const { code, language, questionText, questionId, testCases } = req.body;
         if (!code || !language) {
             return res.status(400).json({
-                error: 'Code and language are required'
+                error: "Code and language are required"
             });
         }
         // Create temporary directory for code execution
-        const tempDir = path.join(__dirname, '../../temp', uuidv4());
+        const tempDir = path.join(__dirname, "../../temp", uuidv4());
         await fs.mkdir(tempDir, { recursive: true });
         let executionResult;
         try {
@@ -684,7 +702,7 @@ export const runCodeWithEvaluation = async (req, res) => {
         if (executionResult.success && questionText) {
             try {
                 // Use the enhanced evaluation service
-                const { evaluateCodingAnswerService } = await import('../services/codingEvaluationService');
+                const { evaluateCodingAnswerService } = await import("../services/codingEvaluationService");
                 aiEvaluation = await evaluateCodingAnswerService({
                     code,
                     language,
@@ -697,7 +715,7 @@ export const runCodeWithEvaluation = async (req, res) => {
                         data: {
                             questionId: parseInt(questionId),
                             code,
-                            language: language.toUpperCase(),
+                            language: String(language).toUpperCase(),
                             isCorrect: aiEvaluation.passRate === 100,
                             passedTests: aiEvaluation.passedTests,
                             totalTests: aiEvaluation.totalTests,
@@ -708,14 +726,14 @@ export const runCodeWithEvaluation = async (req, res) => {
                         where: { id: parseInt(questionId) },
                         data: {
                             userAnswer: code,
-                            aiEvaluation: aiEvaluation.overallFeedback || 'Code evaluation completed',
+                            aiEvaluation: aiEvaluation.overallFeedback || "Code evaluation completed",
                             score: aiEvaluation.finalScore || 0,
                         }
                     });
                 }
             }
             catch (evalError) {
-                console.error('Enhanced AI evaluation failed:', evalError);
+                console.error("Enhanced AI evaluation failed:", evalError);
                 // Fallback to basic evaluation
                 aiEvaluation = {
                     technicalScore: 7,
@@ -743,9 +761,9 @@ export const runCodeWithEvaluation = async (req, res) => {
         });
     }
     catch (error) {
-        console.error('Code execution and evaluation error:', error);
+        console.error("Code execution and evaluation error:", error);
         res.status(500).json({
-            error: 'Failed to execute code and generate evaluation'
+            error: "Failed to execute code and generate evaluation"
         });
     }
 };
@@ -754,50 +772,52 @@ function simulateCodeExecution(code, language, testCases) {
     const lang = language.toLowerCase();
     // Basic syntax validation
     let syntaxValid = true;
-    let syntaxError = '';
+    let syntaxError = "";
     switch (lang) {
-        case 'java':
-            if (!code.includes('public class')) {
+        case "java":
+            if (!code.includes("public class")) {
                 syntaxValid = false;
-                syntaxError = 'Java code must contain a public class declaration';
+                syntaxError = "Java code must contain a public class declaration";
             }
-            else if (!code.includes('public static void main')) {
+            else if (!code.includes("public static void main")) {
                 syntaxValid = false;
-                syntaxError = 'Java executable code requires a main method';
+                syntaxError = "Java executable code requires a main method";
             }
             break;
-        case 'python':
+        case "python": {
             // Check for basic indentation issues
-            const lines = code.split('\n');
+            const lines = code.split("\n");
             for (let i = 0; i < lines.length - 1; i++) {
-                if (lines[i].trim().endsWith(':') && lines[i + 1] && !lines[i + 1].startsWith('    ') && lines[i + 1].trim() !== '') {
+                if (lines[i].trim().endsWith(":") && lines[i + 1] && !lines[i + 1].startsWith("    ") && lines[i + 1].trim() !== "") {
                     syntaxValid = false;
                     syntaxError = `Indentation error: line ${i + 2} should be indented after colon on line ${i + 1}`;
                     break;
                 }
             }
             break;
-        case 'cpp':
-        case 'c++':
-            if (!code.includes('#include')) {
+        }
+        case "cpp":
+        case "c++":
+            if (!code.includes("#include")) {
                 syntaxValid = false;
-                syntaxError = 'C++ code typically requires #include directives';
+                syntaxError = "C++ code typically requires #include directives";
             }
-            else if (!code.includes('int main')) {
+            else if (!code.includes("int main")) {
                 syntaxValid = false;
-                syntaxError = 'C++ executable code requires a main function';
+                syntaxError = "C++ executable code requires a main function";
             }
             break;
-        case 'javascript':
-        case 'typescript':
+        case "javascript":
+        case "typescript": {
             // Check for basic syntax issues
             const openBraces = (code.match(/{/g) || []).length;
             const closeBraces = (code.match(/}/g) || []).length;
             if (openBraces !== closeBraces) {
                 syntaxValid = false;
-                syntaxError = 'Syntax error: mismatched braces';
+                syntaxError = "Syntax error: mismatched braces";
             }
             break;
+        }
     }
     if (!syntaxValid) {
         return {
@@ -814,9 +834,9 @@ function simulateCodeExecution(code, language, testCases) {
     // Generate simulated output
     let output = `✅ Code syntax validation passed for ${language}\n`;
     output += `🔍 Simulated execution (${language} runtime not installed)\n`;
-    output += `📝 Your code structure looks correct\n`;
-    if (code.includes('console.log') || code.includes('print') || code.includes('System.out') || code.includes('cout')) {
-        output += `📤 Output statements detected in your code\n`;
+    output += "📝 Your code structure looks correct\n";
+    if (code.includes("console.log") || code.includes("print") || code.includes("System.out") || code.includes("cout")) {
+        output += "📤 Output statements detected in your code\n";
     }
     // Simulate test results with basic pattern matching
     const testResults = testCases?.map(tc => {
@@ -826,8 +846,8 @@ function simulateCodeExecution(code, language, testCases) {
             passed: codeContainsPattern,
             input: tc.input,
             expectedOutput: tc.expectedOutput,
-            actualOutput: codeContainsPattern ? tc.expectedOutput : 'Unable to execute (runtime not available)',
-            error: codeContainsPattern ? undefined : 'Runtime not available for execution'
+            actualOutput: codeContainsPattern ? tc.expectedOutput : "Unable to execute (runtime not available)",
+            error: codeContainsPattern ? undefined : "Runtime not available for execution"
         };
     });
     return {
@@ -840,20 +860,20 @@ function simulateCodeExecution(code, language, testCases) {
 function getInstallationGuide(language) {
     const lang = language.toLowerCase();
     switch (lang) {
-        case 'java':
+        case "java":
             return `To enable Java code execution:
 1. Install JDK 11 or higher from https://adoptium.net/
 2. Add Java to your system PATH
 3. Verify installation: java -version
 4. For development: Install IDE like IntelliJ IDEA or Eclipse`;
-        case 'python':
+        case "python":
             return `To enable Python code execution:
 1. Install Python 3.8+ from https://python.org/downloads/
 2. Add Python to your system PATH
 3. Verify installation: python --version
 4. Install pip for package management`;
-        case 'cpp':
-        case 'c++':
+        case "cpp":
+        case "c++":
             return `To enable C++ code execution:
 1. Install GCC compiler:
    - Windows: MinGW-w64 or Visual Studio
@@ -861,13 +881,13 @@ function getInstallationGuide(language) {
    - Linux: sudo apt install g++
 2. Verify installation: g++ --version
 3. IDE recommendations: Code::Blocks, CLion, or VS Code`;
-        case 'javascript':
+        case "javascript":
             return `To enable Node.js JavaScript execution:
 1. Install Node.js from https://nodejs.org/
 2. Verify installation: node --version
 3. For web development: Use browser developer tools
 4. IDE: VS Code with JavaScript extensions`;
-        case 'typescript':
+        case "typescript":
             return `To enable TypeScript execution:
 1. Install Node.js from https://nodejs.org/
 2. Install TypeScript: npm install -g typescript

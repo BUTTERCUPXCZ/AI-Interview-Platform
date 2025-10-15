@@ -19,7 +19,8 @@ export const isAuthenticated = (req, res, next) => {
         req.user = decoded;
         next();
     }
-    catch (error) {
+    catch {
+        // Intentionally don't expose internal error details to the client
         res.status(500).json({ message: "Error verifying authentication token" });
     }
 };

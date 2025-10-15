@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { prisma, safeQuery } from "../lib/prisma";
 import { generateToken, setTokenCookie, clearTokenCookie, getTokenFromCookies, verifyToken } from "../utils/jwt.utils.js";
+import { CacheService } from "../services/cacheService";
 // REGISTER
 export const registerUser = async (req, res, next) => {
     const { Firstname, Lastname, email, password } = req.body;
@@ -75,25 +76,53 @@ export const loginUser = async (req, res, next) => {
         const token = generateToken(tokenPayload);
         // Set secure HTTP-only cookie
         setTokenCookie(res, token);
-        // Return user without password
-        const { password: _, ...userWithoutPassword } = user;
+        // Cache user session for faster subsequent requests
+        await CacheService.setUserSession(user.id.toString(), {
+            id: user.id,
+            email: user.email,
+            Firstname: user.Firstname,
+            Lastname: user.Lastname,
+            role: user.role,
+            lastLogin: new Date()
+        });
+        // Return user without password (explicit fields to avoid unused var lint)
+        const userWithoutPassword = {
+            id: user.id,
+            Firstname: user.Firstname,
+            Lastname: user.Lastname,
+            email: user.email,
+            role: user.role
+        };
         res.json({
             message: "Login successful",
             user: userWithoutPassword
         });
     }
-    catch (error) {
-        next(error);
+    catch {
+        next();
     }
 };
 // LOGOUT
-export const logoutUser = (req, res) => {
+export const logoutUser = async (req, res) => {
     try {
+        // Get user ID from token before clearing
+        const token = getTokenFromCookies(req.cookies);
+        if (token) {
+            try {
+                const decoded = verifyToken(token);
+                // Clear all user caches
+                await CacheService.clearUserCaches(decoded.id.toString());
+            }
+            catch {
+                // Token invalid, proceed with logout anyway
+                console.log("Token verification failed during logout, proceeding anyway");
+            }
+        }
         // Clear the authentication cookie
         clearTokenCookie(res);
         res.json({ message: "Logout successful" });
     }
-    catch (error) {
+    catch {
         res.status(500).json({ message: "Logout failed" });
     }
 };
@@ -119,7 +148,7 @@ export const getCurrentUser = (req, res) => {
             role: decoded.role
         });
     }
-    catch (error) {
+    catch {
         res.status(500).json({ message: "Error retrieving user information" });
     }
 };

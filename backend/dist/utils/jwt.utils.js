@@ -1,8 +1,8 @@
-import jwt from 'jsonwebtoken';
+import jwt from "jsonwebtoken";
 // JWT Configuration Constants
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key';
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '3h';
-const COOKIE_NAME = 'auth_token';
+const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-jwt-key";
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "3h";
+const COOKIE_NAME = "auth_token";
 const COOKIE_MAX_AGE = 3 * 60 * 60 * 1000; // 3 hours in milliseconds
 /**
  * Generates a JWT token for the given user payload
@@ -28,7 +28,7 @@ export const verifyToken = (token) => {
         const decoded = jwt.verify(token, JWT_SECRET);
         return decoded;
     }
-    catch (error) {
+    catch {
         return null;
     }
 };
@@ -40,8 +40,8 @@ export const verifyToken = (token) => {
 export const setTokenCookie = (res, token) => {
     res.cookie(COOKIE_NAME, token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-        sameSite: 'strict',
+        secure: process.env.NODE_ENV === "production", // HTTPS only in production
+        sameSite: "strict",
         maxAge: COOKIE_MAX_AGE,
     });
 };
@@ -52,8 +52,8 @@ export const setTokenCookie = (res, token) => {
 export const clearTokenCookie = (res) => {
     res.clearCookie(COOKIE_NAME, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
     });
 };
 /**

@@ -1,17 +1,22 @@
 import { prisma } from "../lib/prisma";
 import { generateTextInterviewQuestions, evaluateTextAnswer } from "../services/geminiService";
-import { getInterviewSessionById, getSessionQuestions, isInterviewCompleted, calculateSessionStats, updateSessionStatus, isSessionExpired, getRemainingTime } from "../services/interviewSessionService";
+import { CacheService } from "../services/cacheService";
+import { getInterviewSessionById, 
+// validateUserSession,
+getSessionQuestions, 
+// getCurrentQuestionIndex,
+isInterviewCompleted, calculateSessionStats, updateSessionStatus, isSessionExpired, getRemainingTime } from "../services/interviewSessionService";
 /**
  * Start a new text-based interview session
  */
 export const startTextInterview = async (req, res) => {
     try {
-        console.log('Received request body:', req.body);
+        console.log("Received request body:", req.body);
         const { userId, domain, interviewType, difficulty, duration, enableCodingSandbox = false } = req.body;
-        console.log('Extracted fields:', { userId, domain, interviewType, difficulty, duration, enableCodingSandbox });
+        console.log("Extracted fields:", { userId, domain, interviewType, difficulty, duration, enableCodingSandbox });
         // Validate required fields
         if (!userId || !domain || !interviewType || !difficulty) {
-            console.log('Validation failed - missing fields:', {
+            console.log("Validation failed - missing fields:", {
                 userId: !!userId,
                 domain: !!domain,
                 interviewType: !!interviewType,
@@ -23,15 +28,18 @@ export const startTextInterview = async (req, res) => {
         }
         // Helper function to convert frontend values to backend enum values
         const convertToEnum = (value) => {
-            return value.toUpperCase().replace(/-/g, '_');
+            return value.toUpperCase().replace(/-/g, "_");
         };
         // Create interview session
         const session = await prisma.interviewSession.create({
             data: {
-                userId,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 domain: convertToEnum(domain),
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 interviewType: convertToEnum(interviewType),
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 difficulty: difficulty.toUpperCase(),
+                userId,
                 duration: duration || 30,
                 format: "TEXT",
                 role: "Software Developer",
@@ -41,7 +49,6 @@ export const startTextInterview = async (req, res) => {
         });
         // Generate text-based questions
         const questions = await generateTextInterviewQuestions(domain, difficulty, interviewType);
-        // Save questions to database sequentially to avoid prepared statement conflicts
         const savedQuestions = [];
         for (let i = 0; i < questions.length; i++) {
             const q = questions[i];
@@ -54,6 +61,18 @@ export const startTextInterview = async (req, res) => {
             });
             savedQuestions.push(savedQuestion);
         }
+        // Cache interview session state for faster access
+        await CacheService.setInterviewState(session.id.toString(), {
+            sessionId: session.id,
+            userId: session.userId,
+            domain: session.domain,
+            interviewType: session.interviewType,
+            difficulty: session.difficulty,
+            currentQuestionIndex: 0,
+            totalQuestions: savedQuestions.length,
+            startedAt: session.startedAt,
+            questions: savedQuestions.map(q => ({ id: q.id, questionText: q.questionText }))
+        });
         // Return session details with first question
         const firstQuestion = savedQuestions[0];
         return res.status(201).json({
@@ -88,6 +107,9 @@ export const getNextQuestion = async (req, res) => {
     try {
         const { sessionId } = req.params;
         const currentQuestionId = parseInt(req.query.currentQuestionId);
+        // Try to get session from cache first
+        const cachedState = await CacheService.getInterviewState(sessionId);
+        let sessionQuestions;
         const session = await getInterviewSessionById(parseInt(sessionId));
         if (!session) {
             return res.status(404).json({ error: "Session not found" });
@@ -100,13 +122,32 @@ export const getNextQuestion = async (req, res) => {
                 expired: true
             });
         }
+        // Use cached questions if available, otherwise fetch from DB
+        if (cachedState && cachedState.questions) {
+            sessionQuestions = cachedState.questions;
+        }
+        else {
+            sessionQuestions = await getSessionQuestions(parseInt(sessionId));
+            // Update cache with questions for next time
+            await CacheService.setInterviewState(sessionId, {
+                sessionId: session.id,
+                userId: session.userId,
+                domain: session.domain,
+                interviewType: session.interviewType,
+                difficulty: session.difficulty,
+                currentQuestionIndex: 0,
+                totalQuestions: sessionQuestions.length,
+                startedAt: session.startedAt,
+                questions: sessionQuestions.map((q) => ({ id: q.id, questionText: q.questionText }))
+            });
+        }
         // Get all questions for the session
-        const questions = await getSessionQuestions(parseInt(sessionId));
+        const questions = sessionQuestions;
         if (questions.length === 0) {
             return res.status(404).json({ error: "No questions found for this session" });
         }
         // Find current question index
-        const currentIndex = questions.findIndex(q => q.id === currentQuestionId);
+        const currentIndex = questions.findIndex((q) => q.id === currentQuestionId);
         if (currentIndex === -1) {
             return res.status(404).json({ error: "Current question not found" });
         }
@@ -282,7 +323,7 @@ export const getInterviewSummary = async (req, res) => {
             where: { id: parseInt(sessionId) },
             include: {
                 questions: {
-                    orderBy: { id: 'asc' }
+                    orderBy: { id: "asc" }
                 },
                 user: {
                     select: {
@@ -345,7 +386,7 @@ export const getUserInterviewHistory = async (req, res) => {
                 userId: parseInt(userId),
                 format: "TEXT" // Only get text interviews
             },
-            orderBy: { startedAt: 'desc' },
+            orderBy: { startedAt: "desc" },
             take: limit,
             include: {
                 questions: {

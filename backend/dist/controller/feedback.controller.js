@@ -1,18 +1,25 @@
 import { prisma } from "../lib/prisma";
-import { analyzeSession } from '../services/geminiService';
-import { generateComprehensiveFeedback } from '../services/feedbackService';
+import { analyzeSession } from "../services/geminiService";
+import { generateComprehensiveFeedback } from "../services/feedbackService";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { CacheService } from "../services/cacheService";
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 // Unified function to get feedback/summary for any interview type
 export const getUnifiedSessionFeedback = async (req, res) => {
     try {
         const { sessionId } = req.params;
+        // Try to get cached feedback first
+        const cachedFeedback = await CacheService.getFeedbackCache(sessionId);
+        if (cachedFeedback) {
+            console.log("📦 Session feedback served from cache");
+            return res.json(cachedFeedback);
+        }
         // First check if this session exists and get its type
         const session = await prisma.interviewSession.findUnique({
             where: { id: Number(sessionId) },
             include: {
                 questions: {
-                    orderBy: { id: 'asc' }
+                    orderBy: { id: "asc" }
                 },
                 user: {
                     select: {
@@ -67,7 +74,8 @@ export const getUnifiedSessionFeedback = async (req, res) => {
         const answeredQuestions = session.questions.filter(q => q.userAnswer !== null);
         const scores = answeredQuestions.map(q => q.score || 0);
         const averageScore = scores.length > 0 ? scores.reduce((sum, score) => sum + score, 0) / scores.length : 0;
-        return res.json({
+        // Store response for caching
+        const responseData = {
             id: null, // No AI feedback generated yet
             sessionId: session.id,
             overallScore: Math.round(averageScore * 100) / 100,
@@ -101,7 +109,11 @@ export const getUnifiedSessionFeedback = async (req, res) => {
                 isCodingQuestion: q.isCodingQuestion,
                 codingLanguage: q.codingLanguage
             }))
-        });
+        };
+        // Cache the feedback for future requests
+        await CacheService.setFeedbackCache(sessionId, responseData);
+        console.log("💾 Session feedback cached successfully");
+        return res.json(responseData);
     }
     catch (error) {
         console.error("Error getting session feedback:", error);
@@ -181,7 +193,7 @@ export const generateComprehensiveSessionFeedback = async (req, res) => {
             where: { id: Number(sessionId) },
             include: {
                 questions: {
-                    orderBy: { id: 'asc' }
+                    orderBy: { id: "asc" }
                 },
                 user: {
                     select: {
@@ -224,9 +236,9 @@ export const generateComprehensiveSessionFeedback = async (req, res) => {
                 where: { id: existingFeedback.id },
                 data: {
                     overallScore: comprehensiveFeedback.overallScore,
-                    strengths: comprehensiveFeedback.strengths.join('; '),
-                    weaknesses: comprehensiveFeedback.weaknesses.join('; '),
-                    improvementTips: comprehensiveFeedback.detailedFeedback.specificRecommendations.join('; ')
+                    strengths: comprehensiveFeedback.strengths.join("; "),
+                    weaknesses: comprehensiveFeedback.weaknesses.join("; "),
+                    improvementTips: comprehensiveFeedback.detailedFeedback.specificRecommendations.join("; ")
                 }
             });
         }
@@ -236,9 +248,9 @@ export const generateComprehensiveSessionFeedback = async (req, res) => {
                 data: {
                     sessionId: Number(sessionId),
                     overallScore: comprehensiveFeedback.overallScore,
-                    strengths: comprehensiveFeedback.strengths.join('; '),
-                    weaknesses: comprehensiveFeedback.weaknesses.join('; '),
-                    improvementTips: comprehensiveFeedback.detailedFeedback.specificRecommendations.join('; ')
+                    strengths: comprehensiveFeedback.strengths.join("; "),
+                    weaknesses: comprehensiveFeedback.weaknesses.join("; "),
+                    improvementTips: comprehensiveFeedback.detailedFeedback.specificRecommendations.join("; ")
                 }
             });
         }
@@ -277,55 +289,55 @@ export const generateComprehensiveSessionFeedback = async (req, res) => {
 // Helper function to determine question category
 function determineCategoryFromQuestion(questionText, domain, interviewType) {
     const lowerQuestion = questionText.toLowerCase();
-    if (interviewType === 'technical') {
+    if (interviewType === "technical") {
         switch (domain.toLowerCase()) {
-            case 'frontend':
-                if (lowerQuestion.includes('react') || lowerQuestion.includes('vue') || lowerQuestion.includes('angular')) {
-                    return 'frameworks';
+            case "frontend":
+                if (lowerQuestion.includes("react") || lowerQuestion.includes("vue") || lowerQuestion.includes("angular")) {
+                    return "frameworks";
                 }
-                else if (lowerQuestion.includes('css') || lowerQuestion.includes('html')) {
-                    return 'styling';
+                else if (lowerQuestion.includes("css") || lowerQuestion.includes("html")) {
+                    return "styling";
                 }
-                else if (lowerQuestion.includes('javascript') || lowerQuestion.includes('typescript')) {
-                    return 'javascript';
+                else if (lowerQuestion.includes("javascript") || lowerQuestion.includes("typescript")) {
+                    return "javascript";
                 }
-                return 'frontend-general';
-            case 'backend':
-                if (lowerQuestion.includes('database') || lowerQuestion.includes('sql')) {
-                    return 'database';
+                return "frontend-general";
+            case "backend":
+                if (lowerQuestion.includes("database") || lowerQuestion.includes("sql")) {
+                    return "database";
                 }
-                else if (lowerQuestion.includes('api') || lowerQuestion.includes('rest')) {
-                    return 'api-design';
+                else if (lowerQuestion.includes("api") || lowerQuestion.includes("rest")) {
+                    return "api-design";
                 }
-                else if (lowerQuestion.includes('security')) {
-                    return 'security';
+                else if (lowerQuestion.includes("security")) {
+                    return "security";
                 }
-                return 'backend-general';
-            case 'data-science':
-                if (lowerQuestion.includes('machine learning') || lowerQuestion.includes('ml')) {
-                    return 'machine-learning';
+                return "backend-general";
+            case "data-science":
+                if (lowerQuestion.includes("machine learning") || lowerQuestion.includes("ml")) {
+                    return "machine-learning";
                 }
-                else if (lowerQuestion.includes('statistics')) {
-                    return 'statistics';
+                else if (lowerQuestion.includes("statistics")) {
+                    return "statistics";
                 }
-                return 'data-analysis';
+                return "data-analysis";
             default:
-                return 'technical-general';
+                return "technical-general";
         }
     }
-    else if (interviewType === 'behavioral') {
-        if (lowerQuestion.includes('leadership') || lowerQuestion.includes('team')) {
-            return 'leadership';
+    else if (interviewType === "behavioral") {
+        if (lowerQuestion.includes("leadership") || lowerQuestion.includes("team")) {
+            return "leadership";
         }
-        else if (lowerQuestion.includes('conflict') || lowerQuestion.includes('challenge')) {
-            return 'problem-solving';
+        else if (lowerQuestion.includes("conflict") || lowerQuestion.includes("challenge")) {
+            return "problem-solving";
         }
-        return 'behavioral-general';
+        return "behavioral-general";
     }
-    else if (interviewType === 'system-design') {
-        return 'system-design';
+    else if (interviewType === "system-design") {
+        return "system-design";
     }
-    return 'general';
+    return "general";
 }
 // Analyze interviewer behavior and communication
 export const analyzeInterviewerBehavior = async (req, res) => {
@@ -336,7 +348,7 @@ export const analyzeInterviewerBehavior = async (req, res) => {
             where: { id: Number(sessionId) },
             include: {
                 questions: {
-                    orderBy: { id: 'asc' }
+                    orderBy: { id: "asc" }
                 }
             }
         });
@@ -352,13 +364,11 @@ export const analyzeInterviewerBehavior = async (req, res) => {
         res.status(500).json({ error: "Failed to analyze interviewer behavior" });
     }
 };
-// Helper function to generate AI-powered interviewer analysis using Gemini
 async function generateGeminiInterviewerAnalysis(session) {
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     const totalQuestions = session.questions.length;
-    const answerableQuestions = session.questions.filter((q) => q.userAnswer !== null);
+    const answerableQuestions = session.questions.filter((q) => q.userAnswer !== null && q.userAnswer !== undefined);
     const completionRate = (answerableQuestions.length / totalQuestions) * 100;
-    // Prepare context for Gemini
     const sessionContext = {
         domain: session.domain,
         interviewType: session.interviewType,
@@ -370,7 +380,7 @@ async function generateGeminiInterviewerAnalysis(session) {
         questions: session.questions.map((q, index) => ({
             number: index + 1,
             question: q.questionText,
-            answered: q.userAnswer !== null,
+            answered: q.userAnswer !== null && q.userAnswer !== undefined,
             score: q.score || 0,
             isCoding: q.isCodingQuestion || false
         }))
@@ -389,10 +399,10 @@ async function generateGeminiInterviewerAnalysis(session) {
     Questions and Responses:
     ${sessionContext.questions.map((q) => `
     Question ${q.number}: ${q.question}
-    - Answered: ${q.answered ? 'Yes' : 'No'}
+    - Answered: ${q.answered ? "Yes" : "No"}
     - Score: ${q.score}/10
-    - Type: ${q.isCoding ? 'Coding' : 'Technical/Behavioral'}
-    `).join('')}
+    - Type: ${q.isCoding ? "Coding" : "Technical/Behavioral"}
+    `).join("")}
 
     Please analyze the interviewer's performance and return ONLY a valid JSON object with this exact structure:
     
@@ -415,9 +425,9 @@ async function generateGeminiInterviewerAnalysis(session) {
             "fairness": "Evaluation of bias-free and consistent assessment"
         },
         "flags": {
-            "bias_detected": ${completionRate < 50 ? 'true' : 'false'},
+            "bias_detected": ${completionRate < 50 ? "true" : "false"},
             "unprofessional_language": false,
-            "pacing_issues": ${completionRate < 70 ? 'true' : 'false'}
+            "pacing_issues": ${completionRate < 70 ? "true" : "false"}
         }
     }
 
@@ -437,13 +447,61 @@ async function generateGeminiInterviewerAnalysis(session) {
         const text = result.response.text();
         // Clean and parse the response
         const cleanedText = text
-            .replace(/```json\s*/g, '')
-            .replace(/```\s*/g, '')
+            .replace(/```json\s*/g, "")
+            .replace(/```\s*/g, "")
             .trim();
         return JSON.parse(cleanedText);
     }
     catch (error) {
-        console.error('Gemini analysis failed:', error);
-        throw new Error('Failed to generate AI analysis. Please ensure Gemini API is properly configured and try again.');
+        console.error("Gemini analysis failed:", error);
+        throw new Error("Failed to generate AI analysis. Please ensure Gemini API is properly configured and try again.");
     }
 }
+// Generate AI-powered career recommendations
+export const generateAICareerRecommendations = async (req, res) => {
+    try {
+        const { sessionId } = req.params;
+        // Fetch session details
+        const session = await prisma.interviewSession.findUnique({
+            where: { id: parseInt(sessionId) },
+            include: {
+                questions: true
+            }
+        });
+        if (!session) {
+            return res.status(404).json({ error: "Interview session not found" });
+        }
+        // Transform questions to the format expected by the service
+        const questions = session.questions.map(q => ({
+            id: q.id,
+            questionText: q.questionText,
+            userAnswer: q.userAnswer,
+            score: q.score,
+            aiEvaluation: q.aiEvaluation,
+            isCodingQuestion: q.isCodingQuestion || false,
+            difficulty: "intermediate", // Default if not stored
+            category: determineCategoryFromQuestion(q.questionText, session.domain, session.interviewType)
+        }));
+        // Calculate overall score
+        const scores = questions.filter(q => q.score !== null).map(q => q.score);
+        const overallScore = scores.length > 0 ? scores.reduce((sum, score) => sum + score, 0) / scores.length : 0;
+        // Generate AI recommendations using the new service
+        const { generateCareerRecommendations } = await import("../services/feedbackService");
+        const recommendations = await generateCareerRecommendations({
+            domain: session.domain,
+            interviewType: session.interviewType,
+            difficulty: session.difficulty || "intermediate",
+            duration: session.duration || 30
+        }, questions, overallScore);
+        res.json({
+            success: true,
+            sessionId: sessionId,
+            overallScore: Math.round(overallScore * 10) / 10,
+            recommendations
+        });
+    }
+    catch (error) {
+        console.error("Error generating AI career recommendations:", error);
+        res.status(500).json({ error: "Failed to generate career recommendations" });
+    }
+};

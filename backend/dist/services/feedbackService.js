@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI } from "@google/generative-ai";
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 /**
  * Main function to generate comprehensive feedback for a user's interview performance
@@ -65,7 +65,7 @@ export async function generateComprehensiveFeedback(sessionData, questions) {
         return feedback;
     }
     catch (error) {
-        console.error('Error generating comprehensive feedback:', error);
+        console.error("Error generating comprehensive feedback:", error);
         // Return fallback feedback
         return generateFallbackFeedback(sessionData, {
             totalQuestions,
@@ -87,9 +87,9 @@ function generateCategoryBreakdown(categorizedQuestions) {
             ? answeredQuestions.reduce((sum, q) => sum + (q.score || 0), 0) / answeredQuestions.length
             : 0;
         // Generate insights based on category and performance
-        const strongestAreas = generateStrongestAreas(category, averageScore, questions);
-        const weakestAreas = generateWeakestAreas(category, averageScore, questions);
-        const improvement = generateImprovementTips(category, averageScore, questions);
+        const strongestAreas = generateStrongestAreas(category, averageScore);
+        const weakestAreas = generateWeakestAreas(category, averageScore);
+        const improvement = generateImprovementTips(category);
         breakdown.push({
             category,
             questionsCount: questions.length,
@@ -107,9 +107,9 @@ function generateCategoryBreakdown(categorizedQuestions) {
  */
 function generateDifficultyAnalysis(questions) {
     const difficultyGroups = {
-        beginner: questions.filter(q => q.difficulty.toLowerCase() === 'beginner' || q.difficulty.toLowerCase() === 'easy'),
-        intermediate: questions.filter(q => q.difficulty.toLowerCase() === 'intermediate' || q.difficulty.toLowerCase() === 'medium'),
-        advanced: questions.filter(q => q.difficulty.toLowerCase() === 'advanced' || q.difficulty.toLowerCase() === 'hard')
+        beginner: questions.filter(q => q.difficulty.toLowerCase() === "beginner" || q.difficulty.toLowerCase() === "easy"),
+        intermediate: questions.filter(q => q.difficulty.toLowerCase() === "intermediate" || q.difficulty.toLowerCase() === "medium"),
+        advanced: questions.filter(q => q.difficulty.toLowerCase() === "advanced" || q.difficulty.toLowerCase() === "hard")
     };
     const analysis = {
         beginner: { score: 0, count: 0 },
@@ -157,120 +157,120 @@ function generateTimeAnalysis(categorizedQuestions) {
 /**
  * Generate strongest areas based on category performance
  */
-function generateStrongestAreas(category, averageScore, questions) {
+function generateStrongestAreas(category, averageScore) {
     if (averageScore < 6)
         return [];
     const strengths = {
-        'javascript': [
-            'Strong understanding of ES6+ features',
-            'Good grasp of asynchronous programming',
-            'Proficient with array and object manipulation'
+        "javascript": [
+            "Strong understanding of ES6+ features",
+            "Good grasp of asynchronous programming",
+            "Proficient with array and object manipulation"
         ],
-        'react': [
-            'Solid component architecture knowledge',
-            'Good understanding of hooks and state management',
-            'Effective use of React patterns'
+        "react": [
+            "Solid component architecture knowledge",
+            "Good understanding of hooks and state management",
+            "Effective use of React patterns"
         ],
-        'database': [
-            'Strong SQL query optimization skills',
-            'Good database design principles',
-            'Understanding of indexing strategies'
+        "database": [
+            "Strong SQL query optimization skills",
+            "Good database design principles",
+            "Understanding of indexing strategies"
         ],
-        'api-design': [
-            'Good RESTful API design principles',
-            'Understanding of HTTP status codes',
-            'Knowledge of API authentication methods'
+        "api-design": [
+            "Good RESTful API design principles",
+            "Understanding of HTTP status codes",
+            "Knowledge of API authentication methods"
         ],
-        'coding': [
-            'Strong problem-solving approach',
-            'Good algorithm understanding',
-            'Clean and readable code structure'
+        "coding": [
+            "Strong problem-solving approach",
+            "Good algorithm understanding",
+            "Clean and readable code structure"
         ],
-        'system-design': [
-            'Good scalability considerations',
-            'Understanding of distributed systems',
-            'Knowledge of caching strategies'
+        "system-design": [
+            "Good scalability considerations",
+            "Understanding of distributed systems",
+            "Knowledge of caching strategies"
         ]
     };
-    return strengths[category] || ['Good overall understanding of the topic'];
+    return strengths[category] || ["Good overall understanding of the topic"];
 }
 /**
  * Generate weakest areas based on category performance
  */
-function generateWeakestAreas(category, averageScore, questions) {
+function generateWeakestAreas(category, averageScore) {
     if (averageScore >= 7)
         return [];
     const weaknesses = {
-        'javascript': [
-            'Need to improve closure understanding',
-            'Struggling with prototype chain concepts',
-            'Difficulty with event loop mechanics'
+        "javascript": [
+            "Need to improve closure understanding",
+            "Struggling with prototype chain concepts",
+            "Difficulty with event loop mechanics"
         ],
-        'react': [
-            'Need better understanding of useEffect',
-            'Struggling with performance optimization',
-            'Difficulty with state management patterns'
+        "react": [
+            "Need better understanding of useEffect",
+            "Struggling with performance optimization",
+            "Difficulty with state management patterns"
         ],
-        'database': [
-            'Need to improve complex query writing',
-            'Struggling with normalization concepts',
-            'Difficulty with transaction management'
+        "database": [
+            "Need to improve complex query writing",
+            "Struggling with normalization concepts",
+            "Difficulty with transaction management"
         ],
-        'api-design': [
-            'Need better error handling strategies',
-            'Struggling with API versioning',
-            'Difficulty with rate limiting concepts'
+        "api-design": [
+            "Need better error handling strategies",
+            "Struggling with API versioning",
+            "Difficulty with rate limiting concepts"
         ],
-        'coding': [
-            'Need to improve time complexity analysis',
-            'Struggling with recursive solutions',
-            'Difficulty with edge case handling'
+        "coding": [
+            "Need to improve time complexity analysis",
+            "Struggling with recursive solutions",
+            "Difficulty with edge case handling"
         ],
-        'system-design': [
-            'Need better understanding of load balancing',
-            'Struggling with database sharding concepts',
-            'Difficulty with microservices architecture'
+        "system-design": [
+            "Need better understanding of load balancing",
+            "Struggling with database sharding concepts",
+            "Difficulty with microservices architecture"
         ]
     };
-    return weaknesses[category] || ['Need to deepen understanding of fundamental concepts'];
+    return weaknesses[category] || ["Need to deepen understanding of fundamental concepts"];
 }
 /**
  * Generate improvement tips based on category and performance
  */
-function generateImprovementTips(category, averageScore, questions) {
+function generateImprovementTips(category) {
     const tips = {
-        'javascript': [
-            'Practice with MDN JavaScript tutorials',
-            'Complete JavaScript algorithms on HackerRank',
-            'Study "You Don\'t Know JS" book series'
+        "javascript": [
+            "Practice with MDN JavaScript tutorials",
+            "Complete JavaScript algorithms on HackerRank",
+            "Study \"You Don't Know JS\" book series"
         ],
-        'react': [
-            'Build small projects with different React patterns',
-            'Practice with React Testing Library',
-            'Study the official React documentation thoroughly'
+        "react": [
+            "Build small projects with different React patterns",
+            "Practice with React Testing Library",
+            "Study the official React documentation thoroughly"
         ],
-        'database': [
-            'Practice SQL queries on SQLBolt or HackerRank',
-            'Study database design patterns',
-            'Learn about database performance optimization'
+        "database": [
+            "Practice SQL queries on SQLBolt or HackerRank",
+            "Study database design patterns",
+            "Learn about database performance optimization"
         ],
-        'api-design': [
-            'Build RESTful APIs with Express.js',
-            'Study API design best practices',
-            'Practice with Postman for API testing'
+        "api-design": [
+            "Build RESTful APIs with Express.js",
+            "Study API design best practices",
+            "Practice with Postman for API testing"
         ],
-        'coding': [
-            'Solve daily problems on LeetCode',
-            'Practice explaining solutions out loud',
-            'Study common algorithm patterns'
+        "coding": [
+            "Solve daily problems on LeetCode",
+            "Practice explaining solutions out loud",
+            "Study common algorithm patterns"
         ],
-        'system-design': [
-            'Study system design interview resources',
-            'Practice designing simple systems',
-            'Learn about cloud architecture patterns'
+        "system-design": [
+            "Study system design interview resources",
+            "Practice designing simple systems",
+            "Learn about cloud architecture patterns"
         ]
     };
-    return tips[category] || ['Continue practicing and studying fundamentals'];
+    return tips[category] || ["Continue practicing and studying fundamentals"];
 }
 /**
  * Categorize questions based on domain and interview type
@@ -278,82 +278,82 @@ function generateImprovementTips(category, averageScore, questions) {
 function categorizeQuestions(questions, domain, interviewType) {
     const categories = {};
     questions.forEach(question => {
-        let category = 'general';
+        let category = "general";
         if (question.isCodingQuestion) {
-            category = 'coding';
+            category = "coding";
         }
-        else if (interviewType === 'technical') {
+        else if (interviewType === "technical") {
             // Categorize technical questions based on domain
             switch (domain.toLowerCase()) {
-                case 'frontend':
-                    if (question.questionText.toLowerCase().includes('react') ||
-                        question.questionText.toLowerCase().includes('vue') ||
-                        question.questionText.toLowerCase().includes('angular')) {
-                        category = 'frameworks';
+                case "frontend":
+                    if (question.questionText.toLowerCase().includes("react") ||
+                        question.questionText.toLowerCase().includes("vue") ||
+                        question.questionText.toLowerCase().includes("angular")) {
+                        category = "frameworks";
                     }
-                    else if (question.questionText.toLowerCase().includes('css') ||
-                        question.questionText.toLowerCase().includes('html')) {
-                        category = 'styling';
+                    else if (question.questionText.toLowerCase().includes("css") ||
+                        question.questionText.toLowerCase().includes("html")) {
+                        category = "styling";
                     }
-                    else if (question.questionText.toLowerCase().includes('javascript') ||
-                        question.questionText.toLowerCase().includes('typescript')) {
-                        category = 'javascript';
-                    }
-                    else {
-                        category = 'frontend-general';
-                    }
-                    break;
-                case 'backend':
-                    if (question.questionText.toLowerCase().includes('database') ||
-                        question.questionText.toLowerCase().includes('sql')) {
-                        category = 'database';
-                    }
-                    else if (question.questionText.toLowerCase().includes('api') ||
-                        question.questionText.toLowerCase().includes('rest')) {
-                        category = 'api-design';
-                    }
-                    else if (question.questionText.toLowerCase().includes('security')) {
-                        category = 'security';
+                    else if (question.questionText.toLowerCase().includes("javascript") ||
+                        question.questionText.toLowerCase().includes("typescript")) {
+                        category = "javascript";
                     }
                     else {
-                        category = 'backend-general';
+                        category = "frontend-general";
                     }
                     break;
-                case 'fullstack':
-                    category = 'fullstack';
-                    break;
-                case 'data-science':
-                    if (question.questionText.toLowerCase().includes('machine learning') ||
-                        question.questionText.toLowerCase().includes('ml')) {
-                        category = 'machine-learning';
+                case "backend":
+                    if (question.questionText.toLowerCase().includes("database") ||
+                        question.questionText.toLowerCase().includes("sql")) {
+                        category = "database";
                     }
-                    else if (question.questionText.toLowerCase().includes('statistics') ||
-                        question.questionText.toLowerCase().includes('statistical')) {
-                        category = 'statistics';
+                    else if (question.questionText.toLowerCase().includes("api") ||
+                        question.questionText.toLowerCase().includes("rest")) {
+                        category = "api-design";
+                    }
+                    else if (question.questionText.toLowerCase().includes("security")) {
+                        category = "security";
                     }
                     else {
-                        category = 'data-analysis';
+                        category = "backend-general";
+                    }
+                    break;
+                case "fullstack":
+                    category = "fullstack";
+                    break;
+                case "data-science":
+                    if (question.questionText.toLowerCase().includes("machine learning") ||
+                        question.questionText.toLowerCase().includes("ml")) {
+                        category = "machine-learning";
+                    }
+                    else if (question.questionText.toLowerCase().includes("statistics") ||
+                        question.questionText.toLowerCase().includes("statistical")) {
+                        category = "statistics";
+                    }
+                    else {
+                        category = "data-analysis";
                     }
                     break;
                 default:
-                    category = 'technical-general';
+                    category = "technical-general";
             }
         }
-        else if (interviewType === 'behavioral') {
-            if (question.questionText.toLowerCase().includes('leadership') ||
-                question.questionText.toLowerCase().includes('team')) {
-                category = 'leadership';
+        else if (interviewType === "behavioral") {
+            if (question.questionText.toLowerCase().includes("leadership") ||
+                question.questionText.toLowerCase().includes("team")) {
+                category = "leadership";
             }
-            else if (question.questionText.toLowerCase().includes('conflict') ||
-                question.questionText.toLowerCase().includes('challenge')) {
-                category = 'problem-solving';
+            else if (question.questionText.toLowerCase().includes("conflict") ||
+                question.questionText.toLowerCase().includes("challenge")) {
+                category = "problem-solving";
             }
             else {
-                category = 'behavioral-general';
+                category = "behavioral-general";
             }
         }
-        else if (interviewType === 'system-design') {
-            category = 'system-design';
+        else if (interviewType === "system-design") {
+            category = "system-design";
         }
         if (!categories[category]) {
             categories[category] = [];
@@ -381,17 +381,17 @@ Question Categories and Performance:
 ${Object.entries(categorizedQuestions).map(([category, questions]) => `
 ${category}: ${questions.length} questions, Average Score: ${questions.filter(q => q.score !== null).length > 0
         ? (questions.filter(q => q.score !== null).reduce((sum, q) => sum + q.score, 0) / questions.filter(q => q.score !== null).length).toFixed(1)
-        : 'N/A'}/10`).join('\n')}
+        : "N/A"}/10`).join("\n")}
 
 Questions and Answers:
 ${questions.map((q, i) => `
-Question ${i + 1} (${q.isCodingQuestion ? 'Coding' : 'Text'} - ${q.difficulty}):
+Question ${i + 1} (${q.isCodingQuestion ? "Coding" : "Text"} - ${q.difficulty}):
 ${q.questionText}
 
-User Answer: ${q.userAnswer || 'Not answered'}
-Score: ${q.score || 'Not scored'}/10
-AI Evaluation: ${q.aiEvaluation || 'Not evaluated'}
-`).join('\n')}
+User Answer: ${q.userAnswer || "Not answered"}
+Score: ${q.score || "Not scored"}/10
+AI Evaluation: ${q.aiEvaluation || "Not evaluated"}
+`).join("\n")}
 
 Provide a detailed analysis in JSON format with this structure:
 {
@@ -470,11 +470,11 @@ function calculateBenchmark(averageScore, difficulty) {
         comparisonText = "Significant improvement needed. Consider additional preparation.";
     }
     // Adjust based on difficulty
-    if (difficulty === 'Advanced') {
+    if (difficulty === "Advanced") {
         percentileRank = Math.min(percentileRank + 10, 99);
         comparisonText += " (Adjusted for advanced difficulty level)";
     }
-    else if (difficulty === 'Beginner') {
+    else if (difficulty === "Beginner") {
         percentileRank = Math.max(percentileRank - 10, 1);
         comparisonText += " (Adjusted for beginner difficulty level)";
     }
@@ -483,6 +483,7 @@ function calculateBenchmark(averageScore, difficulty) {
 /**
  * Generate fallback feedback when AI analysis fails
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function generateFallbackFeedback(sessionData, metrics) {
     return {
         overallScore: metrics.averageScore,
@@ -501,9 +502,9 @@ function generateFallbackFeedback(sessionData, metrics) {
             },
             timeManagement: {
                 averageTimePerQuestion: 120,
-                fastestCategory: 'general',
-                slowestCategory: 'coding',
-                timeManagementTips: ['Practice time management', 'Read questions carefully']
+                fastestCategory: "general",
+                slowestCategory: "coding",
+                timeManagementTips: ["Practice time management", "Read questions carefully"]
             }
         },
         skillAssessment: {
@@ -527,4 +528,178 @@ function generateFallbackFeedback(sessionData, metrics) {
         benchmarkComparison: calculateBenchmark(metrics.averageScore, sessionData.difficulty),
         nextSteps: ["Continue practicing", "Focus on weak areas"]
     };
+}
+/**
+ * Generate AI-powered career recommendations
+ */
+export async function generateCareerRecommendations(sessionData, questions, overallScore) {
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    // Calculate performance metrics
+    const totalQuestions = questions.length;
+    const answeredQuestions = questions.filter(q => q.userAnswer !== null).length;
+    const completionRate = (answeredQuestions / totalQuestions) * 100;
+    const scores = questions.filter(q => q.score !== null).map(q => q.score);
+    const averageScore = scores.length > 0 ? scores.reduce((sum, score) => sum + score, 0) / scores.length : 0;
+    // Categorize questions for better analysis
+    const categorizedQuestions = categorizeQuestions(questions, sessionData.domain, sessionData.interviewType);
+    const prompt = `
+As an expert career coach specializing in ${sessionData.domain} development, analyze this interview performance and provide personalized career growth recommendations.
+
+Interview Performance Analysis:
+- Domain: ${sessionData.domain}
+- Interview Type: ${sessionData.interviewType}
+- Difficulty Level: ${sessionData.difficulty}
+- Overall Score: ${overallScore}/10
+- Completion Rate: ${completionRate}%
+- Average Score: ${averageScore.toFixed(1)}/10
+
+Question Categories Performance:
+${Object.entries(categorizedQuestions).map(([category, questions]) => `
+${category}: ${questions.length} questions, Average Score: ${questions.filter(q => q.score !== null).length > 0
+        ? (questions.filter(q => q.score !== null).reduce((sum, q) => sum + q.score, 0) / questions.filter(q => q.score !== null).length).toFixed(1)
+        : "N/A"}/10`).join("\n")}
+
+Detailed Question Analysis:
+${questions.slice(0, 5).map((q, i) => `
+Q${i + 1}: ${q.questionText.substring(0, 100)}...
+Answer Quality: ${q.score || "Not scored"}/10
+Evaluation: ${q.aiEvaluation?.substring(0, 200) || "Not evaluated"}...
+`).join("\n")}
+
+Based on this performance, provide personalized career recommendations in JSON format:
+
+{
+  "priorityAreas": {
+    "technical": {
+      "title": "Technical Depth/Skills/Foundation",
+      "description": "Specific technical area to focus on based on weak performance",
+      "actions": ["3 specific, actionable steps tailored to this candidate's ${sessionData.domain} level"]
+    },
+    "communication": {
+      "title": "Communication/Problem-Solving/Soft Skills",
+      "description": "Communication or soft skill area needing improvement",
+      "actions": ["3 specific, actionable steps for improving interview communication"]
+    }
+  },
+  "learningRoadmap": {
+    "weeks1to2": {
+      "title": "Week 1-2",
+      "focus": "Foundation Building/Review Basics/etc",
+      "tasks": ["4 specific tasks for weeks 1-2 based on current level and weaknesses"]
+    },
+    "weeks3to4": {
+      "title": "Week 3-4", 
+      "focus": "Advanced Concepts/Practice/etc",
+      "tasks": ["4 specific tasks for weeks 3-4 building on previous weeks"]
+    },
+    "ongoing": {
+      "title": "Ongoing",
+      "focus": "Maintenance & Growth/Continuous Learning/etc", 
+      "tasks": ["4 specific ongoing tasks for continuous improvement"]
+    }
+  },
+  "resources": {
+    "courses": ["3 specific online courses relevant to ${sessionData.domain} and current skill level"],
+    "practice": ["3 specific practice platforms/tools relevant to identified weak areas"],
+    "books": ["3 specific books that address this candidate's learning needs"],
+    "communities": ["3 specific communities/forums for ${sessionData.domain} developers"]
+  }
+}
+
+Requirements:
+1. Make recommendations SPECIFIC to ${sessionData.domain} development
+2. Tailor advice to the candidate's current skill level (score: ${overallScore}/10)
+3. Address the specific weak areas identified in the interview
+4. Provide actionable, time-bound tasks
+5. Include relevant, current resources (courses, books, tools)
+6. Consider the ${sessionData.difficulty} difficulty level attempted
+7. Make all advice practical and immediately implementable
+`;
+    try {
+        const result = await model.generateContent(prompt);
+        const responseText = result.response.text();
+        // Clean the response to ensure it's valid JSON
+        const cleanedResponse = responseText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+        return JSON.parse(cleanedResponse);
+    }
+    catch (error) {
+        console.error("Error generating career recommendations:", error);
+        // Fallback recommendations if AI fails
+        return {
+            priorityAreas: {
+                technical: {
+                    title: "Technical Foundation",
+                    description: `Strengthen your core ${sessionData.domain} technical skills to improve problem-solving ability`,
+                    actions: [
+                        "Practice data structures and algorithms daily (30 minutes)",
+                        "Build 2-3 projects showcasing your skills",
+                        "Study system design fundamentals"
+                    ]
+                },
+                communication: {
+                    title: "Communication Skills",
+                    description: "Enhance your ability to explain complex concepts clearly and concisely",
+                    actions: [
+                        "Practice explaining code solutions out loud",
+                        "Record yourself solving problems to review communication",
+                        "Join technical discussion groups to practice articulation"
+                    ]
+                }
+            },
+            learningRoadmap: {
+                weeks1to2: {
+                    title: "Week 1-2",
+                    focus: "Foundation Building",
+                    tasks: [
+                        "Review core algorithms (sorting, searching)",
+                        "Practice 5 easy coding problems daily",
+                        "Study time/space complexity analysis",
+                        "Read programming fundamentals"
+                    ]
+                },
+                weeks3to4: {
+                    title: "Week 3-4",
+                    focus: "Advanced Concepts",
+                    tasks: [
+                        "Master advanced programming patterns",
+                        "Practice 3 medium-level problems daily",
+                        "Learn system design basics",
+                        "Conduct mock interviews with peers"
+                    ]
+                },
+                ongoing: {
+                    title: "Ongoing",
+                    focus: "Maintenance & Growth",
+                    tasks: [
+                        "Daily coding practice (1 hour)",
+                        "Weekly system design study",
+                        "Monthly mock interviews",
+                        "Contribute to open source projects"
+                    ]
+                }
+            },
+            resources: {
+                courses: [
+                    "AlgoExpert (Interview Preparation)",
+                    "Educative.io (System Design)",
+                    "Coursera (Algorithms Specialization)"
+                ],
+                practice: [
+                    "LeetCode (Daily Practice)",
+                    "HackerRank (Skills Assessment)",
+                    "CodeSignal (Mock Interviews)"
+                ],
+                books: [
+                    "Cracking the Coding Interview",
+                    "Clean Code by Robert Martin",
+                    "Designing Data-Intensive Applications"
+                ],
+                communities: [
+                    "r/cscareerquestions (Reddit)",
+                    "Blind (Anonymous professional forum)",
+                    "Discord coding communities"
+                ]
+            }
+        };
+    }
 }

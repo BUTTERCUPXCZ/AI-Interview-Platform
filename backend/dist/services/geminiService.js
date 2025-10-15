@@ -7,14 +7,16 @@ function parseGeminiResponse(text) {
     try {
         // Clean the response to remove markdown code blocks
         const cleanedText = text
-            .replace(/```json\s*/g, '')
-            .replace(/```\s*/g, '')
+            .replace(/```json\s*/g, "")
+            .replace(/```\s*/g, "")
             .trim();
         return JSON.parse(cleanedText);
     }
     catch (error) {
-        console.error('Failed to parse Gemini response:', text);
-        throw new Error(`Invalid JSON response from Gemini: ${error?.message || 'Unknown error'}`);
+        console.error("Failed to parse Gemini response:", text);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const err = error;
+        throw new Error(`Invalid JSON response from Gemini: ${err?.message || "Unknown error"}`);
     }
 }
 export async function generateQuestions(domain, difficulty, interviewType) {
@@ -66,13 +68,15 @@ export async function analyzeSession(qaList) {
 }
 export async function generateCodingQuestion(domain, difficulty, language) {
     // Import the enhanced function from codingEvaluationService
-    const { generateCodingQuestionWithGemini } = await import('./codingEvaluationService');
+    const { generateCodingQuestionWithGemini } = await import("./codingEvaluationService");
     return generateCodingQuestionWithGemini(domain, difficulty, language);
 }
 export async function evaluateCodeSolution(question, code, language, executionResults) {
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
     const { passedTests, totalTests, results, executionTime } = executionResults;
-    const passRate = totalTests > 0 ? (passedTests / totalTests) * 100 : 0;
+    const passRate = (typeof totalTests === "number" && totalTests > 0 && typeof passedTests === "number")
+        ? (passedTests / totalTests) * 100
+        : 0;
     const prompt = `
         Evaluate this coding solution for an interview question.
         Question: ${question}
@@ -130,17 +134,19 @@ export async function generateTextInterviewQuestions(domain, difficulty, intervi
         `;
         const result = await model.generateContent(prompt);
         const text = result.response.text();
-        console.log('Generated questions response:', text);
+        console.log("Generated questions response:", text);
         return parseGeminiResponse(text);
     }
     catch (error) {
-        console.error('Error generating text interview questions:', error);
-        console.error('Error details:', {
-            message: error?.message,
-            status: error?.status,
-            statusText: error?.statusText
+        console.error("Error generating text interview questions:", error);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const err = error;
+        console.error("Error details:", {
+            message: err?.message,
+            status: err?.status,
+            statusText: err?.statusText
         });
-        throw new Error(`Failed to generate interview questions: ${error?.message || 'Unknown error'}`);
+        throw new Error(`Failed to generate interview questions: ${err?.message || "Unknown error"}`);
     }
 }
 export async function evaluateTextAnswer(question, answer, domain, difficulty, interviewType) {
