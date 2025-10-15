@@ -1,4 +1,4 @@
-import { redis } from "../lib/redis";
+import { redis } from "../lib/redis.js";
 /**
  * Cache cleanup utilities for fixing corrupted Redis entries
  */

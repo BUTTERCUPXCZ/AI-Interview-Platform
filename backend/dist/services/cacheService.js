@@ -1,4 +1,4 @@
-import { redisOperations } from "../lib/redis";
+import { redisOperations } from "../lib/redis.js";
 // Cache keys constants
 export const CACHE_KEYS = {
     USER_SESSION: "user_session:",

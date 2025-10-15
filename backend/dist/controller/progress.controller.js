@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { CacheService } from "../services/cacheService";
+import { CacheService } from "../services/cacheService.js";
 const prisma = new PrismaClient();
 // Get comprehensive progress analytics for a user
 export const getProgressAnalytics = async (req, res) => {

@@ -1,5 +1,5 @@
 // Server optimization script to improve interview performance
-import { preWarmCache } from "../services/optimizedGeminiService";
+import { preWarmCache } from "../services/optimizedGeminiService.js";
 
 export async function initializeOptimizations() {
     console.log("🚀 Starting interview platform optimizations...");

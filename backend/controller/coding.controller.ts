@@ -6,8 +6,8 @@ import { fileURLToPath } from "url";
 import { v4 as uuidv4 } from "uuid";
 // generateCodingQuestion/evaluateCodeSolution are kept in history but unused here; remove to satisfy lint
 import type { ProgrammingLanguage } from "@prisma/client";
-import { prisma } from "../lib/prisma";
-import { CacheService } from "../services/cacheService";
+import { prisma } from "../lib/prisma.js";
+import { CacheService } from "../services/cacheService.js";
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -768,7 +768,7 @@ export const getCodingQuestion = async (req: Request, res: Response) => {
         }
 
         // Use the enhanced Gemini question generation
-        const { generateCodingQuestionWithGemini } = await import("../services/codingEvaluationService");
+        const { generateCodingQuestionWithGemini } = await import("../services/codingEvaluationService.js");
         const questionData = await generateCodingQuestionWithGemini(domain, difficulty, language);
 
         // If sessionId is provided, save the question to the database
@@ -855,7 +855,7 @@ export const runCodeWithEvaluation = async (req: Request, res: Response) => {
         if (executionResult.success && questionText) {
             try {
                 // Use the enhanced evaluation service
-                const { evaluateCodingAnswerService } = await import("../services/codingEvaluationService");
+                const { evaluateCodingAnswerService } = await import("../services/codingEvaluationService.js");
                 aiEvaluation = await evaluateCodingAnswerService({
                     code,
                     language,

@@ -1,4 +1,4 @@
-import { CacheService } from "../services/cacheService";
+import { CacheService } from "../services/cacheService.js";
 /**
  * Performance monitoring middleware with Redis-based metrics storage
  */

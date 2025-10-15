@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
-import { CacheService } from "../services/cacheService";
+import { CacheService } from "../services/cacheService.js";
 
 const prisma = new PrismaClient();
 

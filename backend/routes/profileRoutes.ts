@@ -7,7 +7,7 @@ import {
     updateUserSkills,
     uploadAvatar,
     deleteAccount
-} from "../controller/profile.controller";
+} from "../controller/profile.controller.js";
 
 const router = express.Router();
 

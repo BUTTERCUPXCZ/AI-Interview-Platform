@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
-import { CacheService } from "../services/cacheService";
+import { CacheService } from "../services/cacheService.js";
 
 const prisma = new PrismaClient();
 

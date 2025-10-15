@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import { generateQuestions } from "../services/geminiService";
-import { prisma } from "../lib/prisma";
+import { generateQuestions } from "../services/geminiService.js";
+import { prisma } from "../lib/prisma.js";
 
 
 export const createInterviewSession = async (req: Request, res: Response) => {

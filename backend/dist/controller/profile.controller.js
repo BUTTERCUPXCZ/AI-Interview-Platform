@@ -1,6 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
-import { CacheService } from "../services/cacheService";
+import { CacheService } from "../services/cacheService.js";
 const prisma = new PrismaClient();
 // Get user profile data
 export const getUserProfile = async (req, res) => {

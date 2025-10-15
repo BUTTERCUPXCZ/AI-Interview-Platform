@@ -1,12 +1,12 @@
 import express from "express";
-import { authRateLimit, apiRateLimit, interviewRateLimit, codingRateLimit } from "../middleware/rateLimiter";
-import authRoutes from "./authRoutes";
-import codingRoutes from "./codingRoutes";
-import interview from "./interview";
-import textInterviewRoutes from "./textInterviewRoutes";
-import dashboardRoutes from "./dashboardRoutes";
-import progressRoutes from "./progressRoutes";
-import profileRoutes from "./profileRoutes";
+import { authRateLimit, apiRateLimit, interviewRateLimit, codingRateLimit } from "../middleware/rateLimiter.js";
+import authRoutes from "./authRoutes.js";
+import codingRoutes from "./codingRoutes.js";
+import interview from "./interview.js";
+import textInterviewRoutes from "./textInterviewRoutes.js";
+import dashboardRoutes from "./dashboardRoutes.js";
+import progressRoutes from "./progressRoutes.js";
+import profileRoutes from "./profileRoutes.js";
 
 const router = express.Router();
 

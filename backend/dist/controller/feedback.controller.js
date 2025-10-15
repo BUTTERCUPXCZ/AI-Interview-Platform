@@ -1,8 +1,8 @@
-import { prisma } from "../lib/prisma";
-import { analyzeSession } from "../services/geminiService";
-import { generateComprehensiveFeedback } from "../services/feedbackService";
+import { prisma } from "../lib/prisma.js";
+import { analyzeSession } from "../services/geminiService.js";
+import { generateComprehensiveFeedback } from "../services/feedbackService.js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { CacheService } from "../services/cacheService";
+import { CacheService } from "../services/cacheService.js";
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 // Unified function to get feedback/summary for any interview type
 export const getUnifiedSessionFeedback = async (req, res) => {
@@ -486,7 +486,7 @@ export const generateAICareerRecommendations = async (req, res) => {
         const scores = questions.filter(q => q.score !== null).map(q => q.score);
         const overallScore = scores.length > 0 ? scores.reduce((sum, score) => sum + score, 0) / scores.length : 0;
         // Generate AI recommendations using the new service
-        const { generateCareerRecommendations } = await import("../services/feedbackService");
+        const { generateCareerRecommendations } = await import("../services/feedbackService.js");
         const recommendations = await generateCareerRecommendations({
             domain: session.domain,
             interviewType: session.interviewType,

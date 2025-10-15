@@ -3,8 +3,8 @@ import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
 import { v4 as uuidv4 } from "uuid";
-import { prisma } from "../lib/prisma";
-import { CacheService } from "../services/cacheService";
+import { prisma } from "../lib/prisma.js";
+import { CacheService } from "../services/cacheService.js";
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -626,7 +626,7 @@ export const getCodingQuestion = async (req, res) => {
             });
         }
         // Use the enhanced Gemini question generation
-        const { generateCodingQuestionWithGemini } = await import("../services/codingEvaluationService");
+        const { generateCodingQuestionWithGemini } = await import("../services/codingEvaluationService.js");
         const questionData = await generateCodingQuestionWithGemini(domain, difficulty, language);
         // If sessionId is provided, save the question to the database
         if (sessionId) {
@@ -702,7 +702,7 @@ export const runCodeWithEvaluation = async (req, res) => {
         if (executionResult.success && questionText) {
             try {
                 // Use the enhanced evaluation service
-                const { evaluateCodingAnswerService } = await import("../services/codingEvaluationService");
+                const { evaluateCodingAnswerService } = await import("../services/codingEvaluationService.js");
                 aiEvaluation = await evaluateCodingAnswerService({
                     code,
                     language,

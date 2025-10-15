@@ -68,7 +68,7 @@ export async function analyzeSession(qaList) {
 }
 export async function generateCodingQuestion(domain, difficulty, language) {
     // Import the enhanced function from codingEvaluationService
-    const { generateCodingQuestionWithGemini } = await import("./codingEvaluationService");
+    const { generateCodingQuestionWithGemini } = await import("./codingEvaluationService.js");
     return generateCodingQuestionWithGemini(domain, difficulty, language);
 }
 export async function evaluateCodeSolution(question, code, language, executionResults) {

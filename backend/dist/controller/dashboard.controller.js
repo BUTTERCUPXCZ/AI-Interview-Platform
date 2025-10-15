@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { CacheService } from "../services/cacheService";
+import { CacheService } from "../services/cacheService.js";
 const prisma = new PrismaClient();
 // Get comprehensive dashboard data for a user
 export const getDashboardData = async (req, res) => {

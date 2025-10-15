@@ -1,5 +1,5 @@
-import { generateQuestions } from "../services/geminiService";
-import { prisma } from "../lib/prisma";
+import { generateQuestions } from "../services/geminiService.js";
+import { prisma } from "../lib/prisma.js";
 export const createInterviewSession = async (req, res) => {
     try {
         const { userId, domain, interviewType, difficulty, duration, format, enableCodingSandbox = false } = req.body;

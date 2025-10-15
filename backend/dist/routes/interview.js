@@ -1,7 +1,7 @@
 import express from "express";
-import { createInterviewSession } from "../controller/interviewSetup.controller";
-import { submitAnswer } from "../controller/interviewSession.controller";
-import { generateAIFeedback, getUnifiedSessionFeedback, generateComprehensiveSessionFeedback, analyzeInterviewerBehavior, generateAICareerRecommendations } from "../controller/feedback.controller";
+import { createInterviewSession } from "../controller/interviewSetup.controller.js";
+import { submitAnswer } from "../controller/interviewSession.controller.js";
+import { generateAIFeedback, getUnifiedSessionFeedback, generateComprehensiveSessionFeedback, analyzeInterviewerBehavior, generateAICareerRecommendations } from "../controller/feedback.controller.js";
 const router = express.Router();
 router.post("/session/create", createInterviewSession);
 router.post("/question/answer", submitAnswer);

@@ -6,13 +6,13 @@ import {
     getInterviewProgress,
     completeTextInterview,
     getInterviewSummary
-} from "../controller/textInterview.controller";
+} from "../controller/textInterview.controller.js";
 import {
     startTextInterviewOptimized,
     getNextQuestionOptimized,
     submitTextAnswerOptimized
-} from "../controller/optimizedTextInterview.controller";
-import { getUserInterviewHistory } from "../controller/textInterview.controller";
+} from "../controller/optimizedTextInterview.controller.js";
+import { getUserInterviewHistory } from "../controller/textInterview.controller.js";
 
 const router = express.Router();
 

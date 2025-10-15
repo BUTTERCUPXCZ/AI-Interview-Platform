@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { CacheService } from "../services/cacheService";
+import { CacheService } from "../services/cacheService.js";
 
 interface RateLimitOptions {
     windowMs: number; // Time window in milliseconds

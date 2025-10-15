@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
-import { prisma, safeQuery } from "../lib/prisma";
+import { prisma, safeQuery } from "../lib/prisma.js";
 import { generateToken, setTokenCookie, clearTokenCookie, getTokenFromCookies, verifyToken } from "../utils/jwt.utils.js";
-import { CacheService } from "../services/cacheService";
+import { CacheService } from "../services/cacheService.js";
 // REGISTER
 export const registerUser = async (req, res, next) => {
     const { Firstname, Lastname, email, password } = req.body;

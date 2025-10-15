@@ -1,5 +1,5 @@
-import { prisma } from "../lib/prisma";
-import { evaluateAnswer } from "../services/geminiService";
+import { prisma } from "../lib/prisma.js";
+import { evaluateAnswer } from "../services/geminiService.js";
 export const submitAnswer = async (req, res) => {
     try {
         const { questionId, userAnswer } = req.body;

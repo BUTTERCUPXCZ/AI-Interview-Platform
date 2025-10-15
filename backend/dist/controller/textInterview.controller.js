@@ -1,11 +1,11 @@
-import { prisma } from "../lib/prisma";
-import { generateTextInterviewQuestions, evaluateTextAnswer } from "../services/geminiService";
-import { CacheService } from "../services/cacheService";
+import { prisma } from "../lib/prisma.js";
+import { generateTextInterviewQuestions, evaluateTextAnswer } from "../services/geminiService.js";
+import { CacheService } from "../services/cacheService.js";
 import { getInterviewSessionById, 
 // validateUserSession,
 getSessionQuestions, 
 // getCurrentQuestionIndex,
-isInterviewCompleted, calculateSessionStats, updateSessionStatus, isSessionExpired, getRemainingTime } from "../services/interviewSessionService";
+isInterviewCompleted, calculateSessionStats, updateSessionStatus, isSessionExpired, getRemainingTime } from "../services/interviewSessionService.js";
 /**
  * Start a new text-based interview session
  */

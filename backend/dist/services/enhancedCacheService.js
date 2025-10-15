@@ -1,4 +1,4 @@
-import { CacheService } from "../services/cacheService";
+import { CacheService } from "../services/cacheService.js";
 // Extended cache keys for different operations
 export const EXTENDED_CACHE_KEYS = {
     // Profile related

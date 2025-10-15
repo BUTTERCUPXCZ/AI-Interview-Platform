@@ -213,7 +213,7 @@ function getStarterCodeForLanguage(language, problemType) {
 // Run code against test cases
 async function executeCodeService(code, language, testCases) {
     const startTime = Date.now();
-    const tempDir = path.join(__dirname, "../../temp", uuidv4());
+    const tempDir = path.join(`${process.platform === 'win32' ? '' : '/'}${/file:\/{2,3}(.+)\/[^/]/.exec(import.meta.url)[1]}`, "../../temp", uuidv4());
     await fs.mkdir(tempDir, { recursive: true });
     try {
         let fileName;

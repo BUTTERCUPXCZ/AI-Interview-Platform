@@ -1,5 +1,5 @@
 import express from "express";
-import { getUserProfile, updateUserProfile, updateNotificationSettings, changePassword, updateUserSkills, uploadAvatar, deleteAccount } from "../controller/profile.controller";
+import { getUserProfile, updateUserProfile, updateNotificationSettings, changePassword, updateUserSkills, uploadAvatar, deleteAccount } from "../controller/profile.controller.js";
 const router = express.Router();
 // Get user profile
 router.get("/user/:userId", getUserProfile);

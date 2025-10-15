@@ -1,5 +1,5 @@
-import { prisma } from "../lib/prisma";
-import { generateTextInterviewQuestions, evaluateTextAnswer } from "../services/geminiService";
+import { prisma } from "../lib/prisma.js";
+import { generateTextInterviewQuestions, evaluateTextAnswer } from "../services/geminiService.js";
 /**
  * Optimized: Start a new text-based interview session with lazy question generation
  */

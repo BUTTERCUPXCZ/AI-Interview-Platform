@@ -1,6 +1,6 @@
 import express from "express";
-import { clearCorruptedCache, clearUserCache, getCacheStats } from "../services/cacheCleanup";
-import { CacheService } from "../services/cacheService";
+import { clearCorruptedCache, clearUserCache, getCacheStats } from "../services/cacheCleanup.js";
+import { CacheService } from "../services/cacheService.js";
 const router = express.Router();
 // Get cache health status
 router.get("/health", async (req, res) => {

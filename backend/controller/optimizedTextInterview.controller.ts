@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import { prisma } from "../lib/prisma";
-import { generateTextInterviewQuestions, evaluateTextAnswer } from "../services/geminiService";
+import { prisma } from "../lib/prisma.js";
+import { generateTextInterviewQuestions, evaluateTextAnswer } from "../services/geminiService.js";
 
 interface StartTextInterviewRequest {
     userId: number;

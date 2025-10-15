@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import bcrypt from "bcryptjs";
-import { prisma, safeQuery } from "../lib/prisma";
+import { prisma, safeQuery } from "../lib/prisma.js";
 import {
     generateToken,
     setTokenCookie,
@@ -9,7 +9,7 @@ import {
     verifyToken,
     JwtPayload
 } from "../utils/jwt.utils.js";
-import { CacheService } from "../services/cacheService";
+import { CacheService } from "../services/cacheService.js";
 
 
 

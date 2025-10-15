@@ -1,4 +1,4 @@
-import { CacheService } from "../services/cacheService";
+import { CacheService } from "../services/cacheService.js";
 /**
  * Redis-based rate limiting middleware
  */

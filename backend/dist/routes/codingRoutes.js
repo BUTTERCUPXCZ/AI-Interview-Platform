@@ -1,5 +1,5 @@
 import express from "express";
-import { executeCode, evaluateCode, submitAnswer, getCodingQuestion, runCodeWithEvaluation } from "../controller/coding.controller";
+import { executeCode, evaluateCode, submitAnswer, getCodingQuestion, runCodeWithEvaluation } from "../controller/coding.controller.js";
 const router = express.Router();
 // Execute code in sandbox
 router.post("/execute", executeCode);

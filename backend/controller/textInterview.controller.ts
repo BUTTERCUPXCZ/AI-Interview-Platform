@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
-import { prisma } from "../lib/prisma";
-import { generateTextInterviewQuestions, evaluateTextAnswer } from "../services/geminiService";
-import { CacheService } from "../services/cacheService";
+import { prisma } from "../lib/prisma.js";
+import { generateTextInterviewQuestions, evaluateTextAnswer } from "../services/geminiService.js";
+import { CacheService } from "../services/cacheService.js";
 import {
     getInterviewSessionById,
     // validateUserSession,
@@ -12,7 +12,7 @@ import {
     updateSessionStatus,
     isSessionExpired,
     getRemainingTime
-} from "../services/interviewSessionService";
+} from "../services/interviewSessionService.js";
 
 interface StartTextInterviewRequest {
     userId: number;
