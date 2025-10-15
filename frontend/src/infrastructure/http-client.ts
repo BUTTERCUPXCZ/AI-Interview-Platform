@@ -40,30 +40,45 @@ export class AxiosHttpClient implements HttpClient {
                 return response
             },
             (error) => {
-                if (error.response?.status === 401) {
-                    throw new UnauthorizedError()
-                }
+                // If axios has a response, map backend error
+                if (error.response) {
+                    if (error.response.status === 401) {
+                        throw new UnauthorizedError()
+                    }
 
-                if (error.response?.data?.error) {
+                    if (error.response.data?.error) {
+                        throw new DomainError(
+                            error.response.data.error,
+                            'API_ERROR',
+                            error.response.status
+                        )
+                    }
+
                     throw new DomainError(
-                        error.response.data.error,
+                        error.response.statusText || error.message || 'API error',
                         'API_ERROR',
                         error.response.status
                     )
                 }
 
-                if (error.code === 'NETWORK_ERROR') {
+                // Browser network errors typically set `code` to 'ERR_NETWORK' or undefined;
+                // axios also sets `message` containing 'Network Error'. Handle common cases.
+                const message = error.message || ''
+                if (message.toLowerCase().includes('network') || error.code === 'ERR_NETWORK' || error.code === 'ECONNABORTED') {
+                    console.warn('Axios network error detected:', { message: error.message, code: error.code })
                     throw new DomainError(
-                        'Network error. Please check your connection.',
+                        'Network error. Please check your connection or the API server.',
                         'NETWORK_ERROR',
                         0
                     )
                 }
 
+                // Fallback
+                console.error('Unexpected axios error:', error)
                 throw new DomainError(
                     error.message || 'An unexpected error occurred',
                     'UNKNOWN_ERROR',
-                    error.response?.status || 500
+                    500
                 )
             }
         )

@@ -49,6 +49,7 @@ const TextInterviewSession = () => {
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [feedback, setFeedback] = useState<SubmitAnswerResponse | null>(null)
     const [isCompleted, setIsCompleted] = useState(false)
+    const [hasTriedStart, setHasTriedStart] = useState(false)
 
     // Get interview progress
     const { data: progressData } = useGetInterviewProgress(sessionId || 0, !!sessionId)
@@ -82,25 +83,30 @@ const TextInterviewSession = () => {
     }, [sessionId, completeInterview, navigate, config])
 
     const startTextInterviewCallback = useCallback(() => {
-        if (user) {
-            startTextInterview.mutate(
-                { config, userId: user.id },
-                {
-                    onSuccess: (data) => {
-                        const typedData = data as StartTextInterviewResponse
-                        setSessionId(typedData.session.id)
-                        setCurrentQuestion(typedData.currentQuestion)
-                        setQuestionNumber(1)
-                        setTotalQuestions(typedData.currentQuestion?.totalQuestions || 5)
-                    },
-                    onError: (error) => {
-                        console.error('Failed to start optimized text interview:', error)
-                        // Navigate back to setup on error
-                        navigate('/interview-setup')
-                    }
+        if (!user) return
+
+        // Avoid firing multiple start requests if one is already in-flight or we've already tried
+        if (startTextInterview.isPending || hasTriedStart) return
+
+        setHasTriedStart(true)
+
+        startTextInterview.mutate(
+            { config, userId: user.id },
+            {
+                onSuccess: (data) => {
+                    const typedData = data as StartTextInterviewResponse
+                    setSessionId(typedData.session.id)
+                    setCurrentQuestion(typedData.currentQuestion)
+                    setQuestionNumber(1)
+                    setTotalQuestions(typedData.currentQuestion?.totalQuestions || 5)
+                },
+                onError: (error) => {
+                    console.error('Failed to start optimized text interview:', error)
+                    // Navigate back to setup on error
+                    navigate('/interview-setup')
                 }
-            )
-        }
+            }
+        )
     }, [config, user, startTextInterview, navigate])
 
     // Start interview if not already started
@@ -108,14 +114,17 @@ const TextInterviewSession = () => {
         if (!sessionId && config && user) {
             // Check if we have a loading state from navigation
             if (config.isLoading || !config.sessionId) {
-                startTextInterviewCallback()
+                // Only attempt to start if we haven't already tried and no start is pending
+                if (!hasTriedStart && !startTextInterview.isPending) {
+                    startTextInterviewCallback()
+                }
             } else {
                 // Use existing session data
                 setSessionId(config.sessionId)
                 setCurrentQuestion(config.currentQuestion || null)
             }
         }
-    }, [config, user, sessionId, startTextInterviewCallback])
+    }, [config, user, sessionId, startTextInterviewCallback, hasTriedStart, startTextInterview.isPending])
 
     // Timer countdown
     useEffect(() => {
