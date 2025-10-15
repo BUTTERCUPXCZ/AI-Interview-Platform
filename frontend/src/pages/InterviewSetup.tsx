@@ -285,14 +285,15 @@ const InterviewSetup = () => {
 
                                     <div className="grid gap-4 md:grid-cols-2">
                                         <div
-                                            className={`p-6 rounded-2xl border-2 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-105 ${config.enableCodingSandbox
-                                                ? 'border-primary bg-gradient-to-br from-primary/10 to-primary/5 shadow-md'
-                                                : 'border-border hover:border-primary/50 bg-gradient-to-br from-card to-muted/20'
-                                                }`}
-                                            onClick={() => setConfig(prev => ({ ...prev, enableCodingSandbox: true }))}
+                                            className="relative p-6 rounded-2xl border-2 border-border bg-gradient-to-br from-card to-muted/20 opacity-60 cursor-not-allowed"
                                         >
+                                            <div className="absolute top-4 right-4">
+                                                <span className="px-2 py-1 text-xs font-semibold bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 rounded-full border border-yellow-500/30">
+                                                    Coming Soon
+                                                </span>
+                                            </div>
                                             <div className="flex flex-col items-start gap-3">
-                                                <div className="p-3 rounded-xl bg-green-500/10 group-hover:bg-green-500/20 transition-colors">
+                                                <div className="p-3 rounded-xl bg-green-500/10">
                                                     <Code className="h-6 w-6 text-green-500" />
                                                 </div>
                                                 <div>
@@ -316,15 +317,10 @@ const InterviewSetup = () => {
                                                     </div>
                                                 </div>
                                             </div>
-                                            {config.enableCodingSandbox && (
-                                                <div className="absolute top-4 right-4">
-                                                    <CheckCircle className="h-5 w-5 text-primary" />
-                                                </div>
-                                            )}
                                         </div>
 
                                         <div
-                                            className={`p-6 rounded-2xl border-2 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-105 ${!config.enableCodingSandbox
+                                            className={`group relative p-6 rounded-2xl border-2 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-105 ${!config.enableCodingSandbox
                                                 ? 'border-primary bg-gradient-to-br from-primary/10 to-primary/5 shadow-md'
                                                 : 'border-border hover:border-primary/50 bg-gradient-to-br from-card to-muted/20'
                                                 }`}
