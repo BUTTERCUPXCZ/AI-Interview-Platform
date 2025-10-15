@@ -8,6 +8,8 @@ const config: Config = {
     },
     moduleFileExtensions: ['ts', 'js', 'json', 'node'],
     testMatch: ['**/__tests__/**/*.test.(ts|js)'],
+    // ignore compiled output and other build artifacts
+    testPathIgnorePatterns: ['/node_modules/', '/dist/'],
     extensionsToTreatAsEsm: ['.ts'],
     globals: {
         'ts-jest': {
