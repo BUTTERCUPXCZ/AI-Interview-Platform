@@ -14,7 +14,7 @@ import { cn } from '../lib/utils'
 import { useLogin } from '../hooks/useAuth'
 
 
-interface LoginFormProps extends React.ComponentProps<"div"> { }
+type LoginFormProps = React.ComponentProps<"div">
 
 function LoginForm({ className, ...props }: LoginFormProps) {
     const navigate = useNavigate();
@@ -35,8 +35,9 @@ function LoginForm({ className, ...props }: LoginFormProps) {
             await loginMutation.mutateAsync(formData)
             // Redirect to dashboard or home page after successful login
             navigate('/dashboard') // You can change this to your desired route
-        } catch (error: any) {
-            setErrors(error.response?.data?.message || 'Login failed. Please try again.')
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Login failed. Please try again.'
+            setErrors(errorMessage)
         }
     }
 

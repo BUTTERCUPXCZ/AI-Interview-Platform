@@ -13,7 +13,7 @@ import {
 import { cn } from '../lib/utils'
 import { useRegister } from '../hooks/useAuth'
 
-interface RegisterFormProps extends React.ComponentProps<"div"> { }
+type RegisterFormProps = React.ComponentProps<"div">
 
 function RegisterForm({ className, ...props }: RegisterFormProps) {
     const navigate = useNavigate();
@@ -53,8 +53,9 @@ function RegisterForm({ className, ...props }: RegisterFormProps) {
             })
             // Redirect to dashboard or home page after successful registration
             navigate('/dashboard') // You can change this to your desired route
-        } catch (error: any) {
-            setErrors(error.response?.data?.message || 'Registration failed. Please try again.')
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Registration failed. Please try again.'
+            setErrors(errorMessage)
         }
     }
 

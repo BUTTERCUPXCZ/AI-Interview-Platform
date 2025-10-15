@@ -75,7 +75,7 @@ export const configureMonacoLanguages = () => {
     monaco.languages.register({ id: 'java' })
     monaco.languages.setMonarchTokensProvider('java', {
         // Define symbols used in the tokenizer
-        symbols: /[=><!~?:&|+\-*\/\^%]+/,
+        symbols: /[=><!~?:&|+\-*/^%]+/,
 
         tokenizer: {
             root: [
@@ -89,7 +89,7 @@ export const configureMonacoLanguages = () => {
                 [/"([^"\\]|\\.)*$/, 'string.invalid'],
                 [/"/, 'string', '@string'],
                 [/\d+/, 'number'],
-                [/[{}()\[\]]/, '@brackets'],
+                [/[{}()[\]]/, '@brackets'],
                 [/[<>](?!@symbols)/, '@brackets'],
                 [/@symbols/, 'operator'],
                 [/[a-zA-Z_$][\w$]*/, 'identifier']
@@ -118,7 +118,7 @@ export const configureMonacoLanguages = () => {
             '>>', '>>>', '+=', '-=', '*=', '/=', '&=', '|=', '^=', '%=', '<<=', '>>=', '>>>='
         ],
 
-        symbols: /[=><!~?:&|+\-*\/\^%]+/,
+        symbols: /[=><!~?:&|+\-*/^%]+/,
 
         tokenizer: {
             root: [
@@ -128,10 +128,10 @@ export const configureMonacoLanguages = () => {
                 [/'''[\s\S]*?'''/, 'string'],
                 [/"([^"\\]|\\.)*"/, 'string'],
                 [/'([^'\\]|\\.)*'/, 'string'],
-                [/\d*\.\d+([eE][\-+]?\d+)?/, 'number.float'],
+                [/\d*\.\d+([eE][-+]?\d+)?/, 'number.float'],
                 [/0[xX][0-9a-fA-F]+/, 'number.hex'],
                 [/\d+/, 'number'],
-                [/[{}()\[\]]/, '@brackets'],
+                [/[{}()[\]]/, '@brackets'],
                 [/@symbols/, { cases: { '@operators': 'operator', '@default': '' } }]
             ]
         }
@@ -156,7 +156,7 @@ export const configureMonacoLanguages = () => {
             '>>', '>>>', '+=', '-=', '*=', '/=', '&=', '|=', '^=', '%=', '<<=', '>>=', '>>>='
         ],
 
-        symbols: /[=><!~?:&|+\-*\/\^%]+/,
+        symbols: /[=><!~?:&|+\-*/^%]+/,
 
         tokenizer: {
             root: [
@@ -166,10 +166,10 @@ export const configureMonacoLanguages = () => {
                 [/#include.*$/, 'keyword'],
                 [/#define.*$/, 'keyword'],
                 [/"([^"\\]|\\.)*"/, 'string'],
-                [/\d*\.\d+([eE][\-+]?\d+)?/, 'number.float'],
+                [/\d*\.\d+([eE][-+]?\d+)?/, 'number.float'],
                 [/0[xX][0-9a-fA-F]+/, 'number.hex'],
                 [/\d+/, 'number'],
-                [/[{}()\[\]]/, '@brackets'],
+                [/[{}()[\]]/, '@brackets'],
                 [/@symbols/, { cases: { '@operators': 'operator', '@default': '' } }]
             ]
         }
@@ -182,7 +182,7 @@ export const validateCode = (code: string, language: string): { errors: string[]
     const warnings: string[] = []
 
     switch (language.toLowerCase()) {
-        case 'java':
+        case 'java': {
             if (!code.includes('public class')) {
                 errors.push('Java code must contain a public class declaration')
             }
@@ -190,8 +190,9 @@ export const validateCode = (code: string, language: string): { errors: string[]
                 warnings.push('Consider adding a main method for executable Java code')
             }
             break
+        }
 
-        case 'python':
+        case 'python': {
             // Check for common Python syntax issues
             const lines = code.split('\n')
             lines.forEach((line, index) => {
@@ -200,9 +201,10 @@ export const validateCode = (code: string, language: string): { errors: string[]
                 }
             })
             break
+        }
 
         case 'javascript':
-        case 'typescript':
+        case 'typescript': {
             // Basic syntax checks
             const openBraces = (code.match(/{/g) || []).length
             const closeBraces = (code.match(/}/g) || []).length
@@ -216,9 +218,10 @@ export const validateCode = (code: string, language: string): { errors: string[]
                 errors.push('Mismatched parentheses: ensure all opening parentheses have closing parentheses')
             }
             break
+        }
 
         case 'cpp':
-        case 'c++':
+        case 'c++': {
             if (!code.includes('#include')) {
                 warnings.push('C++ code typically includes header files with #include directives')
             }
@@ -226,6 +229,7 @@ export const validateCode = (code: string, language: string): { errors: string[]
                 warnings.push('C++ executable code requires a main function')
             }
             break
+        }
     }
 
     return { errors, warnings }
@@ -234,8 +238,8 @@ export const validateCode = (code: string, language: string): { errors: string[]
 // Enhanced code completion for different languages
 export const getLanguageCompletionItems = (language: string) => {
     switch (language.toLowerCase()) {
-        case 'java':
-            return [
+        case 'java': {
+            const javaSnippets = [
                 {
                     label: 'sysout',
                     kind: monaco.languages.CompletionItemKind.Snippet,
@@ -251,9 +255,11 @@ export const getLanguageCompletionItems = (language: string) => {
                     documentation: 'Main method'
                 }
             ]
+            return javaSnippets
+        }
 
-        case 'python':
-            return [
+        case 'python': {
+            const pythonSnippets = [
                 {
                     label: 'def',
                     kind: monaco.languages.CompletionItemKind.Snippet,
@@ -269,10 +275,12 @@ export const getLanguageCompletionItems = (language: string) => {
                     documentation: 'Class definition'
                 }
             ]
+            return pythonSnippets
+        }
 
         case 'javascript':
-        case 'typescript':
-            return [
+        case 'typescript': {
+            const jsSnippets = [
                 {
                     label: 'function',
                     kind: monaco.languages.CompletionItemKind.Snippet,
@@ -288,6 +296,8 @@ export const getLanguageCompletionItems = (language: string) => {
                     documentation: 'Arrow function'
                 }
             ]
+            return jsSnippets
+        }
 
         default:
             return []

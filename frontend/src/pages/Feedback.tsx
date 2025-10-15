@@ -26,9 +26,11 @@ import {
     Download
 } from 'lucide-react'
 
+import type { InterviewConfig } from '@/domain/entities'
+
 interface LocationState {
     sessionId?: number
-    config?: any
+    config?: InterviewConfig
 }
 
 const Feedback = () => {
@@ -45,7 +47,7 @@ const Feedback = () => {
 
     // Generate feedback if it doesn't exist
     useEffect(() => {
-        if (sessionId && error && (error as any)?.status === 404 && !generateFeedback.isPending) {
+        if (sessionId && error && error && typeof error === 'object' && 'status' in error && error.status === 404 && !generateFeedback.isPending) {
             generateFeedback.mutate(sessionId)
         }
     }, [sessionId, error, generateFeedback])
@@ -97,7 +99,7 @@ const Feedback = () => {
         )
     }
 
-    if (error && (error as any)?.status !== 404) {
+    if (error && error && typeof error === 'object' && 'status' in error && error.status !== 404) {
         return (
             <div className="flex h-screen bg-background">
                 <Sidebar />
@@ -340,7 +342,7 @@ const Feedback = () => {
                                                 <div className="w-full bg-gray-200 rounded-full h-2">
                                                     <div
                                                         className={`h-2 rounded-full transition-all duration-500 ${feedback.categoryScores.technicalAccuracy >= 80 ? 'bg-green-500' :
-                                                                feedback.categoryScores.technicalAccuracy >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                                                            feedback.categoryScores.technicalAccuracy >= 60 ? 'bg-yellow-500' : 'bg-red-500'
                                                             }`}
                                                         style={{ width: `${feedback.categoryScores.technicalAccuracy}%` }}
                                                     ></div>
@@ -361,7 +363,7 @@ const Feedback = () => {
                                                 <div className="w-full bg-gray-200 rounded-full h-2">
                                                     <div
                                                         className={`h-2 rounded-full transition-all duration-500 ${feedback.categoryScores.problemSolving >= 80 ? 'bg-green-500' :
-                                                                feedback.categoryScores.problemSolving >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                                                            feedback.categoryScores.problemSolving >= 60 ? 'bg-yellow-500' : 'bg-red-500'
                                                             }`}
                                                         style={{ width: `${feedback.categoryScores.problemSolving}%` }}
                                                     ></div>
@@ -382,7 +384,7 @@ const Feedback = () => {
                                                 <div className="w-full bg-gray-200 rounded-full h-2">
                                                     <div
                                                         className={`h-2 rounded-full transition-all duration-500 ${feedback.categoryScores.communicationClarity >= 80 ? 'bg-green-500' :
-                                                                feedback.categoryScores.communicationClarity >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                                                            feedback.categoryScores.communicationClarity >= 60 ? 'bg-yellow-500' : 'bg-red-500'
                                                             }`}
                                                         style={{ width: `${feedback.categoryScores.communicationClarity}%` }}
                                                     ></div>
@@ -403,7 +405,7 @@ const Feedback = () => {
                                                 <div className="w-full bg-gray-200 rounded-full h-2">
                                                     <div
                                                         className={`h-2 rounded-full transition-all duration-500 ${feedback.categoryScores.confidenceLogicalFlow >= 80 ? 'bg-green-500' :
-                                                                feedback.categoryScores.confidenceLogicalFlow >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                                                            feedback.categoryScores.confidenceLogicalFlow >= 60 ? 'bg-yellow-500' : 'bg-red-500'
                                                             }`}
                                                         style={{ width: `${feedback.categoryScores.confidenceLogicalFlow}%` }}
                                                     ></div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -8,8 +8,9 @@ import {
     useFastNextQuestion,
     useFastSubmitAnswer
 } from '../hooks/useOptimizedInterview'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../contexts/useAuthContext'
 import type { InterviewConfig } from '../domain/entities'
+import type { TextInterviewQuestion, SubmitAnswerResponse, NextQuestionResponse, StartTextInterviewResponse } from '@/application/services'
 import InterviewLoading from '@/components/InterviewLoading'
 import {
     Clock,
@@ -20,7 +21,7 @@ import {
 
 interface TextInterviewSessionConfig extends InterviewConfig {
     sessionId?: number
-    currentQuestion?: any
+    currentQuestion?: TextInterviewQuestion
     isLoading?: boolean
     userId?: number
 }
@@ -40,46 +41,81 @@ const TextInterviewSession = () => {
 
     // State
     const [sessionId, setSessionId] = useState<number | null>(config?.sessionId || null)
-    const [currentQuestion, setCurrentQuestion] = useState<any>(config?.currentQuestion || null)
+    const [currentQuestion, setCurrentQuestion] = useState<TextInterviewQuestion | null>(config?.currentQuestion || null)
     const [currentAnswer, setCurrentAnswer] = useState('')
     const [questionNumber, setQuestionNumber] = useState(1)
     const [totalQuestions, setTotalQuestions] = useState(5)
     const [timeRemaining, setTimeRemaining] = useState((config?.duration || 30) * 60) // Convert to seconds
     const [isSubmitting, setIsSubmitting] = useState(false)
-    const [feedback, setFeedback] = useState<any>(null)
+    const [feedback, setFeedback] = useState<SubmitAnswerResponse | null>(null)
     const [isCompleted, setIsCompleted] = useState(false)
 
     // Get interview progress
     const { data: progressData } = useGetInterviewProgress(sessionId || 0, !!sessionId)
+
+    const handleCompleteInterview = useCallback(async () => {
+        if (!sessionId) return
+
+        try {
+            await new Promise((resolve, reject) => {
+                completeInterview.mutate(sessionId, {
+                    onSuccess: (data) => resolve(data),
+                    onError: (error) => reject(error)
+                })
+            })
+
+            setIsCompleted(true)
+
+            // Navigate to enhanced feedback page
+            setTimeout(() => {
+                navigate('/enhanced-feedback', {
+                    state: {
+                        sessionId,
+                        type: 'text',
+                        config
+                    }
+                })
+            }, 2000)
+        } catch (error) {
+            console.error('Failed to complete interview:', error)
+        }
+    }, [sessionId, completeInterview, navigate, config])
+
+    const startTextInterviewCallback = useCallback(() => {
+        if (user) {
+            startTextInterview.mutate(
+                { config, userId: user.id },
+                {
+                    onSuccess: (data) => {
+                        const typedData = data as StartTextInterviewResponse
+                        setSessionId(typedData.session.id)
+                        setCurrentQuestion(typedData.currentQuestion)
+                        setQuestionNumber(1)
+                        setTotalQuestions(typedData.currentQuestion?.totalQuestions || 5)
+                    },
+                    onError: (error) => {
+                        console.error('Failed to start optimized text interview:', error)
+                        // Navigate back to setup on error
+                        navigate('/interview-setup')
+                    }
+                }
+            )
+        }
+    }, [config, user, startTextInterview, navigate])
 
     // Start interview if not already started
     useEffect(() => {
         if (!sessionId && config && user) {
             // Check if we have a loading state from navigation
             if (config.isLoading || !config.sessionId) {
-                startTextInterview.mutate(
-                    { config, userId: user.id },
-                    {
-                        onSuccess: (data: any) => {
-                            setSessionId(data.session.id)
-                            setCurrentQuestion(data.currentQuestion)
-                            setQuestionNumber(1)
-                            setTotalQuestions(data.currentQuestion?.totalQuestions || 5)
-                        },
-                        onError: (error: any) => {
-                            console.error('Failed to start optimized text interview:', error)
-                            // Navigate back to setup on error
-                            navigate('/interview-setup')
-                        }
-                    }
-                )
+                startTextInterviewCallback()
             } else {
                 // Use existing session data
                 setSessionId(config.sessionId)
-                setCurrentQuestion(config.currentQuestion)
+                setCurrentQuestion(config.currentQuestion || null)
             }
         }
-    }, [config, user, sessionId])
+    }, [config, user, sessionId, startTextInterviewCallback])
 
     // Timer countdown
     useEffect(() => {
@@ -91,7 +127,7 @@ const TextInterviewSession = () => {
         } else if (timeRemaining === 0) {
             handleCompleteInterview()
         }
-    }, [timeRemaining, isCompleted])
+    }, [timeRemaining, isCompleted, handleCompleteInterview])
 
     // Update progress from API
     useEffect(() => {
@@ -107,7 +143,7 @@ const TextInterviewSession = () => {
 
         setIsSubmitting(true)
         try {
-            const result = await new Promise((resolve, reject) => {
+            const result = await new Promise<SubmitAnswerResponse>((resolve, reject) => {
                 submitAnswer.mutate(
                     {
                         sessionId,
@@ -115,7 +151,7 @@ const TextInterviewSession = () => {
                         answer: currentAnswer.trim()
                     },
                     {
-                        onSuccess: (data) => resolve(data),
+                        onSuccess: (data) => resolve(data as SubmitAnswerResponse),
                         onError: (error) => reject(error)
                     }
                 )
@@ -140,59 +176,29 @@ const TextInterviewSession = () => {
         try {
             console.log('Fetching next question after question:', currentQuestion.id, 'Question number:', questionNumber)
 
-            const result = await new Promise((resolve, reject) => {
+            const result = await new Promise<NextQuestionResponse>((resolve, reject) => {
                 getNextQuestion.mutate(
                     { sessionId, currentQuestionId: currentQuestion.id },
                     {
-                        onSuccess: (data) => resolve(data),
+                        onSuccess: (data) => resolve(data as NextQuestionResponse),
                         onError: (error) => reject(error)
                     }
                 )
             })
 
-            const nextData = result as any
-            console.log('Next question response:', nextData)
+            console.log('Next question response:', result)
 
-            if (nextData.completed) {
+            if (result.completed) {
                 console.log('Interview completed, proceeding to complete interview')
                 handleCompleteInterview()
-            } else {
-                console.log('Moving to next question:', nextData.currentQuestion.questionNumber)
-                setCurrentQuestion(nextData.currentQuestion)
-                setQuestionNumber(nextData.currentQuestion.questionNumber)
+            } else if (result.currentQuestion) {
+                console.log('Moving to next question:', result.currentQuestion.questionNumber)
+                setCurrentQuestion(result.currentQuestion)
+                setQuestionNumber(result.currentQuestion.questionNumber)
                 setFeedback(null)
             }
         } catch (error) {
             console.error('Failed to get next question:', error)
-        }
-    }
-
-    const handleCompleteInterview = async () => {
-        if (!sessionId) return
-
-        try {
-            await new Promise((resolve, reject) => {
-                completeInterview.mutate(sessionId, {
-                    onSuccess: (data) => resolve(data),
-                    onError: (error) => reject(error)
-                })
-            })
-
-            setIsCompleted(true)
-
-            // Navigate to enhanced feedback page
-            setTimeout(() => {
-                navigate('/enhanced-feedback', {
-                    state: {
-                        sessionId,
-                        type: 'text',
-                        config
-                    }
-                })
-            }, 2000)
-
-        } catch (error) {
-            console.error('Failed to complete interview:', error)
         }
     }
 

@@ -3,7 +3,7 @@ import Navbar from '@/components/Navbar'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/contexts/useAuthContext'
 import { useDashboardData } from '@/hooks/useDashboard'
 import {
     Calendar,

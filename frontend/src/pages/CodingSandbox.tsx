@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -7,8 +7,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import CodeEditor from '@/components/CodeEditor'
 import Sidebar from '@/components/Sidebar'
 import Navbar from '@/components/Navbar'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../contexts/useAuthContext'
 import { useExecuteCode, useSubmitAnswer } from '../hooks/useInterview'
+import type { CodingQuestion, InterviewConfig } from '@/domain/entities'
 import {
     Play,
     CheckCircle2,
@@ -22,30 +23,8 @@ import {
     AlertTriangle
 } from 'lucide-react'
 
-interface TestCase {
-    input: string
-    expectedOutput: string
-    description?: string
-    actualOutput?: string
-    passed?: boolean
-    error?: string
-}
-
-interface CodingQuestion {
-    id?: number
-    title: string
-    description: string
-    difficulty: string
-    language: string
-    starterCode: string
-    testCases: TestCase[]
-    hints?: string[]
-    timeComplexityExpected?: string
-    spaceComplexityExpected?: string
-}
-
 interface CodingSandboxState {
-    sessionId?: number
+    sessionId: number
     domain: string
     difficulty: string
     language: string
@@ -53,7 +32,7 @@ interface CodingSandboxState {
     question?: CodingQuestion
     isLoading?: boolean
     userId?: number
-    config?: any
+    config?: InterviewConfig
 }
 
 interface ExecutionResult {
@@ -61,7 +40,13 @@ interface ExecutionResult {
     output?: string
     error?: string
     executionTime: number
-    testResults?: TestCase[]
+    testResults?: Array<{
+        passed: boolean
+        input: string
+        expectedOutput: string
+        actualOutput?: string
+        error?: string
+    }>
     isSimulated?: boolean
     installationGuide?: string
     runtimeMissing?: boolean
@@ -115,6 +100,8 @@ const CodingSandbox = () => {
                 starterCode: `// Write your ${state.language} solution here\n// Use the editor below to implement your solution\n\nfunction solution() {\n    // Your code here\n    return null;\n}\n`,
                 testCases: [
                     {
+                        id: 1,
+                        questionId: 0,
                         input: "test input",
                         expectedOutput: "expected output",
                         description: "Test case 1"
@@ -123,8 +110,10 @@ const CodingSandbox = () => {
                 hints: [
                     "Break down the problem into smaller steps",
                     "Consider edge cases and boundary conditions",
-                    "Think about time and space complexity"
-                ]
+                    "Think about the time and space complexity"
+                ],
+                timeComplexityExpected: "O(n)",
+                spaceComplexityExpected: "O(1)"
             }
             setQuestion(defaultQuestion)
             setCode(defaultQuestion.starterCode)
@@ -135,31 +124,13 @@ const CodingSandbox = () => {
         }
     }, [state, navigate])
 
-    // Timer countdown
-    useEffect(() => {
-        if (timeRemaining <= 0) return
-
-        const timer = setInterval(() => {
-            setTimeRemaining(prev => {
-                if (prev <= 1) {
-                    // Time's up - auto submit
-                    handleSubmitSolution()
-                    return 0
-                }
-                return prev - 1
-            })
-        }, 1000)
-
-        return () => clearInterval(timer)
-    }, [timeRemaining])
-
     const formatTime = (seconds: number) => {
         const minutes = Math.floor(seconds / 60)
         const remainingSeconds = seconds % 60
         return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`
     }
 
-    const handleRunCode = async () => {
+    const handleRunCode = useCallback(async () => {
         if (!question || !code.trim()) return
 
         try {
@@ -192,11 +163,9 @@ const CodingSandbox = () => {
             })
             setIsExecuting(false)
         }
-    }
+    }, [question, code, state.language, executeCode])
 
-
-
-    const handleSubmitSolution = async () => {
+    const handleSubmitSolution = useCallback(async () => {
         if (!question || !code.trim()) return
 
         try {
@@ -234,7 +203,25 @@ const CodingSandbox = () => {
             console.error('Submit solution error:', error)
             setIsSubmitting(false)
         }
-    }
+    }, [question, code, executionResult, submitAnswer, navigate, state.sessionId, handleRunCode])
+
+    // Timer countdown
+    useEffect(() => {
+        if (timeRemaining <= 0) return
+
+        const timer = setInterval(() => {
+            setTimeRemaining(prev => {
+                if (prev <= 1) {
+                    // Time's up - auto submit
+                    handleSubmitSolution()
+                    return 0
+                }
+                return prev - 1
+            })
+        }, 1000)
+
+        return () => clearInterval(timer)
+    }, [timeRemaining, handleSubmitSolution])
 
     const getDifficultyColor = (difficulty: string) => {
         switch (difficulty.toLowerCase()) {

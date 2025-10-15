@@ -9,9 +9,52 @@ import type {
     CodeExecutionResult,
     InterviewConfig,
     ApiResponse,
-    SessionFeedback
+    SessionFeedback,
+    SessionStatus
 } from '../domain/entities'
 import type { HttpClient } from '../infrastructure/http-client'
+
+// Additional types for text interview responses
+export interface TextInterviewQuestion {
+    id: number
+    questionText: string
+    questionNumber: number
+    totalQuestions: number
+}
+
+export interface StartTextInterviewResponse {
+    session: InterviewSession
+    currentQuestion: TextInterviewQuestion
+}
+
+export interface InterviewProgressResponse {
+    answeredQuestions: number
+    totalQuestions: number
+    remainingTime: number
+}
+
+export interface CompleteTextInterviewResponse {
+    completed: boolean
+    sessionId: number
+}
+
+export interface InterviewSummaryResponse {
+    session: InterviewSession
+    totalScore: number
+    answeredQuestions: number
+}
+
+export interface NextQuestionResponse {
+    completed: boolean
+    currentQuestion?: TextInterviewQuestion
+}
+
+export interface SubmitAnswerResponse {
+    success: boolean
+    feedback?: string
+    score?: number
+    aiEvaluation?: string
+}
 
 // Repository interfaces (dependency inversion principle)
 export interface InterviewRepository {
@@ -19,10 +62,10 @@ export interface InterviewRepository {
     getSession(sessionId: number): Promise<InterviewSession>
     updateSession(sessionId: number, updates: Partial<InterviewSession>): Promise<InterviewSession>
     // Text interview methods
-    startTextInterview(sessionData: CreateSessionRequest): Promise<{ session: InterviewSession; currentQuestion: any }>
-    getInterviewProgress(sessionId: number): Promise<any>
-    completeTextInterview(sessionId: number): Promise<any>
-    getInterviewSummary(sessionId: number): Promise<any>
+    startTextInterview(sessionData: CreateSessionRequest): Promise<StartTextInterviewResponse>
+    getInterviewProgress(sessionId: number): Promise<InterviewProgressResponse>
+    completeTextInterview(sessionId: number): Promise<CompleteTextInterviewResponse>
+    getInterviewSummary(sessionId: number): Promise<InterviewSummaryResponse>
 }
 
 export interface QuestionRepository {
@@ -30,8 +73,8 @@ export interface QuestionRepository {
     getQuestions(sessionId: number): Promise<InterviewQuestion[]>
     submitAnswer(request: SubmitAnswerRequest): Promise<InterviewQuestion>
     // Text interview methods
-    getNextTextQuestion(sessionId: number, currentQuestionId?: number): Promise<any>
-    submitTextAnswer(sessionId: number, questionId: number, answer: string): Promise<any>
+    getNextTextQuestion(sessionId: number, currentQuestionId?: number): Promise<NextQuestionResponse>
+    submitTextAnswer(sessionId: number, questionId: number, answer: string): Promise<SubmitAnswerResponse>
 }
 
 export interface CodingRepository {
@@ -128,7 +171,7 @@ export class InterviewService {
         }
     }
 
-    async startTextInterview(config: InterviewConfig, userId: number): Promise<{ session: InterviewSession; currentQuestion: any }> {
+    async startTextInterview(config: InterviewConfig, userId: number): Promise<StartTextInterviewResponse> {
         const sessionData: CreateSessionRequest = {
             userId,
             domain: config.domain,
@@ -143,23 +186,23 @@ export class InterviewService {
         return this.interviewRepo.startTextInterview(sessionData)
     }
 
-    async getNextTextQuestion(sessionId: number, currentQuestionId?: number): Promise<any> {
+    async getNextTextQuestion(sessionId: number, currentQuestionId?: number): Promise<NextQuestionResponse> {
         return this.questionRepo.getNextTextQuestion(sessionId, currentQuestionId)
     }
 
-    async submitTextAnswer(sessionId: number, questionId: number, answer: string): Promise<any> {
+    async submitTextAnswer(sessionId: number, questionId: number, answer: string): Promise<SubmitAnswerResponse> {
         return this.questionRepo.submitTextAnswer(sessionId, questionId, answer)
     }
 
-    async getInterviewProgress(sessionId: number): Promise<any> {
+    async getInterviewProgress(sessionId: number): Promise<InterviewProgressResponse> {
         return this.interviewRepo.getInterviewProgress(sessionId)
     }
 
-    async completeTextInterview(sessionId: number): Promise<any> {
+    async completeTextInterview(sessionId: number): Promise<CompleteTextInterviewResponse> {
         return this.interviewRepo.completeTextInterview(sessionId)
     }
 
-    async getInterviewSummary(sessionId: number): Promise<any> {
+    async getInterviewSummary(sessionId: number): Promise<InterviewSummaryResponse> {
         return this.interviewRepo.getInterviewSummary(sessionId)
     }
 
@@ -201,7 +244,7 @@ export class InterviewService {
 
         // Update session to completed status
         await this.interviewRepo.updateSession(sessionId, {
-            status: 'COMPLETED' as any,
+            status: 'COMPLETED' as SessionStatus,
             endedAt: new Date(),
             totalScore: feedback.overallScore || 0
         })
@@ -221,7 +264,7 @@ export class ApiInterviewRepository implements InterviewRepository {
     async createSession(sessionData: CreateSessionRequest): Promise<InterviewSession> {
         // Check if it's a text interview and use the appropriate endpoint
         if (sessionData.format === 'Text') {
-            const response = await this.httpClient.post<{ session: InterviewSession; currentQuestion: any }>('/interview/text/start', sessionData)
+            const response = await this.httpClient.post<StartTextInterviewResponse>('/interview/text/start', sessionData)
             return response.session
         } else {
             const response = await this.httpClient.post<ApiResponse<{ session: InterviewSession; questions: InterviewQuestion[] }>>('/interview/session/create', sessionData)
@@ -238,20 +281,20 @@ export class ApiInterviewRepository implements InterviewRepository {
     }
 
     // Text interview methods
-    async startTextInterview(sessionData: CreateSessionRequest): Promise<{ session: InterviewSession; currentQuestion: any }> {
-        return this.httpClient.post<{ session: InterviewSession; currentQuestion: any }>('/interview/text/start', sessionData)
+    async startTextInterview(sessionData: CreateSessionRequest): Promise<StartTextInterviewResponse> {
+        return this.httpClient.post<StartTextInterviewResponse>('/interview/text/start', sessionData)
     }
 
-    async getInterviewProgress(sessionId: number): Promise<any> {
-        return this.httpClient.get(`/interview/text/session/${sessionId}/progress`)
+    async getInterviewProgress(sessionId: number): Promise<InterviewProgressResponse> {
+        return this.httpClient.get<InterviewProgressResponse>(`/interview/text/session/${sessionId}/progress`)
     }
 
-    async completeTextInterview(sessionId: number): Promise<any> {
-        return this.httpClient.post(`/interview/text/session/${sessionId}/complete`, {})
+    async completeTextInterview(sessionId: number): Promise<CompleteTextInterviewResponse> {
+        return this.httpClient.post<CompleteTextInterviewResponse>(`/interview/text/session/${sessionId}/complete`, {})
     }
 
-    async getInterviewSummary(sessionId: number): Promise<any> {
-        return this.httpClient.get(`/interview/text/session/${sessionId}/summary`)
+    async getInterviewSummary(sessionId: number): Promise<InterviewSummaryResponse> {
+        return this.httpClient.get<InterviewSummaryResponse>(`/interview/text/session/${sessionId}/summary`)
     }
 }
 
@@ -283,13 +326,13 @@ export class ApiQuestionRepository implements QuestionRepository {
     }
 
     // Text interview methods
-    async getNextTextQuestion(sessionId: number, currentQuestionId?: number): Promise<any> {
+    async getNextTextQuestion(sessionId: number, currentQuestionId?: number): Promise<NextQuestionResponse> {
         const params = currentQuestionId ? `?currentQuestionId=${currentQuestionId}` : ''
-        return this.httpClient.get(`/interview/text/session/${sessionId}/next-question${params}`)
+        return this.httpClient.get<NextQuestionResponse>(`/interview/text/session/${sessionId}/next-question${params}`)
     }
 
-    async submitTextAnswer(sessionId: number, questionId: number, answer: string): Promise<any> {
-        return this.httpClient.post('/interview/text/answer', {
+    async submitTextAnswer(sessionId: number, questionId: number, answer: string): Promise<SubmitAnswerResponse> {
+        return this.httpClient.post<SubmitAnswerResponse>('/interview/text/answer', {
             sessionId,
             questionId,
             answer

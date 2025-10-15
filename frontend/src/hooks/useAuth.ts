@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { userlogin, userRegister, userlogout } from '../api/auth';
+import axios from 'axios';
 
 export interface LoginCredentials {
     email: string;
@@ -38,9 +39,11 @@ export const useLogin = () => {
 
             console.log('Login successful:', data.message);
         },
-        onError: (error: any) => {
+        onError: (error) => {
             // Handle different types of errors
-            const errorMessage = error.response?.data?.message || error.message || 'Login failed';
+            const errorMessage = axios.isAxiosError(error)
+                ? error.response?.data?.message || error.message || 'Login failed'
+                : 'Login failed';
             console.error('Login error:', errorMessage);
         },
     });
@@ -59,9 +62,11 @@ export const useRegister = () => {
 
             console.log('Registration successful:', data.message);
         },
-        onError: (error: any) => {
+        onError: (error) => {
             // Handle different types of errors
-            const errorMessage = error.response?.data?.message || error.message || 'Registration failed';
+            const errorMessage = axios.isAxiosError(error)
+                ? error.response?.data?.message || error.message || 'Registration failed'
+                : 'Registration failed';
             console.error('Registration error:', errorMessage);
         },
     });
@@ -83,12 +88,14 @@ export const useLogout = () => {
 
             console.log('Logout successful:', data.message);
         },
-        onError: (error: any) => {
+        onError: (error) => {
             // Even if logout fails on server, clear local state
             queryClient.setQueryData(['user'], null);
             queryClient.clear();
 
-            const errorMessage = error.response?.data?.message || error.message || 'Logout failed';
+            const errorMessage = axios.isAxiosError(error)
+                ? error.response?.data?.message || error.message || 'Logout failed'
+                : 'Logout failed';
             console.error('Logout error:', errorMessage);
         },
     });

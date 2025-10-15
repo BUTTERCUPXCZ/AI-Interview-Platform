@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/contexts/useAuthContext'
 import { useLogout } from '@/hooks/useAuth'
 import {
     useUserProfile,
@@ -152,7 +152,7 @@ const ProfilePage = () => {
     ]
 
     // Handlers
-    const handleProfileUpdate = (field: keyof UserProfile, value: any) => {
+    const handleProfileUpdate = (field: keyof UserProfile, value: string | string[]) => {
         setProfile(prev => ({ ...prev, [field]: value }))
     }
 
@@ -193,7 +193,7 @@ const ProfilePage = () => {
             })
             setSaveSuccess('Profile updated successfully!')
             setTimeout(() => setSaveSuccess(null), 3000)
-        } catch (error) {
+        } catch {
             setSaveError('Failed to update profile. Please try again.')
             setTimeout(() => setSaveError(null), 5000)
         }
@@ -210,7 +210,7 @@ const ProfilePage = () => {
             })
             setSaveSuccess('Skills updated successfully!')
             setTimeout(() => setSaveSuccess(null), 3000)
-        } catch (error) {
+        } catch {
             setSaveError('Failed to update skills. Please try again.')
             setTimeout(() => setSaveError(null), 5000)
         }
@@ -227,7 +227,7 @@ const ProfilePage = () => {
             })
             setSaveSuccess('Notification settings updated successfully!')
             setTimeout(() => setSaveSuccess(null), 3000)
-        } catch (error) {
+        } catch {
             setSaveError('Failed to update notification settings. Please try again.')
             setTimeout(() => setSaveError(null), 5000)
         }
@@ -260,7 +260,7 @@ const ProfilePage = () => {
             setAccountSettings({ currentPassword: '', newPassword: '', confirmPassword: '' })
             setSaveSuccess('Password changed successfully!')
             setTimeout(() => setSaveSuccess(null), 3000)
-        } catch (error) {
+        } catch {
             setSaveError('Failed to change password. Please check your current password.')
             setTimeout(() => setSaveError(null), 5000)
         }

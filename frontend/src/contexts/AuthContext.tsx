@@ -1,4 +1,4 @@
-import React, { createContext, useContext } from 'react';
+import React, { createContext } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import type { AuthUser } from '../hooks/useAuth';
@@ -11,16 +11,8 @@ interface AuthContextType {
     refetchUser: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// Custom hook to use auth context
-export const useAuth = () => {
-    const context = useContext(AuthContext);
-    if (context === undefined) {
-        throw new Error('useAuth must be used within an AuthProvider');
-    }
-    return context;
-};
+// eslint-disable-next-line react-refresh/only-export-components
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Function to fetch current user from backend
 const fetchCurrentUser = async (): Promise<AuthUser | null> => {
@@ -29,9 +21,9 @@ const fetchCurrentUser = async (): Promise<AuthUser | null> => {
             withCredentials: true,
         });
         return response.data;
-    } catch (error: any) {
+    } catch (error) {
         // If token is invalid or expired, return null
-        if (error.response?.status === 401) {
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
             return null;
         }
         throw error;

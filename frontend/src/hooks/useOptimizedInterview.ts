@@ -2,6 +2,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { httpClient } from '@/infrastructure/http-client'
 import type { InterviewConfig } from '../domain/entities'
+import type { SubmitAnswerResponse } from '@/application/services'
+
+// Define response type for cached data
+interface CachedInterviewData {
+    sessionId: number
+    lastAnswer?: SubmitAnswerResponse
+    [key: string]: unknown
+}
 
 // Fast interview session creation with immediate navigation
 export const useFastInterviewSession = () => {
@@ -55,17 +63,17 @@ export const useFastSubmitAnswer = () => {
             questionId: number;
             answer: string
         }) => {
-            const response = await httpClient.post('/interview/text/answer', {
+            const response = await httpClient.post<SubmitAnswerResponse>('/interview/text/answer', {
                 sessionId,
                 questionId,
                 answer
             })
             return response
         },
-        onSuccess: (data: any) => {
+        onSuccess: (data: SubmitAnswerResponse, variables) => {
             // Optimistically update the cache
-            queryClient.setQueryData(['interview', data.sessionId], (oldData: any) => {
-                if (!oldData) return data
+            queryClient.setQueryData<CachedInterviewData>(['interview', variables.sessionId], (oldData) => {
+                if (!oldData) return { sessionId: variables.sessionId, lastAnswer: data }
                 return { ...oldData, lastAnswer: data }
             })
         },

@@ -25,9 +25,11 @@ import {
     Trophy
 } from 'lucide-react'
 
+import type { InterviewConfig } from '@/domain/entities'
+
 interface LocationState {
     sessionId?: number
-    config?: any
+    config?: InterviewConfig
 }
 
 interface InterviewerPerformance {
@@ -392,13 +394,13 @@ const EnhancedFeedback: React.FC = () => {
 
                                         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                                             <Card className={`border-0 shadow-md transition-all duration-200 ${interviewerAnalysis.flags?.bias_detected
-                                                    ? 'bg-red-50 border-red-200 hover:shadow-red-100'
-                                                    : 'bg-green-50 border-green-200 hover:shadow-green-100'
+                                                ? 'bg-red-50 border-red-200 hover:shadow-red-100'
+                                                : 'bg-green-50 border-green-200 hover:shadow-green-100'
                                                 }`}>
                                                 <CardContent className="p-6 text-center">
                                                     <div className={`w-12 h-12 rounded-full mx-auto mb-4 flex items-center justify-center ${interviewerAnalysis.flags?.bias_detected
-                                                            ? 'bg-red-100'
-                                                            : 'bg-green-100'
+                                                        ? 'bg-red-100'
+                                                        : 'bg-green-100'
                                                         }`}>
                                                         {interviewerAnalysis.flags?.bias_detected ? (
                                                             <Warning className="w-6 h-6 text-red-600" />
@@ -407,14 +409,14 @@ const EnhancedFeedback: React.FC = () => {
                                                         )}
                                                     </div>
                                                     <h4 className={`font-semibold mb-2 ${interviewerAnalysis.flags?.bias_detected
-                                                            ? 'text-red-700'
-                                                            : 'text-green-700'
+                                                        ? 'text-red-700'
+                                                        : 'text-green-700'
                                                         }`}>
                                                         Bias Detection
                                                     </h4>
                                                     <p className={`text-sm ${interviewerAnalysis.flags?.bias_detected
-                                                            ? 'text-red-600'
-                                                            : 'text-green-600'
+                                                        ? 'text-red-600'
+                                                        : 'text-green-600'
                                                         }`}>
                                                         {interviewerAnalysis.flags?.bias_detected
                                                             ? 'Potential bias detected'
@@ -425,13 +427,13 @@ const EnhancedFeedback: React.FC = () => {
                                             </Card>
 
                                             <Card className={`border-0 shadow-md transition-all duration-200 ${interviewerAnalysis.flags?.unprofessional_language
-                                                    ? 'bg-red-50 border-red-200 hover:shadow-red-100'
-                                                    : 'bg-green-50 border-green-200 hover:shadow-green-100'
+                                                ? 'bg-red-50 border-red-200 hover:shadow-red-100'
+                                                : 'bg-green-50 border-green-200 hover:shadow-green-100'
                                                 }`}>
                                                 <CardContent className="p-6 text-center">
                                                     <div className={`w-12 h-12 rounded-full mx-auto mb-4 flex items-center justify-center ${interviewerAnalysis.flags?.unprofessional_language
-                                                            ? 'bg-red-100'
-                                                            : 'bg-green-100'
+                                                        ? 'bg-red-100'
+                                                        : 'bg-green-100'
                                                         }`}>
                                                         {interviewerAnalysis.flags?.unprofessional_language ? (
                                                             <Warning className="w-6 h-6 text-red-600" />
@@ -440,14 +442,14 @@ const EnhancedFeedback: React.FC = () => {
                                                         )}
                                                     </div>
                                                     <h4 className={`font-semibold mb-2 ${interviewerAnalysis.flags?.unprofessional_language
-                                                            ? 'text-red-700'
-                                                            : 'text-green-700'
+                                                        ? 'text-red-700'
+                                                        : 'text-green-700'
                                                         }`}>
                                                         Language Quality
                                                     </h4>
                                                     <p className={`text-sm ${interviewerAnalysis.flags?.unprofessional_language
-                                                            ? 'text-red-600'
-                                                            : 'text-green-600'
+                                                        ? 'text-red-600'
+                                                        : 'text-green-600'
                                                         }`}>
                                                         {interviewerAnalysis.flags?.unprofessional_language
                                                             ? 'Issues detected'
@@ -458,13 +460,13 @@ const EnhancedFeedback: React.FC = () => {
                                             </Card>
 
                                             <Card className={`border-0 shadow-md transition-all duration-200 ${interviewerAnalysis.flags?.pacing_issues
-                                                    ? 'bg-amber-50 border-amber-200 hover:shadow-amber-100'
-                                                    : 'bg-green-50 border-green-200 hover:shadow-green-100'
+                                                ? 'bg-amber-50 border-amber-200 hover:shadow-amber-100'
+                                                : 'bg-green-50 border-green-200 hover:shadow-green-100'
                                                 }`}>
                                                 <CardContent className="p-6 text-center">
                                                     <div className={`w-12 h-12 rounded-full mx-auto mb-4 flex items-center justify-center ${interviewerAnalysis.flags?.pacing_issues
-                                                            ? 'bg-amber-100'
-                                                            : 'bg-green-100'
+                                                        ? 'bg-amber-100'
+                                                        : 'bg-green-100'
                                                         }`}>
                                                         {interviewerAnalysis.flags?.pacing_issues ? (
                                                             <Clock className="w-6 h-6 text-amber-600" />
@@ -473,14 +475,14 @@ const EnhancedFeedback: React.FC = () => {
                                                         )}
                                                     </div>
                                                     <h4 className={`font-semibold mb-2 ${interviewerAnalysis.flags?.pacing_issues
-                                                            ? 'text-amber-700'
-                                                            : 'text-green-700'
+                                                        ? 'text-amber-700'
+                                                        : 'text-green-700'
                                                         }`}>
                                                         Pacing
                                                     </h4>
                                                     <p className={`text-sm ${interviewerAnalysis.flags?.pacing_issues
-                                                            ? 'text-amber-600'
-                                                            : 'text-green-600'
+                                                        ? 'text-amber-600'
+                                                        : 'text-green-600'
                                                         }`}>
                                                         {interviewerAnalysis.flags?.pacing_issues
                                                             ? 'Could be improved'

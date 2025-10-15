@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import Editor from '@monaco-editor/react'
-import * as monaco from 'monaco-editor'
+import type { editor } from 'monaco-editor'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import {
@@ -948,7 +948,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
     const [executionResult, setExecutionResult] = useState<ExecutionResult | null>(null)
     const [editorTheme, setEditorTheme] = useState(theme === 'dark' ? 'vs-dark' : 'light')
     const [validationResult, setValidationResult] = useState<{ errors: string[], warnings: string[] }>({ errors: [], warnings: [] })
-    const editorRef = useRef<any>(null)
+    const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
 
     useEffect(() => {
         setEditorTheme(theme === 'dark' ? 'vs-dark' : 'light')
@@ -1041,34 +1041,46 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
         return languageMap[language] || language
     }
 
-    const onMount = (editor: any, monaco: any) => {
-        editorRef.current = editor
-        editor.focus()
+    const onMount = (editorInstance: editor.IStandaloneCodeEditor, monacoInstance: typeof import('monaco-editor')) => {
+        editorRef.current = editorInstance
+        editorInstance.focus()
 
         // Register completion item providers for enhanced IntelliSense
         const completionItems = getLanguageCompletionItems(language)
         if (completionItems.length > 0) {
-            monaco.languages.registerCompletionItemProvider(getMonacoLanguage(language), {
-                provideCompletionItems: () => {
-                    return { suggestions: completionItems }
+            monacoInstance.languages.registerCompletionItemProvider(getMonacoLanguage(language), {
+                provideCompletionItems: (model, position) => {
+                    const word = model.getWordUntilPosition(position)
+                    const range = {
+                        startLineNumber: position.lineNumber,
+                        endLineNumber: position.lineNumber,
+                        startColumn: word.startColumn,
+                        endColumn: word.endColumn
+                    }
+                    return {
+                        suggestions: completionItems.map(item => ({
+                            ...item,
+                            range
+                        }))
+                    }
                 }
             })
         }
 
         // Add custom actions
-        editor.addAction({
+        editorInstance.addAction({
             id: 'validate-code',
             label: 'Validate Code',
-            keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyQ],
+            keybindings: [monacoInstance.KeyMod.CtrlCmd | monacoInstance.KeyCode.KeyQ],
             run: () => {
-                const validation = validateCode(editor.getValue(), language)
+                const validation = validateCode(editorInstance.getValue(), language)
                 setValidationResult(validation)
 
                 if (validation.errors.length > 0 || validation.warnings.length > 0) {
                     // Show validation results in editor
                     const markers = [
                         ...validation.errors.map(error => ({
-                            severity: monaco.MarkerSeverity.Error,
+                            severity: monacoInstance.MarkerSeverity.Error,
                             message: error,
                             startLineNumber: 1,
                             startColumn: 1,
@@ -1076,7 +1088,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
                             endColumn: 1
                         })),
                         ...validation.warnings.map(warning => ({
-                            severity: monaco.MarkerSeverity.Warning,
+                            severity: monacoInstance.MarkerSeverity.Warning,
                             message: warning,
                             startLineNumber: 1,
                             startColumn: 1,
@@ -1084,14 +1096,17 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
                             endColumn: 1
                         }))
                     ]
-                    monaco.editor.setModelMarkers(editor.getModel(), 'validation', markers)
+                    const model = editorInstance.getModel()
+                    if (model) {
+                        monacoInstance.editor.setModelMarkers(model, 'validation', markers)
+                    }
                 }
             }
         })
 
         // Auto-format on paste for better code quality
-        editor.onDidPaste(() => {
-            editor.getAction('editor.action.formatDocument')?.run()
+        editorInstance.onDidPaste(() => {
+            editorInstance.getAction('editor.action.formatDocument')?.run()
         })
     }
 

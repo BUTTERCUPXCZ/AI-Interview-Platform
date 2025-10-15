@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -9,7 +9,7 @@ import {
     useEvaluateCode,
     useSubmitAnswer,
 } from '../hooks/useInterview'
-import type { InterviewConfig, CodingQuestion } from '../domain/entities'
+import type { InterviewConfig, CodingQuestion, CodeExecutionResult, CodeEvaluation } from '../domain/entities'
 import {
     MessageSquare,
     Lightbulb,
@@ -50,17 +50,12 @@ const InterviewSession = () => {
     const [totalQuestions] = useState(10)
     const [timeRemaining, setTimeRemaining] = useState(config?.duration ? config.duration * 60 : 1200)
     const [isRecording, setIsRecording] = useState(false)
-    const [executionResult, setExecutionResult] = useState<any>(null)
-    const [evaluationResult, setEvaluationResult] = useState<any>(null)
+    const [executionResult, setExecutionResult] = useState<CodeExecutionResult | null>(null)
+    const [evaluationResult, setEvaluationResult] = useState<CodeEvaluation | null>(null)
 
-    // Generate initial question when component mounts
-    useEffect(() => {
-        // If we have an initial question from the setup, use it
-        if (config && config.initialQuestion) {
-            setCurrentQuestion(config.initialQuestion)
-            setCodeAnswer(config.initialQuestion.starterCode || '')
-        } else if (config && config.enableCodingSandbox && config.interviewType === 'technical') {
-            // Otherwise, generate a new question
+    // Memoize the generateQuestion function to prevent unnecessary re-renders
+    const generateQuestionCallback = useCallback(() => {
+        if (config && config.enableCodingSandbox && config.interviewType === 'technical') {
             const language = config.language ||
                 (config.domain === 'frontend' ? 'javascript' :
                     config.domain === 'backend' ? 'python' : 'javascript')
@@ -72,7 +67,19 @@ const InterviewSession = () => {
                 sessionId: config.sessionId
             })
         }
-    }, [config])
+    }, [config, generateQuestion])
+
+    // Generate initial question when component mounts
+    useEffect(() => {
+        // If we have an initial question from the setup, use it
+        if (config && config.initialQuestion) {
+            setCurrentQuestion(config.initialQuestion)
+            setCodeAnswer(config.initialQuestion.starterCode || '')
+        } else {
+            // Otherwise, generate a new question
+            generateQuestionCallback()
+        }
+    }, [config, generateQuestionCallback])
 
     // Update current question when generation is successful
     useEffect(() => {
@@ -157,8 +164,9 @@ const InterviewSession = () => {
                 )
             })
 
-            setExecutionResult((result as any).execution)
-            setEvaluationResult((result as any).evaluation)
+            const typedResult = result as { execution: CodeExecutionResult; evaluation: CodeEvaluation }
+            setExecutionResult(typedResult.execution)
+            setEvaluationResult(typedResult.evaluation)
         } catch (error) {
             console.error('Code execution failed:', error)
         }

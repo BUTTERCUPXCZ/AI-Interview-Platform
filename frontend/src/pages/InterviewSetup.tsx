@@ -5,7 +5,7 @@ import Navbar from '@/components/Navbar'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useCreateInterviewSession, useStartTextInterview } from '../hooks/useInterview'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../contexts/useAuthContext'
 import type { InterviewConfig, Difficulty, InterviewFormat } from '../domain/entities'
 import {
     PlayCircle,
@@ -426,7 +426,7 @@ const InterviewSetup = () => {
                                                     ? 'border-primary bg-gradient-to-r from-primary/10 to-primary/5'
                                                     : 'border-border hover:border-primary/50'
                                                     }`}
-                                                onClick={() => setConfig(prev => ({ ...prev, difficulty: level.id as any }))}
+                                                onClick={() => setConfig(prev => ({ ...prev, difficulty: level.id as Difficulty }))}
                                             >
                                                 <div className="flex items-center justify-between">
                                                     <div>
@@ -501,7 +501,7 @@ const InterviewSetup = () => {
                                                         ? 'border-primary bg-gradient-to-r from-primary/10 to-primary/5'
                                                         : 'border-border hover:border-primary/50'
                                                         }`}
-                                                    onClick={() => setConfig(prev => ({ ...prev, format: format.id as any }))}
+                                                    onClick={() => setConfig(prev => ({ ...prev, format: format.id as InterviewFormat }))}
                                                 >
                                                     <div className="flex items-center gap-3">
                                                         <Icon className="h-5 w-5 text-primary" />

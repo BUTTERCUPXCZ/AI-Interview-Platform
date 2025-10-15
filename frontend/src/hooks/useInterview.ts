@@ -141,7 +141,7 @@ export const useGetSessionFeedback = (sessionId: number, enabled = true) => {
         staleTime: 10 * 60 * 1000, // 10 minutes
         retry: (failureCount, error) => {
             // Don't retry if feedback doesn't exist yet
-            if ((error as any)?.status === 404) return false
+            if (error && typeof error === 'object' && 'status' in error && error.status === 404) return false
             return failureCount < 3
         },
     })
