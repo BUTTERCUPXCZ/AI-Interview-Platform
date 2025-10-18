@@ -2,21 +2,54 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 // Updated model name - using the latest available Gemini model
 const MODEL_NAME = "gemini-2.5-flash";
-// Helper function to clean and parse JSON responses from Gemini
+// Robust parser for Gemini responses. It attempts strict JSON.parse first,
+// then falls back to extracting the first JSON object or array found in the
+// text (useful when the model appends extra commentary or trailing tokens).
 function parseGeminiResponse(text) {
+    // Helper to strip common markdown/code fences
+    const stripCodeFences = (s) => s.replace(/```json\s*/gi, "").replace(/```/g, "").trim();
+    const cleaned = stripCodeFences(text || "");
+    // Fast path: try strict parse
     try {
-        // Clean the response to remove markdown code blocks
-        const cleanedText = text
-            .replace(/```json\s*/g, "")
-            .replace(/```\s*/g, "")
-            .trim();
-        return JSON.parse(cleanedText);
+        return JSON.parse(cleaned);
     }
-    catch (error) {
-        console.error("Failed to parse Gemini response:", text);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const err = error;
-        throw new Error(`Invalid JSON response from Gemini: ${err?.message || "Unknown error"}`);
+    catch (firstErr) {
+        // Attempt to extract the first JSON block (object or array)
+        try {
+            const jsonBlockMatch = cleaned.match(/(\{(?:[\s\S]*?)\}|\[(?:[\s\S]*?)\])/m);
+            if (jsonBlockMatch && jsonBlockMatch[0]) {
+                const candidate = jsonBlockMatch[0];
+                try {
+                    return JSON.parse(candidate);
+                }
+                catch (innerErr) {
+                    // As a last resort, try to find the first '{' and the last '}' and parse the substring
+                    const firstObjStart = cleaned.indexOf('{');
+                    const lastObjEnd = cleaned.lastIndexOf('}');
+                    const firstArrStart = cleaned.indexOf('[');
+                    const lastArrEnd = cleaned.lastIndexOf(']');
+                    if (firstObjStart !== -1 && lastObjEnd !== -1 && lastObjEnd > firstObjStart) {
+                        const sub = cleaned.slice(firstObjStart, lastObjEnd + 1);
+                        return JSON.parse(sub);
+                    }
+                    if (firstArrStart !== -1 && lastArrEnd !== -1 && lastArrEnd > firstArrStart) {
+                        const sub = cleaned.slice(firstArrStart, lastArrEnd + 1);
+                        return JSON.parse(sub);
+                    }
+                    // nothing worked
+                    console.error('Failed to parse extracted JSON block from Gemini response. Candidate block:', candidate);
+                    throw innerErr;
+                }
+            }
+            // If no JSON-like block was found, throw the original error
+            throw firstErr;
+        }
+        catch (err) {
+            console.error('Failed to parse Gemini response. Raw response:', text);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const e = err;
+            throw new Error(`Invalid JSON response from Gemini: ${e?.message || 'Unknown error'}`);
+        }
     }
 }
 export async function generateQuestions(domain, difficulty, interviewType) {

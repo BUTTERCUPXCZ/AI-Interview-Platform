@@ -239,54 +239,18 @@ export const getNextQuestion = async (req: Request, res: Response) => {
  */
 export const submitTextAnswer = async (req: Request, res: Response) => {
     try {
-        const { sessionId, questionId, answer }: SubmitTextAnswerRequest = req.body;
+        const { sessionId, questionId, answer } = req.body;
 
-        if (!sessionId || !questionId || !answer) {
-            return res.status(400).json({
-                error: "Missing required fields: sessionId, questionId, answer"
+            if (!sessionId || !questionId || !answer) {
+                return res.status(400).json({ error: "Missing required fields" });
+            }
+
+            await prisma.interviewQuestion.update({
+                where: { id: questionId },
+                data: { userAnswer: answer },
             });
-        }
 
-        // Get the question
-        const question = await prisma.interviewQuestion.findUnique({
-            where: { id: questionId },
-            include: { session: true }
-        });
-
-        if (!question) {
-            return res.status(404).json({ error: "Question not found" });
-        }
-
-        if (question.sessionId !== sessionId) {
-            return res.status(400).json({ error: "Question does not belong to this session" });
-        }
-
-        // Evaluate the answer using AI
-        const evaluation = await evaluateTextAnswer(
-            question.questionText,
-            answer,
-            question.session.domain,
-            question.session.difficulty,
-            question.session.interviewType
-        );
-
-        // Update the question with user answer and evaluation
-        const updatedQuestion = await prisma.interviewQuestion.update({
-            where: { id: questionId },
-            data: {
-                userAnswer: answer,
-                aiEvaluation: evaluation.aiEvaluation,
-                score: evaluation.score,
-            },
-        });
-
-        return res.json({
-            questionId: updatedQuestion.id,
-            userAnswer: updatedQuestion.userAnswer,
-            score: updatedQuestion.score,
-            aiEvaluation: updatedQuestion.aiEvaluation,
-            feedback: evaluation.feedback || null
-        });
+            return res.status(200).json({ message: "Answer saved successfully" });
 
     } catch (error: unknown) {
         console.error("Error submitting text answer:", error);
@@ -463,7 +427,7 @@ export const getUserInterviewHistory = async (req: Request, res: Response) => {
         const sessions = await prisma.interviewSession.findMany({
             where: {
                 userId: parseInt(userId),
-                format: "TEXT" // Only get text interviews
+                format: "TEXT" /* Lines 430-431 omitted */
             },
             orderBy: { startedAt: "desc" },
             take: limit,
@@ -478,32 +442,7 @@ export const getUserInterviewHistory = async (req: Request, res: Response) => {
             }
         });
 
-        const history = sessions.map(session => {
-            const totalQuestions = session.questions.length;
-            const answeredQuestions = session.questions.filter(q => q.userAnswer !== null).length;
-            const scores = session.questions.filter(q => q.score !== null).map(q => q.score || 0);
-            const averageScore = scores.length > 0
-                ? scores.reduce((sum, score) => sum + score, 0) / scores.length
-                : 0;
-
-            return {
-                sessionId: session.id,
-                domain: session.domain,
-                interviewType: session.interviewType,
-                difficulty: session.difficulty,
-                duration: session.duration,
-                status: session.status,
-                startedAt: session.startedAt,
-                endedAt: session.endedAt,
-                totalScore: session.totalScore,
-                statistics: {
-                    totalQuestions,
-                    answeredQuestions,
-                    averageScore: Math.round(averageScore * 100) / 100,
-                    completionRate: Math.round((answeredQuestions / totalQuestions) * 100) || 0
-                }
-            };
-        });
+        const history = sessions.map(session => {/* Lines 446-470 omitted */});
 
         return res.json({
             userId: parseInt(userId),
@@ -514,5 +453,85 @@ export const getUserInterviewHistory = async (req: Request, res: Response) => {
     } catch (error: unknown) {
         console.error("Error getting user interview history:", error);
         res.status(500).json({ error: "Failed to get interview history" });
+    }
+};
+
+/**
+ * Get overall performance evaluation using Gemini AI
+ */
+export const getOverallPerformance = async (req: Request, res: Response) => {
+    try {
+        const { sessionId } = req.params;
+
+        // Fetch complete session data
+        const session = await prisma.interviewSession.findUnique({
+            where: { id: parseInt(sessionId) },
+            include: {
+                questions: {
+                    orderBy: { id: "asc" },
+                    select: {
+                        questionText: true,
+                        userAnswer: true,
+                        score: true
+                    }
+                }
+            }
+        });
+
+        if (!session) {
+            return res.status(404).json({ error: "Interview session not found" });
+        }
+
+        // Check if session is completed
+        if (session.status !== "COMPLETED") {
+            return res.status(400).json({ 
+                error: "Interview must be completed before generating overall performance evaluation" 
+            });
+        }
+
+        // Import Gemini service
+        const { evaluateOverallPerformance } = await import("../services/geminiService.js");
+
+        // Prepare session data for evaluation
+        const sessionData = {
+            domain: session.domain,
+            difficulty: session.difficulty,
+            interviewType: session.interviewType,
+            duration: session.duration,
+            questions: session.questions
+        };
+
+        console.log(`Generating overall performance evaluation for session ${sessionId}...`);
+
+        // Get AI evaluation
+        const evaluation = await evaluateOverallPerformance(sessionData);
+
+        // Optionally save evaluation to session
+        await prisma.interviewSession.update({
+            where: { id: parseInt(sessionId) },
+            data: {
+                totalScore: evaluation.overallScore
+            }
+        });
+
+        return res.json({
+            sessionId: session.id,
+            evaluation: {
+                ...evaluation,
+                sessionInfo: {
+                    domain: session.domain,
+                    difficulty: session.difficulty,
+                    interviewType: session.interviewType,
+                    startedAt: session.startedAt,
+                    endedAt: session.endedAt,
+                    totalQuestions: session.questions.length,
+                    answeredQuestions: session.questions.filter(q => q.userAnswer).length
+                }
+            }
+        });
+
+    } catch (error: unknown) {
+        console.error("Error getting overall performance:", error);
+        res.status(500).json({ error: "Failed to generate overall performance evaluation" });
     }
 };

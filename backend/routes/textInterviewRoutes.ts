@@ -5,14 +5,15 @@ import {
     submitTextAnswer,
     getInterviewProgress,
     completeTextInterview,
-    getInterviewSummary
+    getInterviewSummary,
+    getUserInterviewHistory,
+    getOverallPerformance
 } from "../controller/textInterview.controller.js";
 import {
     startTextInterviewOptimized,
     getNextQuestionOptimized,
     submitTextAnswerOptimized
 } from "../controller/optimizedTextInterview.controller.js";
-import { getUserInterviewHistory } from "../controller/textInterview.controller.js";
 
 const router = express.Router();
 
@@ -42,6 +43,9 @@ router.post("/text/session/:sessionId/complete", completeTextInterview);
 
 // Get interview summary
 router.get("/text/session/:sessionId/summary", getInterviewSummary);
+
+// Get overall performance evaluation
+router.get("/text/session/:sessionId/overall-performance", getOverallPerformance);
 
 // Get user's interview history
 router.get("/text/user/:userId/history", getUserInterviewHistory);

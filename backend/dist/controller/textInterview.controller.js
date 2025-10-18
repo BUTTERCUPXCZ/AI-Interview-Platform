@@ -1,5 +1,5 @@
 import { prisma } from "../lib/prisma.js";
-import { generateTextInterviewQuestions, evaluateTextAnswer } from "../services/geminiService.js";
+import { generateTextInterviewQuestions } from "../services/geminiService.js";
 import { CacheService } from "../services/cacheService.js";
 import { getInterviewSessionById, 
 // validateUserSession,
@@ -193,39 +193,13 @@ export const submitTextAnswer = async (req, res) => {
     try {
         const { sessionId, questionId, answer } = req.body;
         if (!sessionId || !questionId || !answer) {
-            return res.status(400).json({
-                error: "Missing required fields: sessionId, questionId, answer"
-            });
+            return res.status(400).json({ error: "Missing required fields" });
         }
-        // Get the question
-        const question = await prisma.interviewQuestion.findUnique({
+        await prisma.interviewQuestion.update({
             where: { id: questionId },
-            include: { session: true }
+            data: { userAnswer: answer },
         });
-        if (!question) {
-            return res.status(404).json({ error: "Question not found" });
-        }
-        if (question.sessionId !== sessionId) {
-            return res.status(400).json({ error: "Question does not belong to this session" });
-        }
-        // Evaluate the answer using AI
-        const evaluation = await evaluateTextAnswer(question.questionText, answer, question.session.domain, question.session.difficulty, question.session.interviewType);
-        // Update the question with user answer and evaluation
-        const updatedQuestion = await prisma.interviewQuestion.update({
-            where: { id: questionId },
-            data: {
-                userAnswer: answer,
-                aiEvaluation: evaluation.aiEvaluation,
-                score: evaluation.score,
-            },
-        });
-        return res.json({
-            questionId: updatedQuestion.id,
-            userAnswer: updatedQuestion.userAnswer,
-            score: updatedQuestion.score,
-            aiEvaluation: updatedQuestion.aiEvaluation,
-            feedback: evaluation.feedback || null
-        });
+        return res.status(200).json({ message: "Answer saved successfully" });
     }
     catch (error) {
         console.error("Error submitting text answer:", error);

@@ -5,21 +5,57 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 // Updated model name - using the latest available Gemini model
 const MODEL_NAME = "gemini-2.5-flash";
 
-// Helper function to clean and parse JSON responses from Gemini
+// Robust parser for Gemini responses. It attempts strict JSON.parse first,
+// then falls back to extracting the first JSON object or array found in the
+// text (useful when the model appends extra commentary or trailing tokens).
 function parseGeminiResponse(text: string) {
-    try {
-        // Clean the response to remove markdown code blocks
-        const cleanedText = text
-            .replace(/```json\s*/g, "")
-            .replace(/```\s*/g, "")
-            .trim();
+    // Helper to strip common markdown/code fences
+    const stripCodeFences = (s: string) => s.replace(/```json\s*/gi, "").replace(/```/g, "").trim();
 
-        return JSON.parse(cleanedText);
-    } catch (error: unknown) {
-        console.error("Failed to parse Gemini response:", text);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const err = error as any;
-        throw new Error(`Invalid JSON response from Gemini: ${err?.message || "Unknown error"}`);
+    const cleaned = stripCodeFences(text || "");
+
+    // Fast path: try strict parse
+    try {
+        return JSON.parse(cleaned);
+    } catch (firstErr) {
+        // Attempt to extract the first JSON block (object or array)
+        try {
+            const jsonBlockMatch = cleaned.match(/(\{(?:[\s\S]*?)\}|\[(?:[\s\S]*?)\])/m);
+            if (jsonBlockMatch && jsonBlockMatch[0]) {
+                const candidate = jsonBlockMatch[0];
+                try {
+                    return JSON.parse(candidate);
+                } catch (innerErr) {
+                    // As a last resort, try to find the first '{' and the last '}' and parse the substring
+                    const firstObjStart = cleaned.indexOf('{');
+                    const lastObjEnd = cleaned.lastIndexOf('}');
+                    const firstArrStart = cleaned.indexOf('[');
+                    const lastArrEnd = cleaned.lastIndexOf(']');
+
+                    if (firstObjStart !== -1 && lastObjEnd !== -1 && lastObjEnd > firstObjStart) {
+                        const sub = cleaned.slice(firstObjStart, lastObjEnd + 1);
+                        return JSON.parse(sub);
+                    }
+
+                    if (firstArrStart !== -1 && lastArrEnd !== -1 && lastArrEnd > firstArrStart) {
+                        const sub = cleaned.slice(firstArrStart, lastArrEnd + 1);
+                        return JSON.parse(sub);
+                    }
+
+                    // nothing worked
+                    console.error('Failed to parse extracted JSON block from Gemini response. Candidate block:', candidate);
+                    throw innerErr;
+                }
+            }
+
+            // If no JSON-like block was found, throw the original error
+            throw firstErr;
+        } catch (err) {
+            console.error('Failed to parse Gemini response. Raw response:', text);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const e = err as any;
+            throw new Error(`Invalid JSON response from Gemini: ${e?.message || 'Unknown error'}`);
+        }
     }
 }
 
@@ -189,6 +225,79 @@ export async function evaluateTextAnswer(
             "followUpQuestions": ["follow-up question 1"]
         }
     `;
+    const result = await model.generateContent(prompt);
+    return parseGeminiResponse(result.response.text());
+}
+
+/**
+ * Evaluate overall interview performance based on all questions and answers
+ */
+export async function evaluateOverallPerformance(
+    sessionData: {
+        domain: string;
+        difficulty: string;
+        interviewType: string;
+        duration: number;
+        questions: Array<{
+            questionText: string;
+            userAnswer: string | null;
+            score: number | null;
+        }>;
+    }
+) {
+    const model = genAI.getGenerativeModel({ model: MODEL_NAME });
+
+    // Calculate answered questions percentage
+    const totalQuestions = sessionData.questions.length;
+    const answeredQuestions = sessionData.questions.filter(q => q.userAnswer).length;
+    const completionRate = (answeredQuestions / totalQuestions) * 100;
+
+    // Calculate average score
+    const scores = sessionData.questions
+        .filter(q => q.score !== null)
+        .map(q => q.score as number);
+    const averageScore = scores.length > 0 
+        ? scores.reduce((sum, score) => sum + score, 0) / scores.length 
+        : 0;
+
+    const prompt = `
+        Evaluate the overall performance of a candidate in a ${sessionData.difficulty} level ${sessionData.domain} ${sessionData.interviewType} interview.
+        
+        Interview Statistics:
+        - Total Questions: ${totalQuestions}
+        - Answered Questions: ${answeredQuestions} (${completionRate.toFixed(1)}% completion)
+        - Average Score: ${averageScore.toFixed(1)}/10
+        - Duration: ${sessionData.duration} minutes
+        
+        Questions and Answers:
+        ${sessionData.questions.map((q, idx) => `
+        Q${idx + 1}: ${q.questionText}
+        Answer: ${q.userAnswer || "No answer provided"}
+        Score: ${q.score || "Not scored"}/10
+        `).join('\n')}
+
+        IMPORTANT: Return ONLY a valid JSON object, no markdown formatting or code blocks.
+        Provide a comprehensive evaluation with the following structure:
+        {
+            "overallScore": number (0-100),
+            "performanceRating": "Excellent|Good|Average|Below Average|Poor",
+            "summary": "Overall performance summary (2-3 sentences)",
+            "strengths": ["strength 1", "strength 2", "strength 3"],
+            "weaknesses": ["weakness 1", "weakness 2"],
+            "areasForImprovement": ["area 1", "area 2", "area 3"],
+            "technicalSkillsAssessment": {
+                "knowledgeDepth": number (0-100),
+                "problemSolving": number (0-100),
+                "communication": number (0-100),
+                "technicalAccuracy": number (0-100)
+            },
+            "detailedFeedback": "Comprehensive feedback paragraph",
+            "recommendations": ["recommendation 1", "recommendation 2", "recommendation 3"],
+            "nextSteps": ["next step 1", "next step 2"],
+            "readinessLevel": "Ready for ${sessionData.difficulty} roles|Needs more preparation|Excellent candidate"
+        }
+    `;
+
     const result = await model.generateContent(prompt);
     return parseGeminiResponse(result.response.text());
 }

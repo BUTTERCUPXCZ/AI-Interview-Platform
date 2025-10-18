@@ -2,6 +2,7 @@ import React, { createContext } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import type { AuthUser } from '../hooks/useAuth';
+import api from '@/api/api';
 
 interface AuthContextType {
     user: AuthUser | null;
@@ -17,9 +18,7 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 // Function to fetch current user from backend
 const fetchCurrentUser = async (): Promise<AuthUser | null> => {
     try {
-        const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/auth/me`, {
-            withCredentials: true,
-        });
+        const response = await api.get(`/auth/me`);
         return response.data;
     } catch (error) {
         // If token is invalid or expired, return null

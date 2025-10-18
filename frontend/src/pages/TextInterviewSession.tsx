@@ -292,32 +292,12 @@ const TextInterviewSession = () => {
                     </p>
                 </Card>
 
-                {/* Feedback */}
-                {feedback && (
-                    <Card className="p-4 mb-6 border-green-200 bg-green-50">
-                        <div className="flex items-start gap-3">
-                            <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
-                            <div>
-                                <p className="font-medium text-green-800">Answer Submitted!</p>
-                                <p className="text-green-700 text-sm mt-1">
-                                    Score: {feedback.score}/10
-                                </p>
-                                {feedback.aiEvaluation && (
-                                    <p className="text-green-600 text-sm mt-2">
-                                        {feedback.aiEvaluation}
-                                    </p>
-                                )}
-                            </div>
-                        </div>
-                    </Card>
-                )}
-
                 {/* Answer Input */}
                 <Card className="p-6 mb-6">
                     <label className="block text-sm font-medium mb-2">
                         Your Answer
                     </label>
-                    <textarea
+                    <textarea   
                         value={currentAnswer}
                         onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCurrentAnswer(e.target.value)}
                         placeholder="Type your answer here..."
