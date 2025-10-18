@@ -52,8 +52,10 @@ export const useOverallPerformance = (sessionId: number | string | null): UseOve
             if (!sessionId) {
                 throw new Error('No session ID provided');
             }
+            const base = import.meta.env.VITE_API_BASE_URL || '';
+            const url = `${base}/api/interview/text/session/${sessionId}/overall-performance`;
 
-            const response = await fetch(`/api/interview/text/session/${sessionId}/overall-performance`, {
+            const response = await fetch(url, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
