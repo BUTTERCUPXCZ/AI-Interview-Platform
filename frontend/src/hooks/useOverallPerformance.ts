@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { httpClient } from '@/infrastructure/http-client';
 
 export interface TechnicalSkillsAssessment {
     knowledgeDepth: number;
@@ -52,23 +53,14 @@ export const useOverallPerformance = (sessionId: number | string | null): UseOve
             if (!sessionId) {
                 throw new Error('No session ID provided');
             }
-            const base = import.meta.env.VITE_API_BASE_URL || '';
-            const url = `${base}/api/interview/text/session/${sessionId}/overall-performance`;
 
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-                }
-            });
+            // Use shared httpClient (axios) which is configured with withCredentials = true
+            const response = await httpClient.get<{ sessionId: number; evaluation: OverallPerformanceEvaluation }>(
+                `/interview/text/session/${sessionId}/overall-performance`
+            );
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Failed to fetch overall performance: ${response.status} - ${errorText}`);
-            }
-
-            return response.json();
+            // `httpClient.get` already returns the response payload (it unwraps axios `.data`)
+            return response;
         },
         enabled: !!sessionId,
         staleTime: 10 * 60 * 1000, // 10 minutes
