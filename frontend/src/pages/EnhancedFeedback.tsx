@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -38,11 +38,6 @@ const EnhancedFeedback: React.FC = () => {
     const state = location.state as LocationState
     const sessionId = state?.sessionId
 
-  
-    const [analysisError, setAnalysisError] = useState<string | null>(null)
-
-
-
     // Fetch overall performance evaluation from Gemini
     const {
         evaluation: overallPerformance,
@@ -54,7 +49,6 @@ const EnhancedFeedback: React.FC = () => {
 
     useEffect(() => {
         if (!sessionId) {
-            setAnalysisError('No session ID found. Please start from an interview session.')
             return
         }
         console.log('Enhanced Feedback loaded with session ID:', sessionId)
