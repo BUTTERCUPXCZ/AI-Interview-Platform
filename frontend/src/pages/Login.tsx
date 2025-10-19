@@ -26,18 +26,26 @@ function LoginForm({ className, ...props }: LoginFormProps) {
     })
 
     const [errors, setErrors] = useState<string>('')
+    const [needsVerification, setNeedsVerification] = useState(false)
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setErrors('')
+        setNeedsVerification(false)
 
         try {
             await loginMutation.mutateAsync(formData)
             // Redirect to dashboard or home page after successful login
             navigate('/dashboard') // You can change this to your desired route
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Login failed. Please try again.'
-            setErrors(errorMessage)
+        } catch (error: any) {
+            // Check if it's an email verification error
+            if (error?.response?.data?.code === 'EMAIL_NOT_VERIFIED') {
+                setNeedsVerification(true)
+                setErrors(error?.response?.data?.message || 'Please verify your email before logging in.')
+            } else {
+                const errorMessage = error instanceof Error ? error.message : 'Login failed. Please try again.'
+                setErrors(errorMessage)
+            }
         }
     }
 
@@ -64,6 +72,17 @@ function LoginForm({ className, ...props }: LoginFormProps) {
                     {errors && (
                         <div className="mb-4 p-3 text-sm text-center text-white bg-red-500/20 border border-red-500/50 rounded-md">
                             {errors}
+                            {needsVerification && (
+                                <div className="mt-2">
+                                    <Link 
+                                        to="/register-verify" 
+                                        state={{ email: formData.email }}
+                                        className="underline underline-offset-4 hover:no-underline text-[#00e676] hover:text-[#00e676]/80 font-semibold"
+                                    >
+                                        Resend verification email
+                                    </Link>
+                                </div>
+                            )}
                         </div>
                     )}
                     <form onSubmit={handleSubmit}>

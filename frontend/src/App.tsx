@@ -15,6 +15,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import ForgotPassword from "./pages/ForgotPassword"
 import EmailVerification from "./pages/EmailVerification"
 import ResetPassword from "./pages/ResetPassword"
+import RegisterVerify from "./pages/RegisterVerify"
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
   <Route path='/reset-password' element={<ResetPassword />} />
         <Route path='/login' element={<Login />} />
         <Route path='/register' element={<Register />} />
+        <Route path='/register-verify' element={<RegisterVerify />} />
 
         {/* Protected routes */}
         <Route path='/dashboard' element={

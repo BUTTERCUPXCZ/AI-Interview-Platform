@@ -51,8 +51,8 @@ function RegisterForm({ className, ...props }: RegisterFormProps) {
                 email: formData.email,
                 password: formData.password
             })
-            // Redirect to dashboard or home page after successful registration
-            navigate('/dashboard') // You can change this to your desired route
+            // Redirect to verification page after successful registration
+            navigate('/register-verify', { state: { email: formData.email } })
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Registration failed. Please try again.'
             setErrors(errorMessage)
