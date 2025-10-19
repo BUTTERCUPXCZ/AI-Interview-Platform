@@ -71,23 +71,23 @@ function RegisterForm({ className, ...props }: RegisterFormProps) {
 
     return (
         <div className={cn("flex flex-col gap-6", className)} {...props}>
-            <Card>
+            <Card className="bg-card/40 border-white/10 backdrop-blur-sm">
                 <CardHeader className="text-center">
-                    <CardTitle className="text-xl">Create your account</CardTitle>
-                    <CardDescription>
+                    <CardTitle className="text-xl text-white">Create your account</CardTitle>
+                    <CardDescription className="text-white/70">
                         Sign up with your Apple or Google account
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
                     {errors && (
-                        <div className="mb-4 p-3 text-sm text-center text-red-600 bg-red-50 border border-red-200 rounded-md">
+                        <div className="mb-4 p-3 text-sm text-center text-white bg-red-500/20 border border-red-500/50 rounded-md">
                             {errors}
                         </div>
                     )}
                     <form onSubmit={handleSubmit}>
                         <FieldGroup>
                             <Field>
-                                <Button variant="outline" type="button" className="w-full">
+                                <Button variant="outline" type="button" className="w-full border-white/10 hover:bg-[#00e676]/10 hover:border-[#00e676]/50 text-white">
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4">
                                         <path
                                             d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"
@@ -97,11 +97,11 @@ function RegisterForm({ className, ...props }: RegisterFormProps) {
                                     Sign up with Google
                                 </Button>
                             </Field>
-                            <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
+                            <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card *:data-[slot=field-separator-content]:text-white/60">
                                 Or continue with
                             </FieldSeparator>
                             <Field>
-                                <FieldLabel htmlFor="firstName">First Name</FieldLabel>
+                                <FieldLabel htmlFor="firstName" className="text-white">First Name</FieldLabel>
                                 <Input
                                     id="firstName"
                                     name="firstName"
@@ -111,10 +111,11 @@ function RegisterForm({ className, ...props }: RegisterFormProps) {
                                     onChange={handleInputChange}
                                     disabled={registerMutation.isPending}
                                     required
+                                    className="bg-white/5 border-white/10 text-white placeholder:text-white/40 focus:border-[#00e676]"
                                 />
                             </Field>
                             <Field>
-                                <FieldLabel htmlFor="lastName">Last Name</FieldLabel>
+                                <FieldLabel htmlFor="lastName" className="text-white">Last Name</FieldLabel>
                                 <Input
                                     id="lastName"
                                     name="lastName"
@@ -124,10 +125,11 @@ function RegisterForm({ className, ...props }: RegisterFormProps) {
                                     onChange={handleInputChange}
                                     disabled={registerMutation.isPending}
                                     required
+                                    className="bg-white/5 border-white/10 text-white placeholder:text-white/40 focus:border-[#00e676]"
                                 />
                             </Field>
                             <Field>
-                                <FieldLabel htmlFor="email">Email</FieldLabel>
+                                <FieldLabel htmlFor="email" className="text-white">Email</FieldLabel>
                                 <Input
                                     id="email"
                                     name="email"
@@ -137,10 +139,11 @@ function RegisterForm({ className, ...props }: RegisterFormProps) {
                                     onChange={handleInputChange}
                                     disabled={registerMutation.isPending}
                                     required
+                                    className="bg-white/5 border-white/10 text-white placeholder:text-white/40 focus:border-[#00e676]"
                                 />
                             </Field>
                             <Field>
-                                <FieldLabel htmlFor="password">Password</FieldLabel>
+                                <FieldLabel htmlFor="password" className="text-white">Password</FieldLabel>
                                 <Input
                                     id="password"
                                     name="password"
@@ -150,10 +153,11 @@ function RegisterForm({ className, ...props }: RegisterFormProps) {
                                     onChange={handleInputChange}
                                     disabled={registerMutation.isPending}
                                     required
+                                    className="bg-white/5 border-white/10 text-white placeholder:text-white/40 focus:border-[#00e676]"
                                 />
                             </Field>
                             <Field>
-                                <FieldLabel htmlFor="confirmPassword">Confirm Password</FieldLabel>
+                                <FieldLabel htmlFor="confirmPassword" className="text-white">Confirm Password</FieldLabel>
                                 <Input
                                     id="confirmPassword"
                                     name="confirmPassword"
@@ -163,19 +167,20 @@ function RegisterForm({ className, ...props }: RegisterFormProps) {
                                     onChange={handleInputChange}
                                     disabled={registerMutation.isPending}
                                     required
+                                    className="bg-white/5 border-white/10 text-white placeholder:text-white/40 focus:border-[#00e676]"
                                 />
                             </Field>
                             <Field>
                                 <Button
                                     type="submit"
-                                    className="w-full"
+                                    className="w-full bg-[#00e676] hover:bg-[#02cb6a] text-black font-semibold"
                                     disabled={registerMutation.isPending}
                                 >
                                     {registerMutation.isPending ? 'Creating Account...' : 'Create Account'}
                                 </Button>
-                                <FieldDescription className="text-center">
+                                <FieldDescription className="text-center text-white/70">
                                     Already have an account?{' '}
-                                    <Link to="/login" className="underline underline-offset-4 hover:no-underline">
+                                    <Link to="/login" className="underline underline-offset-4 hover:no-underline text-[#00e676] hover:text-[#00e676]/80">
                                         Sign in
                                     </Link>
                                 </FieldDescription>
@@ -184,13 +189,13 @@ function RegisterForm({ className, ...props }: RegisterFormProps) {
                     </form>
                 </CardContent>
             </Card>
-            <FieldDescription className="px-6 text-center">
+            <FieldDescription className="px-6 text-center text-white/60">
                 By clicking continue, you agree to our{' '}
-                <a href="#" className="underline underline-offset-4 hover:no-underline">
+                <a href="#" className="underline underline-offset-4 hover:no-underline text-[#00e676] hover:text-[#00e676]/80">
                     Terms of Service
                 </a>{' '}
                 and{' '}
-                <a href="#" className="underline underline-offset-4 hover:no-underline">
+                <a href="#" className="underline underline-offset-4 hover:no-underline text-[#00e676] hover:text-[#00e676]/80">
                     Privacy Policy
                 </a>
                 .
@@ -201,8 +206,12 @@ function RegisterForm({ className, ...props }: RegisterFormProps) {
 
 const Register = () => {
     return (
-        <div className="bg-muted flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
+        <div className="bg-background flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
             <div className="flex w-full max-w-sm flex-col gap-6">
+                <div className="flex flex-col gap-2 text-center">
+                    <h1 className="text-3xl font-bold text-[#00e676]">AceDevAI</h1>
+                    <p className="text-white/70">Create your account to get started</p>
+                </div>
                 <RegisterForm />
             </div>
         </div>

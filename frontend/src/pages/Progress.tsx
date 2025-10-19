@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import Sidebar from '@/components/Sidebar'
-import Navbar from '@/components/Navbar'
+import  Navbar from '@/components/AppNavbar'
 import { useAuth } from '@/contexts/useAuthContext'
 import { useProgressData } from '@/hooks/useProgress'
 import {

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from '@/components/Sidebar'
-import Navbar from '@/components/Navbar'
+import  Navbar from '@/components/AppNavbar'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useCreateInterviewSession, useStartTextInterview } from '../hooks/useInterview'
@@ -614,7 +614,7 @@ const InterviewSetup = () => {
                                 <Button
                                     onClick={handleStartInterview}
                                     size="lg"
-                                    className="gap-3 bg-black dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-black px-8 py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+                                    className="gap-3 bg-[#00e676] hover:bg-[#02cb6a] px-8 py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
                                     disabled={!isConfigComplete || createSession.isPending || startTextInterview.isPending || isGeneratingQuestion}
                                 >
                                     {(createSession.isPending || startTextInterview.isPending || isGeneratingQuestion) ? (

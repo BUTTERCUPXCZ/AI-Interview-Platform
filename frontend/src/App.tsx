@@ -5,6 +5,7 @@ import TextInterviewSession from "./pages/TextInterviewSession"
 import CodingSandbox from "./pages/CodingSandbox"
 import Feedback from "./pages/Feedback"
 import EnhancedFeedback from "./pages/EnhancedFeedback"
+import LandingPage from "./pages/LandingPage"
 import { Routes, Route, Navigate } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import InterviewSetup from "./pages/InterviewSetup";
@@ -17,7 +18,8 @@ function App() {
     <>
       <Routes>
         {/* Public routes */}
-        <Route path='/' element={<Login />} />
+ 
+        <Route path='/' element={<LandingPage />} />
         <Route path='/login' element={<Login />} />
         <Route path='/register' element={<Register />} />
 

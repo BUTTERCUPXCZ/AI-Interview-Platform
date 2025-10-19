@@ -106,4 +106,7 @@ export class AxiosHttpClient implements HttpClient {
 }
 
 // Singleton instance
-export const httpClient = new AxiosHttpClient(import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api')
+// If VITE_API_BASE_URL is set (non-empty) use it, otherwise default to an empty string so
+// the client uses the relative '/api' base and the Vite dev proxy will forward requests.
+const envBase = (import.meta.env.VITE_API_BASE_URL as string) || ''
+export const httpClient = new AxiosHttpClient(envBase || '/api')

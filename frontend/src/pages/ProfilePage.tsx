@@ -9,7 +9,7 @@ import {
     useUpdateSkills
 } from '@/hooks/useProfile'
 import Sidebar from '@/components/Sidebar'
-import Navbar from '@/components/Navbar'
+import  Navbar from '@/components/AppNavbar'
 import {
     User,
     Lock,

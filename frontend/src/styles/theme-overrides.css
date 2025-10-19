@@ -1,0 +1,89 @@
+/* AceDevAI Custom Theme Overrides */
+/* Primary Color: #00e676 (Green) | Background: Black/Dark */
+
+/* Update Card backgrounds */
+.card-themed {
+  @apply bg-card/40 backdrop-blur-sm border-white/10;
+}
+
+/* Update Button styles */
+.btn-primary {
+  @apply bg-[#00e676] hover:bg-[#02cb6a] text-black font-semibold;
+}
+
+.btn-secondary {
+  @apply bg-white/5 hover:bg-white/10 text-white border-white/10;
+}
+
+.btn-outline {
+  @apply border-white/10 hover:bg-[#00e676]/10 hover:border-[#00e676]/50 text-white;
+}
+
+/* Update text colors */
+.text-primary {
+  @apply text-[#00e676];
+}
+
+.text-muted {
+  @apply text-white/70;
+}
+
+.text-muted-foreground {
+  @apply text-white/60;
+}
+
+/* Update input styles */
+.input-themed {
+  @apply bg-white/5 border-white/10 text-white placeholder:text-white/40 focus:border-[#00e676];
+}
+
+/* Update header/section backgrounds */
+.header-themed {
+  @apply bg-card/40 backdrop-blur-sm border-white/10;
+}
+
+/* Update stat cards */
+.stat-card {
+  @apply bg-card/40 backdrop-blur-sm border-white/10 hover:border-[#00e676]/50 transition-all duration-300;
+}
+
+/* Update progress bars */
+.progress-bar {
+  @apply bg-white/10;
+}
+
+.progress-fill {
+  @apply bg-[#00e676];
+}
+
+/* Update badges */
+.badge-primary {
+  @apply bg-[#00e676]/20 text-[#00e676] border border-[#00e676]/50;
+}
+
+.badge-secondary {
+  @apply bg-white/10 text-white border border-white/20;
+}
+
+/* Update links */
+.link-primary {
+  @apply text-[#00e676] hover:text-[#00e676]/80 underline-offset-4;
+}
+
+/* Update modals/dialogs */
+.modal-themed {
+  @apply bg-card/95 backdrop-blur-md border-white/10;
+}
+
+/* Update tables */
+.table-row {
+  @apply border-white/10 hover:bg-white/5;
+}
+
+/* Update charts (for recharts) */
+:root {
+  --chart-primary: #00e676;
+  --chart-secondary: #ffffff;
+  --chart-accent: #00c853;
+  --chart-muted: rgba(255, 255, 255, 0.1);
+}

@@ -50,16 +50,14 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
 
     return (
         <div className={cn(
-            "flex h-full w-64 flex-col bg-card border-r border-border",
+            "flex h-full w-64 flex-col bg-card/40 backdrop-blur-sm border-r border-white/10",
             className
         )}>
             {/* Header */}
             <div className="flex h-16 items-center justify-between px-6">
                 <div className="flex items-center gap-2 font-semibold">
-                    <span className="text-lg">AI Interview</span>
+                    <span className="text-lg text-white">AceDev<span className="text-[#00e676]">AI</span></span>
                 </div>
-
-
             </div>
 
             {/* Navigation */}
@@ -67,7 +65,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
                 <nav className="grid gap-1 p-4">
                     {/* Main Navigation */}
                     <div className="pb-2">
-                        <h2 className="mb-2 px-2 text-sm font-semibold tracking-tight text-muted-foreground">
+                        <h2 className="mb-2 px-2 text-sm font-semibold tracking-tight text-white/60">
                             Main
                         </h2>
                         {navigation.map((item) => (
@@ -75,8 +73,8 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
                                 key={item.name}
                                 variant={item.current ? "secondary" : "ghost"}
                                 className={cn(
-                                    "w-full justify-start gap-2 h-9",
-                                    item.current && "bg-secondary text-secondary-foreground"
+                                    "w-full justify-start gap-2 h-9 text-white/80 hover:text-white hover:bg-white/5",
+                                    item.current && "bg-[#00e676]/20 text-[#00e676] hover:bg-[#00e676]/30 hover:text-[#00e676]"
                                 )}
                                 onClick={() => handleNavigation(item.href)}
                             >
