@@ -1,7 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/useAuthContext'
 import { useLogout } from '../hooks/useAuth'
-import { useTheme } from '../contexts/ThemeContext'
 import { Button } from './ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
 import {
@@ -12,7 +11,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from './ui/dropdown-menu'
-import { LogOut, Sun, Moon } from 'lucide-react'
+import { LogOut } from 'lucide-react'
 
 const Navbar = () => {
     const navigate = useNavigate()

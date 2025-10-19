@@ -1,4 +1,5 @@
 import { useToast } from '@/hooks/use-toast';
+import type { PublicToast } from '@/hooks/use-toast';
 import {
   Toast,
   ToastClose,
@@ -13,7 +14,7 @@ export function Toaster() {
 
   return (
     <ToastProvider>
-      {toasts.map(function ({ id, title, description, action, ...props }) {
+  {toasts.map(function ({ id, title, description, action, ...props }: PublicToast) {
         return (
           <Toast key={id} {...props}>
             <div className="grid gap-1">
