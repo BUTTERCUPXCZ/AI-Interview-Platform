@@ -12,6 +12,9 @@ import InterviewSetup from "./pages/InterviewSetup";
 import Progress from "./pages/Progress";
 import ProfilePage from "./pages/ProfilePage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import ForgotPassword from "./pages/ForgotPassword"
+import EmailVerification from "./pages/EmailVerification"
+import ResetPassword from "./pages/ResetPassword"
 
 function App() {
   return (
@@ -20,6 +23,9 @@ function App() {
         {/* Public routes */}
  
         <Route path='/' element={<LandingPage />} />
+        <Route path='/forgot-password' element={<ForgotPassword />} />
+  <Route path='/verify-email' element={<EmailVerification />} />
+  <Route path='/reset-password' element={<ResetPassword />} />
         <Route path='/login' element={<Login />} />
         <Route path='/register' element={<Register />} />
 

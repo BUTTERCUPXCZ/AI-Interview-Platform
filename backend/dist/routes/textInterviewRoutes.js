@@ -1,7 +1,6 @@
 import express from "express";
-import { startTextInterview, getNextQuestion, submitTextAnswer, getInterviewProgress, completeTextInterview, getInterviewSummary } from "../controller/textInterview.controller.js";
+import { startTextInterview, getNextQuestion, submitTextAnswer, getInterviewProgress, completeTextInterview, getInterviewSummary, getUserInterviewHistory, getOverallPerformance } from "../controller/textInterview.controller.js";
 import { startTextInterviewOptimized, getNextQuestionOptimized, submitTextAnswerOptimized } from "../controller/optimizedTextInterview.controller.js";
-import { getUserInterviewHistory } from "../controller/textInterview.controller.js";
 const router = express.Router();
 /**
  * Text Interview Routes
@@ -22,6 +21,8 @@ router.get("/text/session/:sessionId/progress", getInterviewProgress);
 router.post("/text/session/:sessionId/complete", completeTextInterview);
 // Get interview summary
 router.get("/text/session/:sessionId/summary", getInterviewSummary);
+// Get overall performance evaluation
+router.get("/text/session/:sessionId/overall-performance", getOverallPerformance);
 // Get user's interview history
 router.get("/text/user/:userId/history", getUserInterviewHistory);
 export default router;

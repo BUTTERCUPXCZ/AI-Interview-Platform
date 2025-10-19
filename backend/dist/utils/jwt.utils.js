@@ -64,3 +64,28 @@ export const clearTokenCookie = (res) => {
 export const getTokenFromCookies = (cookies) => {
     return cookies[COOKIE_NAME] || null;
 };
+// -----------------------
+// Email verification helpers
+// -----------------------
+const EMAIL_VERIFICATION_EXPIRES_IN = process.env.EMAIL_VERIFICATION_EXPIRES_IN || "24h";
+/**
+ * Generates a short-lived token specifically for email verification
+ * @param payload - minimal payload used for verification (e.g. { id, email })
+ */
+export const generateVerificationToken = (payload) => {
+    return jwt.sign(payload, JWT_SECRET, {
+        expiresIn: EMAIL_VERIFICATION_EXPIRES_IN,
+    });
+};
+/**
+ * Verifies an email verification token and returns the decoded payload or null
+ */
+export const verifyVerificationToken = (token) => {
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        return decoded;
+    }
+    catch {
+        return null;
+    }
+};

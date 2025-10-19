@@ -12,11 +12,13 @@ export function Hero() {
   useLayoutEffect(() => {
     const ctx = gsap.context(() => {
       const tl = gsap.timeline({ delay: 0.2 });
-      tl.from('.hero-badge', { opacity: 0, y: 20, duration: 0.6, ease: 'power3.out' })
-        .from('.hero-heading', { opacity: 0, y: 30, duration: 0.8, ease: 'power3.out' }, '-=0.3')
-        .from('.hero-text', { opacity: 0, y: 20, duration: 0.6, ease: 'power3.out' }, '-=0.4')
-        .from('.hero-button', { opacity: 0, y: 10, duration: 0.5, ease: 'power3.out' }, '-=0.3')
-        .from('.hero-video', { opacity: 0, y: 40, duration: 0.8, ease: 'power3.out' }, '-=0.2');
+      // Only animate elements that exist
+      if (document.querySelector('.hero-heading')) {
+        tl.from('.hero-heading', { opacity: 0, y: 30, duration: 0.8, ease: 'power3.out' })
+          .from('.hero-text', { opacity: 0, y: 20, duration: 0.6, ease: 'power3.out' }, '-=0.4')
+          .from('.hero-button', { opacity: 0, y: 10, duration: 0.5, ease: 'power3.out' }, '-=0.3')
+          .from('.hero-video', { opacity: 0, y: 40, duration: 0.8, ease: 'power3.out' }, '-=0.2');
+      }
     }, heroRef);
 
     return () => ctx.revert();

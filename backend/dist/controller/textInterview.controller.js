@@ -358,7 +358,7 @@ export const getUserInterviewHistory = async (req, res) => {
         const sessions = await prisma.interviewSession.findMany({
             where: {
                 userId: parseInt(userId),
-                format: "TEXT" // Only get text interviews
+                format: "TEXT" /* Lines 430-431 omitted */
             },
             orderBy: { startedAt: "desc" },
             take: limit,
@@ -372,31 +372,7 @@ export const getUserInterviewHistory = async (req, res) => {
                 }
             }
         });
-        const history = sessions.map(session => {
-            const totalQuestions = session.questions.length;
-            const answeredQuestions = session.questions.filter(q => q.userAnswer !== null).length;
-            const scores = session.questions.filter(q => q.score !== null).map(q => q.score || 0);
-            const averageScore = scores.length > 0
-                ? scores.reduce((sum, score) => sum + score, 0) / scores.length
-                : 0;
-            return {
-                sessionId: session.id,
-                domain: session.domain,
-                interviewType: session.interviewType,
-                difficulty: session.difficulty,
-                duration: session.duration,
-                status: session.status,
-                startedAt: session.startedAt,
-                endedAt: session.endedAt,
-                totalScore: session.totalScore,
-                statistics: {
-                    totalQuestions,
-                    answeredQuestions,
-                    averageScore: Math.round(averageScore * 100) / 100,
-                    completionRate: Math.round((answeredQuestions / totalQuestions) * 100) || 0
-                }
-            };
-        });
+        const history = sessions.map(session => { });
         return res.json({
             userId: parseInt(userId),
             totalSessions: history.length,
@@ -406,5 +382,75 @@ export const getUserInterviewHistory = async (req, res) => {
     catch (error) {
         console.error("Error getting user interview history:", error);
         res.status(500).json({ error: "Failed to get interview history" });
+    }
+};
+/**
+ * Get overall performance evaluation using Gemini AI
+ */
+export const getOverallPerformance = async (req, res) => {
+    try {
+        const { sessionId } = req.params;
+        // Fetch complete session data
+        const session = await prisma.interviewSession.findUnique({
+            where: { id: parseInt(sessionId) },
+            include: {
+                questions: {
+                    orderBy: { id: "asc" },
+                    select: {
+                        questionText: true,
+                        userAnswer: true,
+                        score: true
+                    }
+                }
+            }
+        });
+        if (!session) {
+            return res.status(404).json({ error: "Interview session not found" });
+        }
+        // Check if session is completed
+        if (session.status !== "COMPLETED") {
+            return res.status(400).json({
+                error: "Interview must be completed before generating overall performance evaluation"
+            });
+        }
+        // Import Gemini service
+        const { evaluateOverallPerformance } = await import("../services/geminiService.js");
+        // Prepare session data for evaluation
+        const sessionData = {
+            domain: session.domain,
+            difficulty: session.difficulty,
+            interviewType: session.interviewType,
+            duration: session.duration,
+            questions: session.questions
+        };
+        console.log(`Generating overall performance evaluation for session ${sessionId}...`);
+        // Get AI evaluation
+        const evaluation = await evaluateOverallPerformance(sessionData);
+        // Optionally save evaluation to session
+        await prisma.interviewSession.update({
+            where: { id: parseInt(sessionId) },
+            data: {
+                totalScore: evaluation.overallScore
+            }
+        });
+        return res.json({
+            sessionId: session.id,
+            evaluation: {
+                ...evaluation,
+                sessionInfo: {
+                    domain: session.domain,
+                    difficulty: session.difficulty,
+                    interviewType: session.interviewType,
+                    startedAt: session.startedAt,
+                    endedAt: session.endedAt,
+                    totalQuestions: session.questions.length,
+                    answeredQuestions: session.questions.filter(q => q.userAnswer).length
+                }
+            }
+        });
+    }
+    catch (error) {
+        console.error("Error getting overall performance:", error);
+        res.status(500).json({ error: "Failed to generate overall performance evaluation" });
     }
 };

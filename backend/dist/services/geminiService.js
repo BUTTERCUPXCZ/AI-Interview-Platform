@@ -203,3 +203,59 @@ export async function evaluateTextAnswer(question, answer, domain, difficulty, i
     const result = await model.generateContent(prompt);
     return parseGeminiResponse(result.response.text());
 }
+/**
+ * Evaluate overall interview performance based on all questions and answers
+ */
+export async function evaluateOverallPerformance(sessionData) {
+    const model = genAI.getGenerativeModel({ model: MODEL_NAME });
+    // Calculate answered questions percentage
+    const totalQuestions = sessionData.questions.length;
+    const answeredQuestions = sessionData.questions.filter(q => q.userAnswer).length;
+    const completionRate = (answeredQuestions / totalQuestions) * 100;
+    // Calculate average score
+    const scores = sessionData.questions
+        .filter(q => q.score !== null)
+        .map(q => q.score);
+    const averageScore = scores.length > 0
+        ? scores.reduce((sum, score) => sum + score, 0) / scores.length
+        : 0;
+    const prompt = `
+        Evaluate the overall performance of a candidate in a ${sessionData.difficulty} level ${sessionData.domain} ${sessionData.interviewType} interview.
+        
+        Interview Statistics:
+        - Total Questions: ${totalQuestions}
+        - Answered Questions: ${answeredQuestions} (${completionRate.toFixed(1)}% completion)
+        - Average Score: ${averageScore.toFixed(1)}/10
+        - Duration: ${sessionData.duration} minutes
+        
+        Questions and Answers:
+        ${sessionData.questions.map((q, idx) => `
+        Q${idx + 1}: ${q.questionText}
+        Answer: ${q.userAnswer || "No answer provided"}
+        Score: ${q.score || "Not scored"}/10
+        `).join('\n')}
+
+        IMPORTANT: Return ONLY a valid JSON object, no markdown formatting or code blocks.
+        Provide a comprehensive evaluation with the following structure:
+        {
+            "overallScore": number (0-100),
+            "performanceRating": "Excellent|Good|Average|Below Average|Poor",
+            "summary": "Overall performance summary (2-3 sentences)",
+            "strengths": ["strength 1", "strength 2", "strength 3"],
+            "weaknesses": ["weakness 1", "weakness 2"],
+            "areasForImprovement": ["area 1", "area 2", "area 3"],
+            "technicalSkillsAssessment": {
+                "knowledgeDepth": number (0-100),
+                "problemSolving": number (0-100),
+                "communication": number (0-100),
+                "technicalAccuracy": number (0-100)
+            },
+            "detailedFeedback": "Comprehensive feedback paragraph",
+            "recommendations": ["recommendation 1", "recommendation 2", "recommendation 3"],
+            "nextSteps": ["next step 1", "next step 2"],
+            "readinessLevel": "Ready for ${sessionData.difficulty} roles|Needs more preparation|Excellent candidate"
+        }
+    `;
+    const result = await model.generateContent(prompt);
+    return parseGeminiResponse(result.response.text());
+}

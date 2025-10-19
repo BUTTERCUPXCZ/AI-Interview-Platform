@@ -53,11 +53,14 @@ export const verifyToken = (token: string): JwtPayload | null => {
  * @param token - JWT token to set in cookie
  */
 export const setTokenCookie = (res: Response, token: string): void => {
+    const isProduction = process.env.NODE_ENV === "production";
+    
     res.cookie(COOKIE_NAME, token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production", // HTTPS only in production
-        sameSite: "strict",
+        secure: isProduction, // HTTPS only in production
+        sameSite: isProduction ? "none" : "strict", // 'none' required for cross-site in production
         maxAge: COOKIE_MAX_AGE,
+        domain: isProduction ? undefined : undefined, // Let browser handle domain
     });
 };
 
@@ -66,10 +69,12 @@ export const setTokenCookie = (res: Response, token: string): void => {
  * @param res - Express response object
  */
 export const clearTokenCookie = (res: Response): void => {
+    const isProduction = process.env.NODE_ENV === "production";
+    
     res.clearCookie(COOKIE_NAME, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
+        secure: isProduction,
+        sameSite: isProduction ? "none" : "strict",
     });
 };
 
@@ -80,4 +85,31 @@ export const clearTokenCookie = (res: Response): void => {
  */
 export const getTokenFromCookies = (cookies: Record<string, string>): string | null => {
     return cookies[COOKIE_NAME] || null;
+};
+
+// -----------------------
+// Email verification helpers
+// -----------------------
+const EMAIL_VERIFICATION_EXPIRES_IN = process.env.EMAIL_VERIFICATION_EXPIRES_IN || "24h";
+
+/**
+ * Generates a short-lived token specifically for email verification
+ * @param payload - minimal payload used for verification (e.g. { id, email })
+ */
+export const generateVerificationToken = (payload: Record<string, unknown>): string => {
+    return jwt.sign(payload as Record<string, unknown>, JWT_SECRET as Secret, {
+        expiresIn: EMAIL_VERIFICATION_EXPIRES_IN as SignOptions["expiresIn"],
+    });
+};
+
+/**
+ * Verifies an email verification token and returns the decoded payload or null
+ */
+export const verifyVerificationToken = (token: string): Record<string, unknown> | null => {
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET) as Record<string, unknown>;
+        return decoded;
+    } catch {
+        return null;
+    }
 };

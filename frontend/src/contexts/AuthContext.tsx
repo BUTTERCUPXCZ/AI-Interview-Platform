@@ -23,9 +23,12 @@ const fetchCurrentUser = async (): Promise<AuthUser | null> => {
     } catch (error) {
         // If token is invalid or expired, return null
         if (axios.isAxiosError(error) && error.response?.status === 401) {
+            console.log('User not authenticated (401)');
             return null;
         }
-        throw error;
+        // For other errors, also return null to avoid infinite retries
+        console.error('Error fetching current user:', error);
+        return null;
     }
 };
 

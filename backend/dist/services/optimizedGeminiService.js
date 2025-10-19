@@ -177,6 +177,97 @@ function getFallbackQuestions(domain, difficulty, interviewType) {
         { question: "What technologies are you most comfortable working with?" }
     ];
 }
+/**
+ * Evaluate overall interview performance - Optimized version
+ */
+export async function evaluateOverallPerformanceOptimized(sessionData) {
+    try {
+        const model = genAI.getGenerativeModel({
+            model: MODEL_NAME,
+            generationConfig: {
+                temperature: 0.5,
+                maxOutputTokens: 1500,
+            }
+        });
+        const totalQuestions = sessionData.questions.length;
+        const answeredQuestions = sessionData.questions.filter(q => q.userAnswer).length;
+        const completionRate = (answeredQuestions / totalQuestions) * 100;
+        const scores = sessionData.questions
+            .filter(q => q.score !== null)
+            .map(q => q.score);
+        const averageScore = scores.length > 0
+            ? scores.reduce((sum, score) => sum + score, 0) / scores.length
+            : 0;
+        const prompt = `Evaluate overall interview performance:
+        
+        Context: ${sessionData.difficulty} ${sessionData.domain} ${sessionData.interviewType} interview
+        Completion: ${answeredQuestions}/${totalQuestions} questions (${completionRate.toFixed(1)}%)
+        Average Score: ${averageScore.toFixed(1)}/10
+        
+        Questions & Performance:
+        ${sessionData.questions.slice(0, 5).map((q, idx) => `
+        Q${idx + 1}: ${q.questionText.substring(0, 100)}...
+        Answer: ${q.userAnswer ? q.userAnswer.substring(0, 150) + '...' : 'Not answered'}
+        Score: ${q.score || 'N/A'}/10
+        `).join('\n')}
+
+        Return JSON:
+        {
+            "overallScore": number (0-100),
+            "performanceRating": "string",
+            "summary": "brief summary",
+            "strengths": ["item1", "item2", "item3"],
+            "weaknesses": ["item1", "item2"],
+            "areasForImprovement": ["item1", "item2", "item3"],
+            "technicalSkillsAssessment": {
+                "knowledgeDepth": number,
+                "problemSolving": number,
+                "communication": number,
+                "technicalAccuracy": number
+            },
+            "detailedFeedback": "feedback paragraph",
+            "recommendations": ["item1", "item2", "item3"],
+            "nextSteps": ["step1", "step2"],
+            "readinessLevel": "string"
+        }
+        No markdown.`;
+        const result = await model.generateContent(prompt);
+        return parseGeminiResponse(result.response.text());
+    }
+    catch (error) {
+        console.error("Error evaluating overall performance:", error);
+        // Return fallback evaluation
+        const scores = sessionData.questions
+            .filter(q => q.score !== null)
+            .map(q => q.score);
+        const averageScore = scores.length > 0
+            ? scores.reduce((sum, score) => sum + score, 0) / scores.length
+            : 5;
+        const overallScore = Math.round(averageScore * 10);
+        const performanceRating = overallScore >= 80 ? "Excellent" :
+            overallScore >= 70 ? "Good" :
+                overallScore >= 60 ? "Average" :
+                    overallScore >= 50 ? "Below Average" : "Needs Improvement";
+        return {
+            overallScore,
+            performanceRating,
+            summary: `You completed ${sessionData.questions.filter(q => q.userAnswer).length} out of ${sessionData.questions.length} questions with an average score of ${averageScore.toFixed(1)}/10.`,
+            strengths: ["Showed effort in answering questions", "Completed the interview"],
+            weaknesses: ["Performance evaluation unavailable"],
+            areasForImprovement: ["Continue practicing interview questions", "Focus on technical depth"],
+            technicalSkillsAssessment: {
+                knowledgeDepth: overallScore,
+                problemSolving: overallScore,
+                communication: overallScore,
+                technicalAccuracy: overallScore
+            },
+            detailedFeedback: "Your interview has been recorded. Continue practicing to improve your performance.",
+            recommendations: ["Review the questions you found challenging", "Practice similar interview scenarios"],
+            nextSteps: ["Keep learning and improving", "Attempt more practice interviews"],
+            readinessLevel: performanceRating
+        };
+    }
+}
 // Clear cache function (for maintenance)
 export function clearQuestionCache() {
     questionCache.clear();

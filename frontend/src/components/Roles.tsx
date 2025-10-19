@@ -76,13 +76,13 @@ export function Roles() {
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
           transition={{ duration: 0.6 }}
-          className="flex flex-col items-center text-center space-y-4 mb-16"
+          className="flex flex-col items-center text-center space-y-3 mb-12"
         >
-          <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-white">
+          <h2 className="text-2xl md:text-4xl font-semibold tracking-tight text-white">
             Specialized Training for Every Role
           </h2>
-          <p className="text-xl text-white/70 max-w-2xl">
-            Choose your path and get role-specific interview questions curated by industry experts
+          <p className="text-base md:text-lg text-white/70 max-w-2xl">
+            Choose your path and get role-specific interview questions curated by industry experts.
           </p>
         </motion.div>
 
@@ -96,26 +96,29 @@ export function Roles() {
           {roles.map((role, index) => {
             const Icon = role.icon;
             return (
-              <motion.div key={index} variants={itemVariants} transition={{ duration: 0.5 }}>
+              <motion.div key={index} variants={itemVariants} transition={{ duration: 0.45 }}>
                 <Card
-                  className="group relative h-full backdrop-blur-sm bg-card/40 border border-white/10 hover:border-[#00e676]/50 transition-all duration-300 hover:shadow-[0_0_30px_rgba(0,230,118,0.15)]"
+                  className="group relative h-full bg-card/30 border border-white/6 hover:border-primary/60 transition-all duration-300 hover:shadow-lg"
                 >
-                  <CardHeader className="flex-shrink-0">
+                  <CardHeader className="flex items-start gap-4 p-4">
                     <div
-                      className="h-12 w-12 rounded-lg flex items-center justify-center mb-4 shrink-0 bg-[#00e676]/10 group-hover:bg-[#00e676]/20 transition-colors duration-300"
+                      className="h-11 w-11 rounded-md flex items-center justify-center shrink-0 bg-primary/10 group-hover:bg-primary/20 transition-colors duration-200"
+                      aria-hidden
                     >
-                      <Icon className="h-6 w-6 text-[#00e676]" />
+                      <Icon className="h-5 w-5 text-primary" />
                     </div>
-                    <CardTitle className="text-xl text-white">{role.title}</CardTitle>
+                    <div className="flex-1">
+                      <CardTitle className="text-lg md:text-xl text-white font-medium">{role.title}</CardTitle>
+                      <p className="mt-1 text-sm text-white/70 max-w-full">{role.description}</p>
+                    </div>
                   </CardHeader>
-                  <CardContent className="flex flex-col flex-grow">
-                    <p className="mb-4 flex-grow text-white/80">{role.description}</p>
-                    <div className="flex flex-wrap gap-2">
+                  <CardContent className="px-4 pb-4 pt-0">
+                    <div className="mt-3 flex flex-wrap gap-2">
                       {role.topics.map((topic, topicIndex) => (
                         <Badge
                           key={topicIndex}
                           variant="secondary"
-                          className="backdrop-blur-sm bg-white/5 text-white/90 border border-white/10 hover:bg-white/10 transition-colors duration-200"
+                          className="text-sm bg-white/3 text-white/90 border border-white/6 hover:bg-white/6 transition-colors duration-150"
                         >
                           {topic}
                         </Badge>

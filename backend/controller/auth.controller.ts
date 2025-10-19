@@ -10,6 +10,10 @@ import {
     JwtPayload
 } from "../utils/jwt.utils.js";
 import { CacheService } from "../services/cacheService.js";
+import { generateVerificationToken, verifyVerificationToken } from "../utils/jwt.utils.js";
+import emailService from "../services/emailService.js";
+import { redisOperations } from "../lib/redis.js";
+import crypto from "crypto";
 
 
 
@@ -51,6 +55,16 @@ export const registerUser = async (req: Request, res: Response, next: NextFuncti
 
         // Set secure HTTP-only cookie
         setTokenCookie(res, token);
+
+        // Send email verification in background (if email notifications enabled)
+        try {
+            const verificationToken = generateVerificationToken({ id: newUser.id, email: newUser.email });
+            const verificationUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/verify-email?token=${verificationToken}`;
+            // fire-and-forget
+            emailService.sendVerificationEmail(newUser.email, verificationUrl).catch((err: unknown) => console.error("Email send failed:", err));
+        } catch (err) {
+            console.warn("Failed to queue verification email:", err);
+        }
 
         res.status(201).json({
             message: "User registered successfully",
@@ -126,8 +140,9 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
             message: "Login successful",
             user: userWithoutPassword
         });
-    } catch {
-        next();
+    } catch (error) {
+        // Forward the error to Express error handlers so a proper status/code is returned
+        next(error);
     }
 };
 
@@ -183,5 +198,110 @@ export const getCurrentUser = (req: Request, res: Response) => {
         });
     } catch {
         res.status(500).json({ message: "Error retrieving user information" });
+    }
+};
+
+// Send verification email again
+export const sendVerificationEmail = async (req: Request, res: Response, next: NextFunction) => {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: "Email is required" });
+
+    try {
+        const user = await prisma.user.findUnique({ where: { email } });
+        if (!user) return res.status(404).json({ message: "User not found" });
+        if (user.isEmailVerified) return res.status(400).json({ message: "Email already verified" });
+
+        const verificationToken = generateVerificationToken({ id: user.id, email: user.email });
+        const verificationUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/verify-email?token=${verificationToken}`;
+
+        await emailService.sendVerificationEmail(email, verificationUrl);
+
+        res.json({ message: "Verification email sent" });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// Verify email token endpoint
+export const verifyEmail = async (req: Request, res: Response, next: NextFunction) => {
+    const { token } = req.body;
+    if (!token) return res.status(400).json({ message: "Token is required" });
+
+    try {
+        const decoded = verifyVerificationToken(token);
+        if (!decoded || !decoded.id || !decoded.email) return res.status(400).json({ message: "Invalid or expired token" });
+
+        const userId = Number(decoded.id);
+        const email = String(decoded.email);
+
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user || user.email !== email) return res.status(400).json({ message: "User mismatch" });
+
+        await prisma.user.update({ where: { id: userId }, data: { isEmailVerified: true, emailVerifiedAt: new Date() } });
+
+        res.json({ message: "Email verified" });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// Request password reset (send OTP)
+export const requestPasswordReset = async (req: Request, res: Response, next: NextFunction) => {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: "Email is required" });
+
+    try {
+        const user = await prisma.user.findUnique({ where: { email } });
+        if (!user) return res.status(200).json({ message: "If the email exists, an OTP has been sent" }); // avoid leaking accounts
+
+        // Generate 6-digit OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+        // Store hashed OTP in Redis with TTL 10 minutes
+        const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
+        const redisKey = `pwdreset:${user.id}`;
+        await redisOperations.set(redisKey, { otp: otpHash }, 10 * 60); // 10 minutes
+
+        // send OTP email (don't fail the whole request if email sending fails)
+        try {
+            await emailService.sendOtpEmail(email, otp);
+        } catch (err) {
+            // Log the error but return a generic success message to the client
+            const e: any = err;
+            console.error("Failed to send OTP email:", e && (e.response?.body || e));
+        }
+
+        res.json({ message: "If the email exists, an OTP has been sent" });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// Verify OTP and reset password
+export const resetPasswordWithOtp = async (req: Request, res: Response, next: NextFunction) => {
+    const { email, otp, newPassword } = req.body;
+    if (!email || !otp || !newPassword) return res.status(400).json({ message: "Email, otp and newPassword are required" });
+
+    try {
+        const user = await prisma.user.findUnique({ where: { email } });
+        if (!user) return res.status(400).json({ message: "Invalid request" });
+
+        const redisKey = `pwdreset:${user.id}`;
+        const stored = await redisOperations.get(redisKey) as { otp?: string } | null;
+        if (!stored || !stored.otp) return res.status(400).json({ message: "OTP expired or not found" });
+
+        const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
+        if (otpHash !== stored.otp) return res.status(400).json({ message: "Invalid OTP" });
+
+        // update password
+        const hashedPassword = await bcrypt.hash(newPassword, 12);
+        await prisma.user.update({ where: { id: user.id }, data: { password: hashedPassword, passwordResetToken: null, passwordResetExpires: null } });
+
+        // clear redis key
+        await redisOperations.del(redisKey);
+
+        res.json({ message: "Password reset successful" });
+    } catch (error) {
+        next(error);
     }
 };
