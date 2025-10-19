@@ -16,6 +16,18 @@ import { useLogin } from '../hooks/useAuth'
 
 type LoginFormProps = React.ComponentProps<"div">
 
+// Narrow an Axios-like error shape for safe access without using `any`
+const isAxiosErrorWithData = (err: unknown): err is { response: { data: { code?: string; message?: string } } } => {
+    return (
+        typeof err === 'object' &&
+        err !== null &&
+        'response' in err &&
+        typeof (err as any).response === 'object' &&
+        (err as any).response !== null &&
+        'data' in (err as any).response
+    )
+}
+
 function LoginForm({ className, ...props }: LoginFormProps) {
     const navigate = useNavigate();
     const loginMutation = useLogin();
@@ -37,13 +49,13 @@ function LoginForm({ className, ...props }: LoginFormProps) {
             await loginMutation.mutateAsync(formData)
             // Redirect to dashboard or home page after successful login
             navigate('/dashboard') // You can change this to your desired route
-        } catch (error: any) {
-            // Check if it's an email verification error
-            if (error?.response?.data?.code === 'EMAIL_NOT_VERIFIED') {
+        } catch (err: unknown) {
+            // Check if it's an email verification error (Axios-like shape)
+            if (isAxiosErrorWithData(err) && err.response.data.code === 'EMAIL_NOT_VERIFIED') {
                 setNeedsVerification(true)
-                setErrors(error?.response?.data?.message || 'Please verify your email before logging in.')
+                setErrors(err.response.data.message || 'Please verify your email before logging in.')
             } else {
-                const errorMessage = error instanceof Error ? error.message : 'Login failed. Please try again.'
+                const errorMessage = err instanceof Error ? err.message : 'Login failed. Please try again.'
                 setErrors(errorMessage)
             }
         }
