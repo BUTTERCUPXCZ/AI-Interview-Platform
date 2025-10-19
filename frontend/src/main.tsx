@@ -10,7 +10,15 @@ import axios from 'axios'
 
 axios.defaults.withCredentials = true;
 
-const queryclient = new QueryClient();
+const queryclient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false, // Don't retry failed queries by default
+      refetchOnWindowFocus: false, // Don't refetch on window focus
+      staleTime: 1000 * 60 * 5, // 5 minutes
+    },
+  },
+});
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

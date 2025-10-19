@@ -18,7 +18,9 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 // Function to fetch current user from backend
 const fetchCurrentUser = async (): Promise<AuthUser | null> => {
     try {
+        console.log('Fetching current user...');
         const response = await api.get(`/auth/me`);
+        console.log('User fetched successfully:', response.data);
         return response.data;
     } catch (error) {
         // If token is invalid or expired, return null
@@ -43,12 +45,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const {
         data: user,
         isLoading,
+        isFetching,
         refetch: refetchUser,
     } = useQuery({
         queryKey: ['user'],
         queryFn: fetchCurrentUser,
         retry: false, // Don't retry on 401 errors
-        staleTime: 1000 * 60 * 5, // 5 minutes
+        staleTime: 1000 * 60 * 5, // 5 minutes - how long data is considered fresh
+        gcTime: 1000 * 60 * 10, // 10 minutes - how long inactive data stays in cache
+        refetchOnMount: true, // Always refetch when component mounts
+        refetchOnWindowFocus: false, // Don't refetch on window focus
+        refetchOnReconnect: true, // Refetch when reconnecting
     });
 
     const logout = () => {
@@ -60,7 +67,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const value: AuthContextType = {
         user: user || null,
-        isLoading,
+        isLoading: isLoading || isFetching, // Consider both loading and fetching states
         isAuthenticated: !!user,
         logout,
         refetchUser,
