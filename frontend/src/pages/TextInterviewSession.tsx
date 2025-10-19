@@ -107,7 +107,7 @@ const TextInterviewSession = () => {
                 }
             }
         )
-    }, [config, user, startTextInterview, navigate])
+    }, [config, user, startTextInterview, navigate, hasTriedStart])
 
     // Start interview if not already started
     useEffect(() => {

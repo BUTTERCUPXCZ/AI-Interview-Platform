@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import * as React from 'react';
 import * as RechartsPrimitive from 'recharts';
 
@@ -7,6 +6,25 @@ import { cn } from '@/lib/utils';
 // Note: we intentionally use lightweight any-typed payload/legend items to
 // remain compatible with Recharts runtime payload shapes without pulling
 // internal Recharts types.
+
+// Lightweight runtime-safe shapes for Recharts payload items. Use `unknown`
+// and runtime checks instead of `any` to satisfy eslint rules.
+type RechartsPayloadItem = {
+  dataKey?: string;
+  name?: string;
+  value?: number | string | null;
+  payload?: Record<string, unknown> | null;
+  color?: string;
+  [key: string]: unknown;
+};
+
+function getStringProp(obj: unknown, key: string): string | undefined {
+  if (obj && typeof obj === 'object') {
+    const v = (obj as Record<string, unknown>)[key];
+    return typeof v === 'string' ? v : undefined;
+  }
+  return undefined;
+}
 
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: '', dark: '.dark' } as const;
@@ -105,7 +123,29 @@ ${colorConfig
 
 const ChartTooltip = RechartsPrimitive.Tooltip;
 
-const ChartTooltipContent = React.forwardRef<HTMLDivElement, any>((props: any, ref) => {
+type ChartTooltipProps = {
+  active?: boolean;
+  payload?: RechartsPayloadItem[];
+  className?: string;
+  indicator?: 'dot' | 'line' | 'dashed';
+  hideLabel?: boolean;
+  hideIndicator?: boolean;
+  label?: string | number;
+  labelFormatter?: (label: unknown, payload: RechartsPayloadItem[]) => React.ReactNode;
+  labelClassName?: string;
+  formatter?: (
+    value: unknown,
+    name?: string,
+    item?: RechartsPayloadItem,
+    index?: number,
+    payload?: Record<string, unknown> | null
+  ) => React.ReactNode;
+  color?: string;
+  nameKey?: string;
+  labelKey?: string;
+};
+
+const ChartTooltipContent = React.forwardRef<HTMLDivElement, ChartTooltipProps>((props, ref) => {
   const {
     active,
     payload = [],
@@ -120,7 +160,7 @@ const ChartTooltipContent = React.forwardRef<HTMLDivElement, any>((props: any, r
     color,
     nameKey,
     labelKey,
-  } = props as any;
+  } = props;
     const { config } = useChart();
 
     const tooltipLabel = React.useMemo(() => {
@@ -175,11 +215,13 @@ const ChartTooltipContent = React.forwardRef<HTMLDivElement, any>((props: any, r
       >
         {!nestLabel ? tooltipLabel : null}
         <div className="grid gap-1.5">
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          {(payload as any[]).map((item: any, index: number) => {
-            const key = `${nameKey || item.name || item.dataKey || 'value'}`;
-            const itemConfig = getPayloadConfigFromPayload(config, item, key);
-            const indicatorColor = color || item.payload?.fill || item.color;
+          {(payload as unknown as RechartsPayloadItem[]).map(
+            (item: RechartsPayloadItem, index: number) => {
+              const key =
+                `${nameKey || getStringProp(item, 'name') || getStringProp(item, 'dataKey') || 'value'}`;
+              const itemConfig = getPayloadConfigFromPayload(config, item, key);
+              const indicatorColor =
+                color || (item.payload && getStringProp(item.payload, 'fill')) || item.color;
 
             return (
               <div
@@ -252,7 +294,7 @@ const ChartLegend = RechartsPrimitive.Legend;
 const ChartLegendContent = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<'div'> & {
-      payload?: any[];
+      payload?: RechartsPayloadItem[];
       verticalAlign?: 'top' | 'bottom';
       hideIcon?: boolean;
       nameKey?: string;
@@ -277,10 +319,9 @@ const ChartLegendContent = React.forwardRef<
           className
         )}
       >
-  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-    {(payload as any[]).map((item: any) => {
-          const key = `${nameKey || item.dataKey || 'value'}`;
-          const itemConfig = getPayloadConfigFromPayload(config, item, key);
+    {(payload as unknown as RechartsPayloadItem[]).map((item: RechartsPayloadItem) => {
+      const key = `${nameKey || getStringProp(item, 'dataKey') || 'value'}`;
+      const itemConfig = getPayloadConfigFromPayload(config, item, key as string);
 
           return (
             <div
