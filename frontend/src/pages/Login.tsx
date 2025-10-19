@@ -18,14 +18,15 @@ type LoginFormProps = React.ComponentProps<"div">
 
 // Narrow an Axios-like error shape for safe access without using `any`
 const isAxiosErrorWithData = (err: unknown): err is { response: { data: { code?: string; message?: string } } } => {
-    return (
-        typeof err === 'object' &&
-        err !== null &&
-        'response' in err &&
-        typeof (err as any).response === 'object' &&
-        (err as any).response !== null &&
-        'data' in (err as any).response
-    )
+    if (typeof err !== 'object' || err === null) return false;
+    const obj = err as Record<string, unknown>;
+    if (!('response' in obj)) return false;
+    const resp = obj['response'];
+    if (typeof resp !== 'object' || resp === null) return false;
+    const respObj = resp as Record<string, unknown>;
+    if (!('data' in respObj)) return false;
+    const data = respObj['data'];
+    return typeof data === 'object' && data !== null;
 }
 
 function LoginForm({ className, ...props }: LoginFormProps) {
