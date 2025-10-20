@@ -48,8 +48,13 @@ export const redisOperations = {
             const value = await redis.get(key);
             if (!value) return null;
 
-            // Check if the value is already a valid JSON string
+            // Some Redis clients (or upstream layers) may return parsed objects instead of raw strings.
+            // If we already have an object (e.g. the client parsed JSON for us), return it as-is.
             if (typeof value !== "string") {
+                if (value !== null && typeof value === "object") {
+                    // Already-parsed JSON from the Redis client: assume it's correct and return it.
+                    return value;
+                }
                 console.warn(`Redis key ${key} contains non-string value:`, typeof value);
                 return null;
             }

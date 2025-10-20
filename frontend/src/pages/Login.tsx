@@ -17,15 +17,19 @@ import { useLogin } from '../hooks/useAuth'
 type LoginFormProps = React.ComponentProps<"div">
 
 // Narrow an Axios-like error shape for safe access without using `any`
-const isAxiosErrorWithData = (err: unknown): err is { response: { data: { code?: string; message?: string } } } => {
+const isAxiosErrorWithData = (
+    err: unknown
+): err is { response: { status?: number; data?: { code?: string; message?: string } } } => {
     if (typeof err !== 'object' || err === null) return false;
     const obj = err as Record<string, unknown>;
     if (!('response' in obj)) return false;
     const resp = obj['response'];
     if (typeof resp !== 'object' || resp === null) return false;
     const respObj = resp as Record<string, unknown>;
-    if (!('data' in respObj)) return false;
+    // response may or may not include data, but response itself must be an object
+    if (!('data' in respObj) && !('status' in respObj)) return true;
     const data = respObj['data'];
+    if (data === undefined) return true;
     return typeof data === 'object' && data !== null;
 }
 
@@ -51,14 +55,34 @@ function LoginForm({ className, ...props }: LoginFormProps) {
             // Redirect to dashboard or home page after successful login
             navigate('/dashboard') // You can change this to your desired route
         } catch (err: unknown) {
-            // Check if it's an email verification error (Axios-like shape)
-            if (isAxiosErrorWithData(err) && err.response.data.code === 'EMAIL_NOT_VERIFIED') {
-                setNeedsVerification(true)
-                setErrors(err.response.data.message || 'Please verify your email before logging in.')
-            } else {
-                const errorMessage = err instanceof Error ? err.message : 'Login failed. Please try again.'
-                setErrors(errorMessage)
+            // Handle Axios-like responses with data
+            if (isAxiosErrorWithData(err)) {
+                const data = err.response.data ?? {};
+
+                // Email-not-verified special handling
+                if (data.code === 'EMAIL_NOT_VERIFIED') {
+                    setNeedsVerification(true);
+                    setErrors(data.message || 'Please verify your email before logging in.');
+                    return;
+                }
+
+                // If backend indicates invalid credentials (401) or message contains 'invalid email' treat it as credential error
+                const status = err.response.status;
+                if (status === 401 || (typeof data.message === 'string' && /invalid email/i.test(data.message))) {
+                    setErrors('Invalid email and password');
+                    return;
+                }
+
+                // If backend provided a message, show it
+                if (data.message) {
+                    setErrors(String(data.message));
+                    return;
+                }
             }
+
+            // Fallback error message
+            const errorMessage = err instanceof Error ? err.message : 'Login failed. Please try again.';
+            setErrors(errorMessage);
         }
     }
 
@@ -188,7 +212,7 @@ const Login = () => {
         <div className="bg-background flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
             <div className="flex w-full max-w-sm flex-col gap-6">
                 <div className="flex flex-col gap-2 text-center">
-                    <h1 className="text-3xl font-bold text-[#00e676]">AceDevAI</h1>
+                    <h1 className="text-3xl font-bold text-[#00e676]">AceDev <span className="text-white">AI</span></h1>
                     <p className="text-white/70">Sign in to continue your journey</p>
                 </div>
                 <LoginForm />
