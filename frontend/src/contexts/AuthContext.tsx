@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import type { AuthUser } from '../hooks/useAuth';
 import api from '@/api/api';
+import { getClientTokenCookie } from '@/api/api';
 
 interface AuthContextType {
     user: AuthUser | null;
@@ -67,8 +68,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const value: AuthContextType = {
         user: user || null,
-        isLoading: isLoading || isFetching, // Consider both loading and fetching states
-        isAuthenticated: !!user,
+        // Consider both initial loading and background fetching as loading. If a client-side
+        // token cookie exists we consider the user *optimistically* authenticated while
+        // the `/auth/me` request validates it. This avoids instant redirect to login on reload.
+        isLoading: isLoading || isFetching,
+        isAuthenticated: !!user || !!getClientTokenCookie(),
         logout,
         refetchUser,
     };

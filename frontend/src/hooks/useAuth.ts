@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { userlogin, userRegister, userlogout } from '../api/auth';
+import { setClientTokenCookie } from '../api/api';
 import axios from 'axios';
 
 export interface LoginCredentials {
@@ -25,6 +26,7 @@ export interface AuthUser {
 export interface AuthResponse {
     message: string;
     user: AuthUser;
+    token?: string;
 }
 
 // Login hook
@@ -36,6 +38,13 @@ export const useLogin = () => {
         onSuccess: (data: AuthResponse) => {
             // Update the user cache
             queryClient.setQueryData(['user'], data.user);
+
+            // Persist a client-side token cookie (in addition to server httpOnly cookie)
+            // so that reloads from a different origin can still attach an Authorization header.
+            if (data) {
+                const token = (data as AuthResponse).token;
+                if (typeof token === 'string') setClientTokenCookie(token);
+            }
 
             console.log('Login successful:', data.message);
         },
@@ -85,6 +94,9 @@ export const useLogout = () => {
 
             // Clear all cached data that might be user-specific
             queryClient.clear();
+
+            // Clear client-side token cookie as well
+            setClientTokenCookie(null);
 
             console.log('Logout successful:', data.message);
         },

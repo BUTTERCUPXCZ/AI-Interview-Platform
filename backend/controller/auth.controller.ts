@@ -108,10 +108,10 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
             role: user.role
         };
 
-        const token = generateToken(tokenPayload);
+    const token = generateToken(tokenPayload);
 
-        // Set secure HTTP-only cookie
-        setTokenCookie(res, token);
+    // Set secure HTTP-only cookie (server-side)
+    setTokenCookie(res, token);
 
         // Cache user session for faster subsequent requests
         await CacheService.setUserSession(user.id.toString(), {
@@ -132,9 +132,12 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
             role: user.role
         };
 
+        // Also include the token in the response body so browsers running on a different
+        // frontend origin can persist a client-side cookie or header if needed.
         res.json({
             message: "Login successful",
-            user: userWithoutPassword
+            user: userWithoutPassword,
+            token
         });
     } catch (error) {
         // Forward the error to Express error handlers so a proper status/code is returned
@@ -170,8 +173,14 @@ export const logoutUser = async (req: Request, res: Response) => {
 // CURRENT USER
 export const getCurrentUser = (req: Request, res: Response) => {
     try {
-        // Get token from cookies
-        const token = getTokenFromCookies(req.cookies);
+        // Get token from cookies or Authorization header as a fallback
+        let token = getTokenFromCookies(req.cookies);
+        if (!token) {
+            const authHeader = req.headers['authorization'] || req.headers['Authorization'];
+            if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+                token = authHeader.slice(7);
+            }
+        }
 
         if (!token) {
             return res.status(401).json({ message: "Not authenticated" });
