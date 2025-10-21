@@ -12,6 +12,7 @@ import dashboardRoutes from "../routes/dashboardRoutes.js";
 import progressRoutes from "../routes/progressRoutes.js";
 import profileRoutes from "../routes/profileRoutes.js";
 import cacheRoutes from "../routes/cacheRoutes.js";
+import subscriptionRoutes from "../routes/subscriptionRoutes.js";
 import { connectPrisma } from "../lib/prisma.js";
 import { connectRedis } from "../lib/redis.js";
 
@@ -63,6 +64,7 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/progress", progressRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/cache", cacheRoutes);
+app.use("/api/subscription", subscriptionRoutes);
 
 // Initialize Prisma connection and start server
 const startServer = async () => {

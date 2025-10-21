@@ -6,6 +6,8 @@ import CodingSandbox from "./pages/CodingSandbox"
 import Feedback from "./pages/Feedback"
 import EnhancedFeedback from "./pages/EnhancedFeedback"
 import LandingPage from "./pages/LandingPage"
+import SuccessPage from "./pages/successpage"
+import CancelPage from "./pages/cancelpage"
 import { Routes, Route, Navigate } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import InterviewSetup from "./pages/InterviewSetup";
@@ -16,6 +18,7 @@ import ForgotPassword from "./pages/ForgotPassword"
 import EmailVerification from "./pages/EmailVerification"
 import ResetPassword from "./pages/ResetPassword"
 import RegisterVerify from "./pages/RegisterVerify"
+import { Toaster } from "./components/ui/toaster"
 
 function App() {
   return (
@@ -86,9 +89,23 @@ function App() {
           </ProtectedRoute>
         } />
 
+        {/* Subscription Success/Cancel Pages */}
+        <Route path='/success' element={
+          <ProtectedRoute>
+            <SuccessPage />
+          </ProtectedRoute>
+        } />
+
+        <Route path='/cancel' element={
+          <ProtectedRoute>
+            <CancelPage />
+          </ProtectedRoute>
+        } />
+
         {/* Redirect any unknown routes to login */}
         <Route path='*' element={<Navigate to='/login' replace />} />
       </Routes>
+      <Toaster />
     </>
   )
 }

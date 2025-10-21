@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useCreateInterviewSession, useStartTextInterview } from '../hooks/useInterview'
 import { useAuth } from '../contexts/useAuthContext'
+import { useSubscriptionStatus } from '../hooks/useSubscription'
+import { useToast } from '@/hooks/use-toast'
 import type { InterviewConfig, Difficulty, InterviewFormat } from '../domain/entities'
 import {
     PlayCircle,
@@ -24,12 +26,19 @@ import {
     Zap,
     Monitor,
     Server,
-    PieChart
+    PieChart,
+    Lock,
+    Crown
 } from 'lucide-react'
 
 const InterviewSetup = () => {
     const navigate = useNavigate()
     const { user } = useAuth()
+    const { toast } = useToast()
+    const { data: subscription } = useSubscriptionStatus()
+    const userPlan = subscription?.planType || 'FREE'
+    const isPro = userPlan === 'PRO'
+    
     const createSession = useCreateInterviewSession()
     // Prefer optimized start for faster UX
     // useOptimizedStartTextInterview is provided in hooks/useOptimizedInterview
@@ -194,26 +203,51 @@ const InterviewSetup = () => {
                                 {domains.map((domain) => {
                                     const Icon = domain.icon
                                     const isSelected = config.domain === domain.id
+                                    // FREE users can only access frontend
+                                    const isLocked = !isPro && domain.id !== 'frontend'
 
                                     return (
                                         <div
                                             key={domain.id}
-                                            className={`group relative p-6 rounded-2xl border-2 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-105 ${isSelected
-                                                ? 'border-primary bg-gradient-to-br from-primary/10 to-primary/5 shadow-md'
-                                                : 'border-border hover:border-primary/50 bg-gradient-to-br from-card to-muted/20'
-                                                }`}
-                                            onClick={() => setConfig(prev => ({ ...prev, domain: domain.id }))}
+                                            className={`group relative p-6 rounded-2xl border-2 cursor-pointer transition-all duration-300 ${
+                                                isLocked 
+                                                    ? 'border-border bg-muted/20 opacity-60 cursor-not-allowed' 
+                                                    : isSelected
+                                                        ? 'border-primary bg-gradient-to-br from-primary/10 to-primary/5 shadow-md hover:shadow-lg hover:scale-105'
+                                                        : 'border-border hover:border-primary/50 bg-gradient-to-br from-card to-muted/20 hover:shadow-lg hover:scale-105'
+                                            }`}
+                                            onClick={() => {
+                                                if (isLocked) {
+                                                    toast({
+                                                        variant: "destructive",
+                                                        title: "Pro Feature Required",
+                                                        description: "Upgrade to Pro to access all 5 role specializations. Free plan users can only access Frontend Development.",
+                                                    });
+                                                    setTimeout(() => navigate('/pricing'), 1500);
+                                                    return;
+                                                }
+                                                setConfig(prev => ({ ...prev, domain: domain.id }))
+                                            }}
                                         >
                                             <div className="flex flex-col items-start gap-3">
                                                 <div className={`p-3 rounded-xl bg-${domain.color}-500/10 group-hover:bg-${domain.color}-500/20 transition-colors`}>
                                                     <Icon className={`h-6 w-6 text-${domain.color}-500`} />
                                                 </div>
                                                 <div>
-                                                    <h4 className="font-semibold text-lg mb-1">{domain.name}</h4>
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <h4 className="font-semibold text-lg">{domain.name}</h4>
+                                                        {isLocked && <Lock className="h-4 w-4 text-muted-foreground" />}
+                                                    </div>
                                                     <p className="text-sm text-muted-foreground">{domain.description}</p>
+                                                    {isLocked && (
+                                                        <div className="mt-2 flex items-center gap-1">
+                                                            <Crown className="h-3 w-3 text-yellow-500" />
+                                                            <span className="text-xs text-yellow-600 dark:text-yellow-400 font-medium">Pro Only</span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
-                                            {isSelected && (
+                                            {isSelected && !isLocked && (
                                                 <div className="absolute top-4 right-4">
                                                     <CheckCircle className="h-5 w-5 text-primary" />
                                                 </div>
@@ -238,26 +272,51 @@ const InterviewSetup = () => {
                                 {interviewTypes.map((type) => {
                                     const Icon = type.icon
                                     const isSelected = config.interviewType === type.id
+                                    // System design is PRO-only (custom scenario)
+                                    const isLocked = !isPro && type.id === 'system-design'
 
                                     return (
                                         <div
                                             key={type.id}
-                                            className={`group relative p-6 rounded-2xl border-2 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-105 ${isSelected
-                                                ? 'border-primary bg-gradient-to-br from-primary/10 to-primary/5 shadow-md'
-                                                : 'border-border hover:border-primary/50 bg-gradient-to-br from-card to-muted/20'
-                                                }`}
-                                            onClick={() => setConfig(prev => ({ ...prev, interviewType: type.id }))}
+                                            className={`group relative p-6 rounded-2xl border-2 cursor-pointer transition-all duration-300 ${
+                                                isLocked 
+                                                    ? 'border-border bg-muted/20 opacity-60 cursor-not-allowed' 
+                                                    : isSelected
+                                                        ? 'border-primary bg-gradient-to-br from-primary/10 to-primary/5 shadow-md hover:shadow-lg hover:scale-105'
+                                                        : 'border-border hover:border-primary/50 bg-gradient-to-br from-card to-muted/20 hover:shadow-lg hover:scale-105'
+                                            }`}
+                                            onClick={() => {
+                                                if (isLocked) {
+                                                    toast({
+                                                        variant: "destructive",
+                                                        title: "Pro Feature Required",
+                                                        description: "System Design interviews are a Pro feature. Upgrade to access custom interview scenarios.",
+                                                    });
+                                                    setTimeout(() => navigate('/pricing'), 1500);
+                                                    return;
+                                                }
+                                                setConfig(prev => ({ ...prev, interviewType: type.id }))
+                                            }}
                                         >
                                             <div className="flex flex-col items-start gap-3">
                                                 <div className={`p-3 rounded-xl bg-${type.color}-500/10 group-hover:bg-${type.color}-500/20 transition-colors`}>
                                                     <Icon className={`h-6 w-6 text-${type.color}-500`} />
                                                 </div>
                                                 <div>
-                                                    <h4 className="font-semibold text-lg mb-1">{type.name}</h4>
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <h4 className="font-semibold text-lg">{type.name}</h4>
+                                                        {isLocked && <Lock className="h-4 w-4 text-muted-foreground" />}
+                                                    </div>
                                                     <p className="text-sm text-muted-foreground">{type.description}</p>
+                                                    {isLocked && (
+                                                        <div className="mt-2 flex items-center gap-1">
+                                                            <Crown className="h-3 w-3 text-yellow-500" />
+                                                            <span className="text-xs text-yellow-600 dark:text-yellow-400 font-medium">Pro Only</span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
-                                            {isSelected && (
+                                            {isSelected && !isLocked && (
                                                 <div className="absolute top-4 right-4">
                                                     <CheckCircle className="h-5 w-5 text-primary" />
                                                 </div>
@@ -418,25 +477,54 @@ const InterviewSetup = () => {
                                 <div className="space-y-3">
                                     {difficultyLevels.map((level) => {
                                         const isSelected = config.difficulty === level.id
+                                        // Advanced difficulty is PRO-only
+                                        const isLocked = !isPro && level.id === 'Advanced'
 
                                         return (
                                             <div
                                                 key={level.id}
-                                                className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 hover:shadow-md ${isSelected
-                                                    ? 'border-primary bg-gradient-to-r from-primary/10 to-primary/5'
-                                                    : 'border-border hover:border-primary/50'
-                                                    }`}
-                                                onClick={() => setConfig(prev => ({ ...prev, difficulty: level.id as Difficulty }))}
+                                                className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
+                                                    isLocked
+                                                        ? 'border-border bg-muted/20 opacity-60 cursor-not-allowed'
+                                                        : isSelected
+                                                            ? 'border-primary bg-gradient-to-r from-primary/10 to-primary/5 hover:shadow-md'
+                                                            : 'border-border hover:border-primary/50 hover:shadow-md'
+                                                }`}
+                                                onClick={() => {
+                                                    if (isLocked) {
+                                                        toast({
+                                                            variant: "destructive",
+                                                            title: "Pro Feature Required",
+                                                            description: "Advanced difficulty interviews are a Pro feature. Upgrade to unlock senior-level challenges.",
+                                                        });
+                                                        setTimeout(() => navigate('/pricing'), 1500);
+                                                        return;
+                                                    }
+                                                    setConfig(prev => ({ ...prev, difficulty: level.id as Difficulty }))
+                                                }}
                                             >
                                                 <div className="flex items-center justify-between">
-                                                    <div>
-                                                        <h4 className="font-semibold">{level.name}</h4>
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <h4 className="font-semibold">{level.name}</h4>
+                                                            {isLocked && (
+                                                                <>
+                                                                    <Lock className="h-4 w-4 text-muted-foreground" />
+                                                                    <span className="text-xs text-yellow-600 dark:text-yellow-400 font-medium flex items-center gap-1">
+                                                                        <Crown className="h-3 w-3 text-yellow-500" />
+                                                                        Pro Only
+                                                                    </span>
+                                                                </>
+                                                            )}
+                                                        </div>
                                                         <p className="text-sm text-muted-foreground">{level.description}</p>
                                                     </div>
-                                                    <div className={`w-4 h-4 rounded-full border-2 ${isSelected ? 'bg-primary border-primary' : 'border-muted-foreground'
-                                                        }`}>
-                                                        {isSelected && <div className="w-full h-full rounded-full bg-white scale-50" />}
-                                                    </div>
+                                                    {!isLocked && (
+                                                        <div className={`w-4 h-4 rounded-full border-2 ${isSelected ? 'bg-primary border-primary' : 'border-muted-foreground'
+                                                            }`}>
+                                                            {isSelected && <div className="w-full h-full rounded-full bg-white scale-50" />}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         )

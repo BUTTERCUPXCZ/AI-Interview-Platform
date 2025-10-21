@@ -76,15 +76,38 @@ export async function generateQuestions(domain: string, difficulty: string, inte
 export async function evaluateAnswer(question: string, answer: string) {
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
     const prompt = `
-        Evaluate this answer to an interview question.
+        Evaluate this answer to an interview question in detail.
         Question: ${question}
         Answer: ${answer}
+
+        Provide specific, detailed feedback with examples of what was good and what could be improved.
 
         IMPORTANT: Return ONLY a valid JSON object, no markdown formatting or code blocks.
         Return JSON:
         {
             "score": number (0-10),
-            "aiEvaluation": "short feedback"
+            "aiEvaluation": "Detailed feedback with specific insights"
+        }
+    `;
+    const result = await model.generateContent(prompt);
+    return parseGeminiResponse(result.response.text());
+}
+
+// Basic Gemini evaluation for FREE plan users - simpler, shorter feedback
+export async function evaluateAnswerBasic(question: string, answer: string) {
+    const model = genAI.getGenerativeModel({ model: MODEL_NAME });
+    const prompt = `
+        Evaluate this answer briefly.
+        Question: ${question}
+        Answer: ${answer}
+
+        Provide a simple score and short feedback (1-2 sentences only). Keep it basic and concise.
+
+        IMPORTANT: Return ONLY a valid JSON object, no markdown formatting or code blocks.
+        Return JSON:
+        {
+            "score": number (0-10),
+            "aiEvaluation": "Brief feedback (max 2 sentences)"
         }
     `;
     const result = await model.generateContent(prompt);
@@ -94,16 +117,41 @@ export async function evaluateAnswer(question: string, answer: string) {
 export async function analyzeSession(qaList: unknown[]) {
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
     const prompt = `
-        Analyze this interview session:
+        Analyze this interview session in detail:
         ${JSON.stringify(qaList)}
+
+        Provide comprehensive, detailed feedback with specific examples and actionable insights.
+        Include specific areas of strength, detailed weaknesses, and concrete improvement steps.
 
         IMPORTANT: Return ONLY a valid JSON object, no markdown formatting or code blocks.
         Return JSON:
         {
             "overallScore": number,
-            "strengths": "string",
-            "weaknesses": "string",
-            "improvementTips": "string"
+            "strengths": "Detailed analysis of what the candidate did well, with specific examples from their answers",
+            "weaknesses": "In-depth analysis of areas needing improvement, with specific examples from their answers",
+            "improvementTips": "Comprehensive, actionable recommendations with specific steps and resources to improve"
+        }
+    `;
+    const result = await model.generateContent(prompt);
+    return parseGeminiResponse(result.response.text());
+}
+
+// Basic Gemini analysis for FREE plan users - simpler, shorter overall feedback
+export async function analyzeSessionBasic(qaList: unknown[]) {
+    const model = genAI.getGenerativeModel({ model: MODEL_NAME });
+    const prompt = `
+        Analyze this interview session briefly:
+        ${JSON.stringify(qaList)}
+
+        Provide a basic summary. Keep it simple and concise (2-3 sentences per section).
+
+        IMPORTANT: Return ONLY a valid JSON object, no markdown formatting or code blocks.
+        Return JSON:
+        {
+            "overallScore": number,
+            "strengths": "Brief summary of strengths (2-3 sentences)",
+            "weaknesses": "Brief summary of weaknesses (2-3 sentences)",
+            "improvementTips": "Simple improvement tips (2-3 sentences)"
         }
     `;
     const result = await model.generateContent(prompt);

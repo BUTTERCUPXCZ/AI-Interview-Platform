@@ -73,6 +73,12 @@ enum ExperienceLevel {
   EXPERT
 }
 
+
+enum PlanType {
+  FREE
+  PRO
+}
+
 // ============================================
 // USER MODEL
 // ============================================
@@ -117,6 +123,7 @@ model User {
   // Relationships
   sessions     InterviewSession[]
   userSkills   UserSkill[]
+  plan                   PlanType @default(FREE)
   subscription Subscription?
 }
 
@@ -277,12 +284,19 @@ model AIAnalysis {
 // SUBSCRIPTION MODEL (For SaaS Monetization)
 // ============================================
 model Subscription {
-  id        Int       @id @default(autoincrement())
-  userId    Int       @unique
-  planType  String    @default("FREE") // e.g., FREE, PRO
-  startDate DateTime  @default(now())
-  endDate   DateTime?
-  isActive  Boolean   @default(true)
+  id                     Int       @id @default(autoincrement())
+  userId                 Int       @unique
+  planType               PlanType  @default(FREE) // FREE, PRO
+  stripeCustomerId       String?   @unique // Stripe customer ID
+  stripeSubscriptionId   String?   @unique // Stripe subscription ID
+  stripePriceId          String? // Stripe price ID
+  stripeCurrentPeriodEnd DateTime? // Current billing period end
+  startDate              DateTime  @default(now())
+  endDate                DateTime?
+  isActive               Boolean   @default(true)
+  cancelAtPeriodEnd      Boolean   @default(false) // If user canceled but still has access until period end
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

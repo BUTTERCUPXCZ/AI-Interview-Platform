@@ -4,12 +4,16 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from './ui/badge';
 import { motion } from 'framer-motion';
 import { useInView } from 'framer-motion';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
+import { useSubscription } from '@/hooks/useSubscription';
+import { useAuth } from '@/contexts/useAuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const plans = [
   {
     name: 'Free',
     price: '$0',
+    priceId: 'price_1SKUgaBQ6sV3m28sv4RkRPpI',
     description: 'Perfect for getting started',
     features: [
       '2 practice interview per week',
@@ -24,6 +28,7 @@ const plans = [
   {
     name: 'Pro',
     price: '$29',
+    priceId: 'price_1SKUizBQ6sV3m28s7eCCJGQw',
     description: 'For serious job seekers',
     features: [
       'Unlimited practice interviews',
@@ -40,6 +45,7 @@ const plans = [
   {
     name: 'Team',
     price: '$99',
+    priceId: undefined, // Team plan uses contact sales
     description: 'For teams and organizations',
     features: [
       'Everything in Pro',
@@ -76,8 +82,43 @@ const itemVariants = {
 export function Pricing() {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: '-100px' });
+  const { createCheckout } = useSubscription();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState<string | null>(null);
 
-  return (
+  const handleSubscribe = async (plan: typeof plans[0]) => {
+    try {
+      setLoading(plan.name);
+
+      // If user is not logged in, redirect to login
+      if (!user) {
+        navigate('/login');
+        return;
+      }
+
+      // Handle Free plan - just redirect to dashboard
+      if (plan.name === 'Free') {
+        navigate('/dashboard');
+        return;
+      }
+
+      // Handle Pro plan - create Stripe checkout
+      if (plan.name === 'Pro' && plan.priceId) {
+        await createCheckout(plan.priceId);
+      }
+
+      // Team plan - contact sales (you can implement this later)
+      if (plan.name === 'Team') {
+        window.location.href = 'mailto:sales@acedevai.com?subject=Team Plan Inquiry';
+      }
+    } catch (error) {
+      console.error('Subscription error:', error);
+      alert('Failed to process subscription. Please try again.');
+    } finally {
+      setLoading(null);
+    }
+  };  return (
     <section id="pricing" className="relative py-24 px-4 bg-background overflow-hidden">
       {/* Background gradient */}
       <div className="absolute inset-0 bg-gradient-to-b from-background via-background/50 to-background pointer-events-none" />
@@ -149,8 +190,10 @@ export function Pricing() {
                     }`}
                     variant={plan.popular ? 'default' : 'outline'}
                     size="lg"
+                    onClick={() => handleSubscribe(plan)}
+                    disabled={loading === plan.name}
                   >
-                    {plan.cta}
+                    {loading === plan.name ? 'Loading...' : plan.cta}
                   </Button>
                 </CardFooter>
               </Card>

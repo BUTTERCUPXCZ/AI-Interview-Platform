@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { prisma } from "../lib/prisma.js";
-import { analyzeSession } from "../services/geminiService.js";
+import { analyzeSession, analyzeSessionBasic } from "../services/geminiService.js";
 import { generateComprehensiveFeedback, QuestionAnalysis } from "../services/feedbackService.js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { CacheService } from "../services/cacheService.js";
@@ -137,12 +137,31 @@ export const generateAIFeedback = async (req: Request, res: Response) => {
     try {
         const { sessionId } = req.params;
 
+        // Get user's plan
+        const session = await prisma.interviewSession.findUnique({
+            where: { id: Number(sessionId) },
+            select: { userId: true }
+        });
+
+        if (!session) {
+            return res.status(404).json({ error: "Session not found" });
+        }
+
+        const subscription = await prisma.subscription.findUnique({ 
+            where: { userId: session.userId } 
+        });
+        const userPlan = subscription?.planType ?? 'FREE';
+        const isPro = userPlan === 'PRO';
+
         const questions = await prisma.interviewQuestion.findMany({
             where: { sessionId: Number(sessionId) },
             select: { questionText: true, userAnswer: true, score: true, aiEvaluation: true },
         });
 
-        const aiReport = await analyzeSession(questions);
+        // Use different analysis based on plan
+        const aiReport = isPro 
+            ? await analyzeSession(questions) // Detailed analysis for Pro
+            : await analyzeSessionBasic(questions); // Basic analysis for Free
 
         const feedback = await prisma.aIAnalysis.create({
             data: {
@@ -205,10 +224,29 @@ export const getFeedback = async (req: Request, res: Response) => {
     }
 };
 
-// Generate comprehensive feedback using the new feedback service
+// Generate comprehensive feedback using the new feedback service (PRO ONLY)
 export const generateComprehensiveSessionFeedback = async (req: Request, res: Response) => {
     try {
         const { sessionId } = req.params;
+
+        // Get user's plan
+        const userId = (req as any).user?.id;
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        const subscription = await prisma.subscription.findUnique({ where: { userId } });
+        const userPlan = subscription?.planType ?? 'FREE';
+
+        // ==================== PRO FEATURE CHECK ====================
+        if (userPlan !== 'PRO') {
+            return res.status(403).json({ 
+                error: 'Upgrade to Pro for advanced feedback',
+                message: 'Detailed performance analytics and comprehensive feedback are Pro features. Free users receive basic AI feedback.',
+                requiredPlan: 'PRO',
+                feature: 'Advanced AI Feedback & Analysis'
+            });
+        }
 
         // Get session data with questions
         const session = await prisma.interviewSession.findUnique({
@@ -366,10 +404,29 @@ function determineCategoryFromQuestion(questionText: string, domain: string, int
     return "general";
 }
 
-// Analyze interviewer behavior and communication
+// Analyze interviewer behavior and communication (PRO ONLY)
 export const analyzeInterviewerBehavior = async (req: Request, res: Response) => {
     try {
         const { sessionId } = req.params;
+
+        // Get user's plan
+        const userId = (req as any).user?.id;
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        const subscription = await prisma.subscription.findUnique({ where: { userId } });
+        const userPlan = subscription?.planType ?? 'FREE';
+
+        // ==================== PRO FEATURE CHECK ====================
+        if (userPlan !== 'PRO') {
+            return res.status(403).json({ 
+                error: 'Upgrade to Pro for detailed analytics',
+                message: 'Interviewer behavior analysis and detailed performance analytics are Pro features.',
+                requiredPlan: 'PRO',
+                feature: 'Detailed Performance Analytics'
+            });
+        }
 
         // Get session data with questions
         const session = await prisma.interviewSession.findUnique({
@@ -501,10 +558,29 @@ async function generateGeminiInterviewerAnalysis(session: InterviewSessionShort)
     }
 }
 
-// Generate AI-powered career recommendations
+// Generate AI-powered career recommendations (PRO ONLY)
 export const generateAICareerRecommendations = async (req: Request, res: Response) => {
     try {
         const { sessionId } = req.params;
+
+        // Get user's plan
+        const userId = (req as any).user?.id;
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        const subscription = await prisma.subscription.findUnique({ where: { userId } });
+        const userPlan = subscription?.planType ?? 'FREE';
+
+        // ==================== PRO FEATURE CHECK ====================
+        if (userPlan !== 'PRO') {
+            return res.status(403).json({ 
+                error: 'Upgrade to Pro for career recommendations',
+                message: 'AI-powered career recommendations and detailed analytics are Pro features.',
+                requiredPlan: 'PRO',
+                feature: 'Detailed Performance Analytics'
+            });
+        }
 
         // Fetch session details
         const session = await prisma.interviewSession.findUnique({
