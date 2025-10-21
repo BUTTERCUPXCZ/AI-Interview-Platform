@@ -8,12 +8,23 @@ interface AuthenticatedRequest extends Request {
 
 /**
  * Middleware to verify JWT authentication
- * Checks for valid JWT token in HTTP-only cookies
+ * Checks for valid JWT token in HTTP-only cookies, and falls back to
+ * Authorization: Bearer <token> header if the cookie is not present.
+ * This makes the middleware tolerant to cross-origin setups where the
+ * client attaches an Authorization header instead of relying on cookies.
  */
 export const isAuthenticated = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-        // Get token from cookies
-        const token = getTokenFromCookies(req.cookies);
+        // Try getting token from cookies first
+        let token = getTokenFromCookies(req.cookies);
+
+        // If no cookie token, check Authorization header for Bearer token
+        if (!token) {
+            const authHeader = req.headers['authorization'] || req.headers['Authorization'];
+            if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+                token = authHeader.slice(7);
+            }
+        }
 
         if (!token) {
             return res.status(401).json({ message: "Access denied. No token provided." });

@@ -17,7 +17,7 @@ export function Footer() {
           animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
           transition={{ duration: 0.6 }}
         >
-          <div className="font-bold text-2xl text-[#00e676] mb-3">AceDevAI</div>
+          <div className="font-bold text-2xl text-white mb-3">AceDev<span className='text-[#00e676]'>AI</span></div>
           <p className="mt-2 text-base text-white/80 max-w-2xl mx-auto">
             Empowering tech enthusiasts to ace their interviews and land dream jobs.
           </p>

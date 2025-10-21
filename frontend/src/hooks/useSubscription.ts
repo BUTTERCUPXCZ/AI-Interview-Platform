@@ -1,14 +1,10 @@
-import axios from 'axios';
+import api from '../api/api';
 import { useQuery } from '@tanstack/react-query';
 
 export const useSubscription = () => {
     const createCheckout = async (priceId: string, planType: 'FREE' | 'PRO' = 'PRO') => {
         // Call backend to create checkout session
-        const resp = await axios.post(
-            `${import.meta.env.VITE_API_BASE_URL}/subscription/create-checkout`, 
-            { priceId, planType }, 
-            { withCredentials: true }
-        );
+        const resp = await api.post(`/subscription/create-checkout`, { priceId, planType });
         
         const { url, success } = resp.data;
 
@@ -33,10 +29,7 @@ export const useSubscriptionStatus = () => {
     return useQuery({
         queryKey: ['subscription-status'],
         queryFn: async () => {
-            const response = await axios.get(
-                `${import.meta.env.VITE_API_BASE_URL}/subscription/status`,
-                { withCredentials: true }
-            );
+            const response = await api.get('/subscription/status');
             return response.data;
         },
         staleTime: 10 * 1000, // Cache for 10 seconds (reduced from 5 minutes for faster updates)
