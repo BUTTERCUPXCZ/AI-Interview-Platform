@@ -1,18 +1,10 @@
-import React, { createContext } from "react";
+import React from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import api, { getClientTokenCookie } from "@/api/api";
 import type { AuthUser } from "@/hooks/useAuth";
-
-interface AuthContextType {
-  user: AuthUser | null;
-  isLoading: boolean;
-  isAuthenticated: boolean;
-  logout: () => void;
-  refetchUser: () => void;
-}
-
-export const AuthContext = createContext<AuthContextType | undefined>(undefined);
+import { AuthContext } from "./AuthContextValue";
+import type { AuthContextType } from "./AuthContextValue";
 
 // Fetch user from backend
 const fetchCurrentUser = async (): Promise<AuthUser | null> => {
