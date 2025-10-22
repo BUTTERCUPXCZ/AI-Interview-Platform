@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CheckCircle, ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import axios from 'axios';
+import api from '@/api/api';
 import { useToast } from '@/hooks/use-toast';
 
 const SuccessPage = () => {
@@ -20,7 +20,7 @@ const SuccessPage = () => {
         const syncSubscription = async () => {
       try {
         console.log('🔄 Syncing subscription after successful payment...');
-        const response = await axios.post(
+        const response = await api.post(
           `${import.meta.env.VITE_API_BASE_URL}/subscription/sync`,
           { sessionId },
           { withCredentials: true }
