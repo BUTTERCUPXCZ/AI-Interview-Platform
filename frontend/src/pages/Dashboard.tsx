@@ -9,6 +9,7 @@ import { useSubscriptionStatus } from '@/hooks/useSubscription'
 import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import axios from 'axios'
+import api from '@/api/api'
 import { useToast } from '@/hooks/use-toast'
 import { useQueryClient } from '@tanstack/react-query'
 import {
@@ -44,7 +45,7 @@ const Dashboard = () => {
     const handleSyncSubscription = async () => {
         setIsSyncing(true);
         try {
-            const response = await axios.post(
+            const response = await api.post(
                 `${import.meta.env.VITE_API_BASE_URL}/subscription/sync`,
                 {},
                 { withCredentials: true }
@@ -60,21 +61,28 @@ const Dashboard = () => {
                 title: "Subscription Synced!",
                 description: `Your ${response.data.currentPlan} plan is now active.`,
             });
-        } catch (error: unknown) {
-            console.error('Sync error:', error);
-            // Narrow error safely. Prefer axios error fields when available.
-            let description = 'Failed to sync subscription';
-            if (axios.isAxiosError(error) && error.response) {
-                const respData = error.response.data as unknown;
-                if (typeof respData === 'object' && respData !== null) {
-                    const maybeError = (respData as Record<string, unknown>)['error'];
-                    if (typeof maybeError === 'string') {
-                        description = maybeError;
+        } catch (err: unknown) {
+            console.error('Sync error:', err);
+
+            const extractErrorMessage = (e: unknown): string => {
+                if (axios.isAxiosError(e)) {
+                    const data = e.response?.data;
+                    // Try several common shapes from the API
+                    if (typeof data === 'string') return data;
+                    if (data && typeof data === 'object') {
+                        const d = data as Record<string, unknown>;
+                        if (typeof d.error === 'string') return d.error;
+                        if (typeof d.message === 'string') return d.message;
                     }
+                    return e.message || 'Network error while syncing subscription';
                 }
-            } else if (error instanceof Error) {
-                description = error.message;
-            }
+
+                if (err instanceof Error) return err.message;
+                if (typeof err === 'string') return err;
+                return 'Failed to sync subscription';
+            };
+
+            const description = extractErrorMessage(err);
 
             toast({
                 variant: "destructive",
