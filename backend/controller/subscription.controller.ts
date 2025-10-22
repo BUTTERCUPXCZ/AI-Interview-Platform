@@ -145,9 +145,19 @@ export const getSubscriptionStatus = async (req: Request, res: Response): Promis
 
         let response;
         if (!subscription) {
-            console.log(`   → No subscription found, defaulting to FREE`);
+            console.log(`   → No subscription row found in "Subscription" table for user ${userId}. Falling back to user's plan field.`);
+            // If there's no subscription row, prefer the user's `plan` column which may have been
+            // updated previously (for example after a successful sync). This prevents the UI from
+            // showing FREE when the User record already indicates PRO.
+            const userRecord = await prisma.user.findUnique({ where: { id: userId }, select: { plan: true } });
+            const planFromUser = userRecord?.plan || PlanType.FREE;
+
+            console.log(`   → User.plan value: ${planFromUser}`);
+
             response = {
-                planType: PlanType.FREE,
+                planType: planFromUser,
+                // Treat the plan as active if the user has any plan (FREE or PRO). Specific
+                // subscription activity details are not available without a subscription row.
                 isActive: true,
                 cancelAtPeriodEnd: false,
             };
