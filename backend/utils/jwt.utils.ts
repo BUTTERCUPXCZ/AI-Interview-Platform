@@ -4,7 +4,7 @@ import { Response } from "express";
 // JWT Configuration Constants
 const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-jwt-key";
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "3h";
-const COOKIE_NAME = "auth_token";
+const COOKIE_NAME = "client_auth_token";
 const COOKIE_MAX_AGE = 3 * 60 * 60 * 1000; // 3 hours in milliseconds
 
 // User payload interface for JWT
