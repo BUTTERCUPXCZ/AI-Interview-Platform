@@ -14,11 +14,11 @@ export const api = axios.create({
 export const setClientTokenCookie = (token: string | null, maxAgeSeconds = 3 * 60 * 60) => {
     if (!token) {
         // clear cookie
-        document.cookie = `client_auth_token=; Path=/; Max-Age=0; SameSite=Lax`;
+        document.cookie = `client_auth_token=; Path=/; Max-Age=0; SameSite=None; Secure`;
         return;
     }
     // set cookie accessible to JS
-    document.cookie = `client_auth_token=${token}; Path=/; Max-Age=${maxAgeSeconds}; SameSite=Lax`;
+    document.cookie = `client_auth_token=${token}; Path=/; Max-Age=${maxAgeSeconds}; SameSite=None; Secure`;
 };
 
 export const getClientTokenCookie = (): string | null => {
