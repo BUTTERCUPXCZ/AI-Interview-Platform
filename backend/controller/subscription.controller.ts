@@ -10,6 +10,9 @@ import {
 import { PlanType } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
 
+
+const subscriptionCache = new Map<number, { data: any, expiresAt: number }>();
+
 /**
  * Create a Stripe checkout session for Pro plan
  */
@@ -114,45 +117,57 @@ export const createPortalSession = async (req: Request, res: Response): Promise<
 export const getSubscriptionStatus = async (req: Request, res: Response): Promise<void> => {
     try {
         const userId = (req as any).user?.id;
-
         if (!userId) {
             res.status(401).json({ error: 'Unauthorized' });
             return;
         }
 
-        console.log(`📊 Fetching subscription status for user ${userId}`);
-
-        const subscription = await getUserSubscription(userId);
-
-        if (!subscription) {
-            console.log(`   → User ${userId} has no subscription (defaulting to FREE)`);
-            // User has no subscription, return default FREE plan
-            res.json({
-                planType: PlanType.FREE,
-                isActive: true,
-                cancelAtPeriodEnd: false
-            });
+        const now = Date.now();
+        const cached = subscriptionCache.get(userId);
+        if (cached && cached.expiresAt > now) {
+          res.json(cached.data);
             return;
         }
 
-        console.log(`   → User ${userId} subscription found:`, {
-            planType: subscription.planType,
-            isActive: subscription.isActive,
-            cancelAtPeriodEnd: subscription.cancelAtPeriodEnd
+        console.log(`📊 Fetching subscription status for user ${userId}`);
+
+        // ✅ Fetch from DB directly, no Stripe API calls
+        const subscription = await prisma.subscription.findUnique({
+            where: { userId },
+            select: {
+                planType: true,
+                isActive: true,
+                cancelAtPeriodEnd: true,
+                stripeCurrentPeriodEnd: true,
+                startDate: true,
+            },
         });
 
-        res.json({
-            planType: subscription.planType,
-            isActive: subscription.isActive,
-            cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
-            currentPeriodEnd: subscription.stripeCurrentPeriodEnd,
-            startDate: subscription.startDate
+        let response;
+        if (!subscription) {
+            console.log(`   → No subscription found, defaulting to FREE`);
+            response = {
+                planType: PlanType.FREE,
+                isActive: true,
+                cancelAtPeriodEnd: false,
+            };
+        } else {
+            console.log(`   → Subscription found:`, subscription);
+            response = subscription;
+        }
+
+        // Cache result for 2 minutes
+        subscriptionCache.set(userId, {
+            data: response,
+            expiresAt: now + 2 * 60 * 1000,
         });
+
+        res.json(response);
     } catch (error) {
-        console.error('Error fetching subscription status:', error);
-        res.status(500).json({ 
-            error: 'Failed to fetch subscription status',
-            details: error instanceof Error ? error.message : 'Unknown error'
+        console.error("Error fetching subscription status:", error);
+        res.status(500).json({
+            error: "Failed to fetch subscription status",
+            details: error instanceof Error ? error.message : "Unknown error",
         });
     }
 };

@@ -1,42 +1,36 @@
-import axios from 'axios';
-import type { InternalAxiosRequestConfig, AxiosRequestHeaders } from 'axios';
+// src/api/api.ts
+import axios from "axios";
 
-const baseURL = import.meta.env.VITE_API_BASE_URL || ''; // empty = same origin
-
-export const api = axios.create({
-    baseURL,
-    withCredentials: true, // send cookies for cross-site requests when allowed by backend
+// Base axios instance
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:3000/api",
+  withCredentials: true, // IMPORTANT: always send cookies
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
-// Simple client-side cookie helpers for the token. Note: the server also sets
-// an HTTP-only cookie; these helpers are for the optional client-visible token
-// stored so we can attach an Authorization header when needed (e.g. on cross-origin setups).
-export const setClientTokenCookie = (token: string | null, maxAgeSeconds = 3 * 60 * 60) => {
-    if (!token) {
-        // clear cookie
-        document.cookie = `client_auth_token=; Path=/; Max-Age=0; SameSite=None; Secure`;
-        return;
-    }
-    // set cookie accessible to JS
-    document.cookie = `client_auth_token=${token}; Path=/; Max-Age=${maxAgeSeconds}; SameSite=None; Secure`;
-};
-
+// Optional helpers
 export const getClientTokenCookie = (): string | null => {
-    const match = document.cookie.match(/(^|;)\s*client_auth_token=([^;]+)/);
-    return match ? decodeURIComponent(match[2]) : null;
+  const match = document.cookie.match(/(?:^|; )client_auth_token=([^;]*)/);
+  return match ? decodeURIComponent(match[1]) : null;
 };
 
-// Request interceptor: if Authorization header is not set, try to use the client cookie
-api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-    const headers = (config.headers as AxiosRequestHeaders) || {};
-    if (!headers['Authorization'] && !headers['authorization']) {
-        const token = getClientTokenCookie();
-        if (token) {
-            headers['Authorization'] = `Bearer ${token}` as unknown as string;
-        }
-    }
-    config.headers = headers;
-    return config;
+export const setClientTokenCookie = (token: string | null) => {
+  if (token) {
+    document.cookie = `client_auth_token=${token}; path=/; SameSite=None; Secure`;
+  } else {
+    document.cookie = `client_auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+  }
+};
+
+// Attach Authorization header if client-side cookie exists
+api.interceptors.request.use((config) => {
+  const token = getClientTokenCookie();
+  if (token && !config.headers.Authorization) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
 });
 
 export default api;
