@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useAuth } from '@/contexts/useAuthContext'
 import { useDashboardData } from '@/hooks/useDashboard'
-import { useSubscriptionStatus } from '@/hooks/useSubscription'
+import { useSubscriptionStatus, useSubscription } from '@/hooks/useSubscription'
 import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import axios from 'axios'
@@ -37,6 +37,8 @@ const Dashboard = () => {
     const { toast } = useToast();
     const queryClient = useQueryClient();
     const [isSyncing, setIsSyncing] = useState(false);
+    const { createCheckout } = useSubscription();
+    const [isRedirecting, setIsRedirecting] = useState(false);
     
     const userPlan = subscription?.planType || 'FREE';
     const isPro = userPlan === 'PRO';
@@ -91,6 +93,32 @@ const Dashboard = () => {
             });
         } finally {
             setIsSyncing(false);
+        }
+    };
+
+    const handleUpgradeToPro = async () => {
+        // Pro priceId is managed in the Pricing component. Keep this in sync if it changes.
+        const PRO_PRICE_ID = 'price_1SKUizBQ6sV3m28s7eCCJGQw';
+
+        if (!user) {
+            navigate('/login');
+            return;
+        }
+
+        try {
+            setIsRedirecting(true);
+            await createCheckout(PRO_PRICE_ID);
+            // createCheckout will redirect the page when it receives a url from server
+        } catch (err: unknown) {
+            console.error('Checkout error:', err);
+            const message = err instanceof Error ? err.message : 'Failed to start checkout';
+            toast({
+                variant: 'destructive',
+                title: 'Checkout failed',
+                description: message,
+            });
+        } finally {
+            setIsRedirecting(false);
         }
     };
 
@@ -211,8 +239,12 @@ const Dashboard = () => {
                                             ) : (
                                                 <span>
                                                     {remainingInterviews} interviews remaining this week • 
-                                                    <span className="text-primary font-medium ml-1 cursor-pointer hover:underline" onClick={() => navigate('/pricing')}>
-                                                        Upgrade to Pro
+                                                    <span
+                                                        className="text-primary font-medium ml-1 cursor-pointer hover:underline"
+                                                        onClick={handleUpgradeToPro}
+                                                        aria-disabled={isRedirecting}
+                                                    >
+                                                        {isRedirecting ? 'Upgrading...' : 'Upgrade to Pro'}
                                                     </span>
                                                 </span>
                                             )}
@@ -231,9 +263,9 @@ const Dashboard = () => {
                                         {isSyncing ? 'Syncing...' : 'Refresh Plan'}
                                     </Button>
                                     {!isPro && (
-                                        <Button onClick={() => navigate('/pricing')} className="gap-2">
+                                        <Button onClick={handleUpgradeToPro} className="gap-2" disabled={isRedirecting}>
                                             <Crown className="h-4 w-4" />
-                                            Upgrade to Pro
+                                            {isRedirecting ? 'Upgrading...' : 'Upgrade to Pro'}
                                         </Button>
                                     )}
                                 </div>
